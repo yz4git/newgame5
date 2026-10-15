@@ -214,22 +214,68 @@ function deposit(boxes,party,index){
  const where=putInStorage(boxes,party[index]);if(!where)return {ok:false,reason:'ボックスがいっぱい'};
  party.splice(index,1);return {ok:true,box:where};
 }
-function applyEvent(script,state){
- const logs=[],events=state.events||(state.events={});
- for(const step of script){
-  if(step.when&&!events[step.when])continue;
-  if(step.unless&&events[step.unless])continue;
-  switch(step.op){
-   case 'message':logs.push(step.text);break;
-   case 'flag':events[step.key]=true;break;
-   case 'item':state.bag[step.id]=(state.bag[step.id]||0)+Math.max(1,step.count||1);logs.push(step.text||step.id+' を手に入れた！');break;
-   case 'money':state.money=Math.max(0,state.money+(step.amount||0));break;
-   case 'quest':state.quest=step.value;break;
-   case 'badge':state.badge=!!step.value;break;
-  }
- }
- return logs;
+// Declarative event conditions; UI decides presentation while the engine handles state.
+function eventCondition(rule,state){
+ if(!rule)return true;
+ const flags=state.events||{},party=state.party||[];
+ if(rule.all)return rule.all.every(r=>eventCondition(r,state));
+ if(rule.any)return rule.any.some(r=>eventCondition(r,state));
+ if(rule.not)return !eventCondition(rule.not,state);
+ if(rule.flag)return !!flags[rule.flag];
+ if(rule.notFlag)return !flags[rule.notFlag];
+ if(rule.quest)return state.quest===rule.quest;
+ if(rule.badge!==undefined)return !!state.badge===!!rule.badge;
+ if(rule.map)return state.map===rule.map;
+ if(rule.visited)return !!state.visited?.[rule.visited];
+ if(rule.item)return (state.bag?.[rule.item]||0)>=(rule.count||1);
+ if(rule.caughtAtLeast!==undefined)return Object.keys(state.caught||{}).length>=rule.caughtAtLeast;
+ if(rule.trainersAtLeast!==undefined)return Object.keys(state.defeated||{}).length>=rule.trainersAtLeast;
+ if(rule.moneyAtLeast!==undefined)return (state.money||0)>=rule.moneyAtLeast;
+ if(rule.partyAtLeast!==undefined)return party.length>=rule.partyAtLeast;
+ return true;
 }
+function runEvent(script,state){
+ const out={messages:[],choices:null,warp:null,battle:null};
+ const events=state.events||(state.events={});
+ const execute=steps=>{
+  for(const step of steps||[]){
+   if(step.when&&!events[step.when])continue;
+   if(step.unless&&events[step.unless])continue;
+   if(!eventCondition(step.condition,state))continue;
+   if(step.op==='branch'){
+    if(execute(eventCondition(step.test,state)?step.then:step.else))return true;
+    continue;
+   }
+   switch(step.op){
+    case 'message':out.messages.push(String(step.text||''));break;
+    case 'flag':events[step.key]=step.value!==false;break;
+    case 'clearFlag':delete events[step.key];break;
+    case 'item':{
+     const count=Math.max(1,Math.floor(step.count||1));
+     state.bag=state.bag||{};state.bag[step.id]=(state.bag[step.id]||0)+count;
+     out.messages.push(step.text||step.id+' を '+count+'個手に入れた！');
+     break;
+    }
+    case 'takeItem':{
+     const count=Math.max(1,Math.floor(step.count||1));
+     if((state.bag?.[step.id]||0)>=count){state.bag[step.id]-=count;if(step.text)out.messages.push(step.text)}
+     break;
+    }
+    case 'money':state.money=Math.max(0,(state.money||0)+(step.amount||0));if(step.text)out.messages.push(step.text);break;
+    case 'quest':state.quest=step.value;break;
+    case 'badge':state.badge=!!step.value;break;
+    case 'heal':for(const m of state.party||[]){m.hp=m.maxHp;m.status='';m.statusTurns=0;if(step.moves)for(const name of m.moves||[])m.pp[name]=step.moves[name]?.pp||m.pp[name]||20}if(step.text)out.messages.push(step.text);break;
+    case 'choice':out.choices=(step.options||[]).filter(x=>eventCondition(x.condition,state)).map(x=>({text:x.text,steps:x.steps||[]}));return true;
+    case 'warp':out.warp=step.destination;return true;
+    case 'battle':out.battle=step.party;return true;
+   }
+  }
+  return false;
+ };
+ execute(script);
+ return out;
+}
+function applyEvent(script,state){return runEvent(script,state).messages}
 function migrateSave(save,species,moves,rng=Math.random){
  const next={...save,party:(save.party||[]).filter(m=>species[m.id]).map(m=>normalize(m,species,moves,rng)),
    boxes:fixBoxes(save.boxes),saveVersion:2};
@@ -237,5 +283,5 @@ function migrateSave(save,species,moves,rng=Math.random){
  if(!next.events||typeof next.events!=='object')next.events={};
  return next;
 }
-return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
+return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,runEvent,eventCondition,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
 });
