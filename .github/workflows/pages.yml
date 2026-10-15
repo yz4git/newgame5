@@ -48,6 +48,8 @@ jobs:
           mkdir -p _site/src
           cp index.html manifest.json icon.svg _site/
           cp src/rpg-engine.js _site/src/
+          sed -i "s/__BUILD_ID__/$BUILD_ID/g" _site/index.html
+          if grep -q "__BUILD_ID__" _site/index.html; then exit 1; fi
           touch _site/.nojekyll
           printf '{"buildId":"%s"}\n' "$BUILD_ID" > _site/version.json
           cat > _site/latest.html <<'EOF'
