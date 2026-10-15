@@ -36,6 +36,8 @@ jobs:
           new vm.Script(match[1], {filename: 'game.js'});
           console.log('ASTRA TALES JavaScript syntax OK');
           NODE
+      - name: Game regression smoke tests
+        run: node tests/smoke.cjs
       - name: Prepare versioned static site
         env:
           BUILD_ID: ${{ github.sha }}
