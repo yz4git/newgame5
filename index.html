@@ -232,7 +232,8 @@ highland:[
 {x:12,y:18,name:'山登り ツバサ',kind:'trainer',facing:'down',vision:4,color:'#d6a97e',party:[['crag',11],['sparkit',12]],reward:640,say:'高いところから見る星は格別だぜ！'},
 {x:7,y:8,name:'星読み サヨ',kind:'trainer',facing:'right',vision:4,color:'#cebad3',party:[['lumin',12],['shade',12],['orchid',13]],reward:730,say:'星の導きが、どちらを選ぶか見てみましょう。'},
 {x:20,y:12,name:'古びた道具箱',kind:'item',item:'potion',amount:3,color:'#f2dec1'},
-{x:12,y:5,name:'高原の石碑',kind:'script',script:'starPillar',color:'#bcbcc6'}],
+{x:12,y:5,name:'高原の石碑',kind:'script',script:'starPillar',color:'#bcbcc6'},
+{x:18,y:19,name:'星の試練官 マコト',kind:'script',script:'astralTrial',color:'#e1c29b'}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'script',script:'labAssistant',color:'#a4b9a3'}]
@@ -268,6 +269,12 @@ labAssistant:[
   ]}
  ]}
 ],
+astralTrial:[
+ {op:'branch',test:{flag:'trial_complete'},then:[{op:'message',text:'見事だったよ。星霊を育て続ければ、きっともっと強くなれる！'}],else:[
+  {op:'message',text:'ここまで来た旅人なら、最後に私と腕試しをしよう！'},
+  {op:'battle',party:[['sparkit',11],['crag',12],['shade',11]],name:'試練官 マコト',key:'highland/trial',reward:780,winFlag:'trial_complete'}
+ ]}
+],
 starPillar:[
  {op:'branch',test:{flag:'highland_reward'},then:[{op:'message',text:'星の光は、これからも君の旅を照らすだろう。'}],else:[
   {op:'branch',test:{all:[{badge:true},{trainersAtLeast:5}]},then:[
@@ -283,6 +290,14 @@ function runNpcScript(name,script){
  save();
  if(result.warp){switchMap(result.warp);return}
  const msg=result.messages.join('\n')||'静かな風が吹いている。';
+ if(result.battle){
+  const trial=result.battle,launch=()=>startBattle(trial.party.map(([id,l])=>makeMonster(id,l)),{
+   trainer:true,npc:{name:trial.name||name,kind:'trial',eventOnWin:trial.winFlag},
+   trainerKey:trial.key||'script/'+name,reward:trial.reward||0
+  });
+  dialog(name,msg,[{text:'⚔ 勝負する',on:launch},{text:'↶ またあとで',on:()=>world()}]);
+  return;
+ }
  if(result.choices?.length){
   dialog(name,msg,result.choices.map(option=>({text:option.text,on:()=>runNpcScript(name,option.steps)})).concat([{text:'↶ やめる',on:()=>world()}]));
  }else dialog(name,msg);
@@ -456,7 +471,7 @@ if(news.length)battleMessage('経験値獲得！ '+news.join(' / '),next,1200);e
 }
 function victory(){const b=state.battle;if(!b)return;
 let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利！ 仲間に経験値が入った！';
-if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
+if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;if(!state.battle.participants.includes(idx))state.battle.participants.push(idx);battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
 function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
