@@ -32,7 +32,8 @@ const NEW_MOVES={
  'どくのつゆ':{effect:'inflict',status:'どく',accuracy:90,pp:14},
  'ねむりのこな':{effect:'inflict',status:'ねむり',accuracy:77,pp:10},
  'たいあたり':{p:35,type:'無',accuracy:99,category:'physical',pp:30},
- 'ひっかく':{p:32,type:'無',accuracy:100,category:'physical',pp:30}
+ 'ひっかく':{p:32,type:'無',accuracy:100,category:'physical',pp:30},
+ 'わるあがき':{p:46,type:'無',accuracy:100,category:'physical',pp:1,recoilRatio:.12}
 };
 const LEARNSETS={
  flamio:[[1,'ひっかく'],[4,'ひのこ'],[8,'きあいだめ'],[12,'ほのおのうず']],
@@ -152,8 +153,8 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const stA=statsFor(attacker,source),stD=statsFor(target,dest);
  const level=Math.floor(attacker.level),power=m.p||30,type=m.type||'無';
  const category=m.category||(['火','水','草','雷','風','光','影'].includes(type)?'special':'physical');
- const multiplier=effectiveness(type,dest.type);
- const stab=type===source.type?1.3:1,critical=rng()<.0625?1.5:1;
+ const multiplier=m.recoilRatio?1:effectiveness(type,dest.type);
+ const stab=!m.recoilRatio&&type===source.type?1.3:1,critical=rng()<.0625?1.5:1;
  const attack=stA.atk*(category==='special'?1.08:1),defense=stD.def*(category==='special'?.92:1);
  const defenseFactor=attacker.status==='やけど'&&category==='physical'?.72:1;
  const base=Math.floor((Math.floor(2*level/5+2)*power*(attack/(defense+5)))/50)+2;
@@ -167,7 +168,9 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const statusChance=m.statusChance??(name==='ひのこ'?.13:name==='でんきショック'?.16:0);
  const ailment=m.status||(name==='ひのこ'?'やけど':name==='でんきショック'?'まひ':null);
  if(ailment&&target.hp>0&&!target.status&&rng()<statusChance){target.status=ailment;target.statusTurns=0;msg+=' '+dest.name+' は '+ailment+' した！'}
- return {text:msg,damage,critical:critical>1,efficacy:multiplier};
+let recoil=0;
+if(m.recoilRatio){recoil=Math.max(1,Math.floor(attacker.maxHp*m.recoilRatio));attacker.hp=cap(attacker.hp-recoil,0,attacker.maxHp);msg+=' 反動で '+recoil+' ダメージ！'}
+return {text:msg,damage,critical:critical>1,efficacy:multiplier,recoil};
 }
 function afterTurn(mon){
  if(!mon||mon.hp<=0)return null;
@@ -179,7 +182,7 @@ function afterTurn(mon){
  return null;
 }
 function skipStatus(mon,rng=Math.random){
- if(mon.status==='まひ'&&rng()<.22)return 'まひ';
+ if(mon.status==='まひ'&&rng()<.25)return 'まひ';
  if(mon.status==='ねむり'){
   if(mon.statusTurns>0){mon.statusTurns--;return 'ねむり'}
   mon.status='';mon.statusTurns=0;
