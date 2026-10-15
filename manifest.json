@@ -1,0 +1,19 @@
+{
+  "name": "星霊譚 — ASTRA TALES",
+  "short_name": "星霊譚",
+  "description": "星霊たちと旅する、モンスター育成RPG",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c1d23",
+  "theme_color": "#0f2024",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
