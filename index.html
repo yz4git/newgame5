@@ -114,11 +114,29 @@ const mapMeta={
 village:{name:'ミナモリの町',w:24,h:20,theme:'village',wild:[]},
 route:{name:'そよかぜの小道',w:24,h:26,theme:'route',wild:[['chiro',3],['koro',3],['fugale',4],['sparkit',6]]},
 forest:{name:'月影の森',w:28,h:28,theme:'forest',wild:[['lumin',5],['puddlo',6],['shade',7],['orchid',7],['crag',8]]},
-shrine:{name:'星降りの聖域',w:20,h:19,theme:'shrine',wild:[['shade',8],['lumin',8],['crag',9]]}
+shrine:{name:'星降りの聖域',w:20,h:19,theme:'shrine',wild:[['shade',8],['lumin',8],['crag',9]]},
+center:{name:'星霊センター',w:14,h:11,theme:'interior',wild:[]},
+mart:{name:'ミナモリ商店',w:14,h:11,theme:'interior',wild:[]},
+lab:{name:'アオイ研究所',w:16,h:13,theme:'interior',wild:[]}
 };
 const maps={};
 function makeMap(id){
-const m=mapMeta[id],a=Array.from({length:m.h},(_,y)=>Array.from({length:m.w},(_,x)=>{
+const m=mapMeta[id];
+if(m.theme==='interior'){
+  const arr=Array.from({length:m.h},(_,y)=>Array.from({length:m.w},(_,x)=>{
+    if(y===0||x===0||x===m.w-1)return 5;
+    if(y===m.h-1&&x!==Math.floor(m.w/2))return 5;
+    if(y===m.h-1)return 6;
+    if(y<3)return 10;
+    return 1;
+  }));
+  const row=(y,x1,x2,t)=>{for(let x=x1;x<=x2;x++)arr[y][x]=t};
+  if(id==='center'){row(3,4,9,8);arr[4][2]=11;arr[4][11]=11;row(6,2,4,10);row(6,9,11,10)}
+  if(id==='mart'){row(3,4,9,8);row(4,2,3,9);row(5,2,3,9);row(4,10,11,9);row(5,10,11,9)}
+  if(id==='lab'){row(4,5,10,8);row(6,2,4,9);row(6,11,13,9);arr[8][3]=11;arr[8][12]=11}
+  maps[id]=arr;return;
+}
+const a=Array.from({length:m.h},(_,y)=>Array.from({length:m.w},(_,x)=>{
 if(x<2||y<2||x>=m.w-2||y>=m.h-2)return 4;
 let r=rand(x,y,id.length);
 if(id==='village')return r<.065?7:0;
@@ -140,11 +158,18 @@ for(let y=4;y<m.h-3;y++)for(let x=3;x<m.w-3;x++)if(rand(x,y,53)<.20&&Math.abs(x-
 rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
 }else{
 road(8,0,m.h-1,4);rect(4,5,12,5,1);rect(5,4,10,1,3);rect(4,10,12,1,3);
-rect(8,0,4,4,1);rect(8,m.h-3,4,3,1);
+rect(8,0,4,4,1);rect(8,m.h-3,4,3,1);rect(8,10,4,1,1);
 }
+if(id==='village'){a[8][6]=6;a[8][17]=6;a[17][9]=6;}
 maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
+const DOORS={
+  village:{'6,8':{id:'center',x:7,y:9,dir:'up'},'17,8':{id:'mart',x:7,y:9,dir:'up'},'9,17':{id:'lab',x:8,y:11,dir:'up'}},
+  center:{'7,10':{id:'village',x:6,y:9,dir:'down'}},
+  mart:{'7,10':{id:'village',x:17,y:9,dir:'down'}},
+  lab:{'8,12':{id:'village',x:10,y:17,dir:'down'}}
+};
 const NPCS={
 village:[
 {x:10,y:12,name:'アオイ博士',kind:'prof',icon:'P',color:'#d9d1a9',say:'星霊たちと心を通わせる旅に出よう。草むらでは野生の星霊が現れるよ。'},
@@ -154,20 +179,24 @@ village:[
 {x:6,y:12,name:'看板',kind:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
 ],
 route:[
-{x:11,y:13,name:'見習い ミオ',kind:'trainer',party:[['chiro',4]],reward:160,color:'#df9981',say:'私の仲間たちの強さ、見ていって！'},
-{x:16,y:7,name:'虫好き ソラ',kind:'trainer',party:[['koro',5],['fugale',4]],reward:230,color:'#c4b582',say:'野生の星霊と一緒に成長するんだ！'},
+{x:11,y:13,facing:'down',vision:4,name:'見習い ミオ',kind:'trainer',party:[['chiro',4]],reward:160,color:'#df9981',say:'私の仲間たちの強さ、見ていって！'},
+{x:16,y:7,facing:'left',vision:4,name:'虫好き ソラ',kind:'trainer',party:[['koro',5],['fugale',4]],reward:230,color:'#c4b582',say:'野生の星霊と一緒に成長するんだ！'},
 {x:8,y:19,name:'散歩人',kind:'talk',color:'#a2cda8',say:'タイプの相性を覚えると、ずっと勝ちやすくなるよ。火は草に強いんだ。'}
 ],
 forest:[
-{x:13,y:12,name:'森番 レン',kind:'trainer',party:[['puddlo',7],['lumin',7]],reward:380,color:'#b8cba0',say:'この先の聖域へ行くなら、私と勝負だ！'},
-{x:19,y:18,name:'探検家 ユイ',kind:'trainer',party:[['crag',8],['shade',8]],reward:420,color:'#dbba9e',say:'夜の森の秘密、知ってる？'},
+{x:13,y:12,facing:'down',vision:4,name:'森番 レン',kind:'trainer',party:[['puddlo',7],['lumin',7]],reward:380,color:'#b8cba0',say:'この先の聖域へ行くなら、私と勝負だ！'},
+{x:19,y:18,facing:'left',vision:4,name:'探検家 ユイ',kind:'trainer',party:[['crag',8],['shade',8]],reward:420,color:'#dbba9e',say:'夜の森の秘密、知ってる？'},
 {x:9,y:7,name:'石碑',kind:'sign',color:'#95979e',say:'「星の光は、仲間を信じる心に応える」'},
 {x:13,y:22,name:'精霊の泉',kind:'spring',color:'#7bc6c4',say:'澄んだ光が体に満ちていく…'}
 ],
 shrine:[
-{x:9,y:6,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
+{x:9,y:6,facing:'down',vision:3,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
 {x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'}
-]};
+],
+center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
+mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
+lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'talk',color:'#a4b9a3',say:'タイプ相性と技の残りPPに注意してね。'}]
+};
 function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false};}
 function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
 let state=fresh();
@@ -194,14 +223,32 @@ function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
 }
-function questText(){return state.badge?'星のしるしを手に入れた！ この世界の星霊たちと冒険を続けよう。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){return state.badge?'星のしるしを手に入れた！ この世界の星霊たちと冒険を続けよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
-function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
+function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
+const door=DOORS[state.map]?.[nx+','+ny];if(door){switchMap(door);return}
+const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
-if([3,4,5].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
+if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
 if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny))return;
 follower={map:state.map,x:state.x,y:state.y};state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
+if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
+}
+function checkTrainerVision(){
+if(state.scene!=='world')return false;
+const npcs=NPCS[state.map]||[];
+for(const n of npcs){
+ if(!['trainer','boss'].includes(n.kind)||!n.vision||state.defeated[state.map+'/'+n.name])continue;
+ const [dx,dy]=dirDelta[n.facing];let blocked=false;
+ for(let i=1;i<=n.vision;i++){
+   const x=n.x+dx*i,y=n.y+dy*i;
+   if(!maps[state.map]?.[y]||maps[state.map][y][x]===undefined||[3,4,5,8,9].includes(maps[state.map][y][x]))break;
+   if(npcs.some(p=>p!==n&&p.x===x&&p.y===y))break;
+   if(x===state.x&&y===state.y){npc(n,true);return true}
+ }
+}
+return false;
 }
 function isExit(map,x,y){const m=mapMeta[map];if(map==='village'&&y<0&&x>=10&&x<=13)return {id:'route',x:11,y:24,dir:'up'};
 if(map==='route'&&y>=m.h&&x>=10&&x<=13)return {id:'village',x:11,y:1,dir:'down'};
@@ -213,14 +260,15 @@ return null}
 function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
 const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty);if(n){npc(n);return}
-if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){npc(NPCS.village[0]);return}
-if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){npc(NPCS.village[2]);return}
+if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
+if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
-function npc(n){if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
+function npc(n,automatic=false){if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
 if(n.kind==='shop'){screen('shop');shop();return}
 if(n.kind==='trainer'||n.kind==='boss'){
 const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
-dialog(n.name,n.say,[{text:'勝負する！',on:()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward})},{text:'まだ待って',on:()=>world()}]);return}
+const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
+dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
 dialog(n.name,n.say||'いい旅になりますように！')}
 function dialog(name,txt,options){screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
 function wildBattle(){const table=mapMeta[state.map].wild;if(!table.length)return;const pick=table[Math.floor(Math.random()*table.length)];state.encounterSteps=0;startBattle([makeMonster(pick[0],pick[1]+Math.floor(Math.random()*3))],{trainer:false})}
@@ -334,6 +382,11 @@ if(t===7){for(let i=0;i<3;i++){const ox=5+(rand(gx,gy,i)*21)|0,oy=6+(rand(gx,gy,
 if(t===3){pixel(x,y,T,T,'#458a9a');for(let j=0;j<2;j++){const a=(frame*.7+j*14+gx*9)%36;line(x+a-4,y+8+j*13,x+a+5,y+8+j*13,'#8bc9c6',1)}}
 if(t===4){pixel(x,y,T,T,'#508059');ellipse(x+17,y+25,14,8,'#3b634c');pixel(x+13,y+13,7,15,'#715d46');ellipse(x+17,y+12,15,12,'#346b4f');ellipse(x+12,y+9,11,10,'#47865a');ellipse(x+21,y+7,8,9,'#639e67');pixel(x+9,y+8,5,3,'#88b476')}
 if(t===5){pixel(x,y,T,T,'#bbafa0');pixel(x+1,y+1,T-2,T-2,'#647b80');line(x+3,y+3,x+25,y+3,'#a5b6b0',3);line(x+4,y+20,x+30,y+20,'#425d65',2)}
+if(t===6){pixel(x,y,T,T,'#bb8c65');pixel(x+8,y+2,16,30,'#6c514b');pixel(x+12,y+8,3,3,'#edca87')}
+if(t===8){pixel(x,y,T,T,'#8c735c');pixel(x+2,y+3,28,24,'#e8cba4');pixel(x+5,y+10,22,7,'#a8b8b2')}
+if(t===9){pixel(x,y,T,T,'#79635d');for(let i=0;i<5;i++)pixel(x+4+i*5,y+5,3,20,['#b7cea6','#cf948d','#edc47f'][i%3])}
+if(t===10){pixel(x,y,T,T,'#a2b5ac');pixel(x+3,y+4,26,24,'#bad0c4');pixel(x+5,y+25,23,2,'#849c92')}
+if(t===11){pixel(x,y,T,T,'#98b1b4');rounded(x+3,y+4,26,22,4,'#567d89');ellipse(x+16,y+15,8,8,'#8cdbcf')}
 }
 function drawBuilding(x,y,kind,camX,camY){const sx=x*T-camX,sy=y*T-camY;if(sx>W+130||sx<-140||sy>H+100||sy<-120)return;
 const w=kind==='lab'?154:122,roof=kind==='lab'?'#7397a7':kind==='shop'?'#cd8b6f':'#c8898b';
@@ -364,6 +417,7 @@ const camX=clamp(state.x*T+16-W/2,0,m.w*T-W),camY=clamp(state.y*T+16-H/2,0,m.h*T
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
+if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map])drawNpc(n,camX,camY);
 if(state.party.length){const pos=follower.map===state.map?follower:{x:state.x,y:state.y+1};drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
