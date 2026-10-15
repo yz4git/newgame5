@@ -73,4 +73,35 @@ assert.equal(scripted.money,150);
 assert.equal(scripted.quest,'field');
 E.applyEvent(story,scripted);
 assert.equal(scripted.bag.orb,3,'Event item granted only once');
-console.log('PASS: IV/nature, stats, moves, damage, accuracy, XP, evolution, ailments, catching, encounters, storage, held items, effort, events and legacy migration');
+// The event VM supports persistent conditions, nested branches, choices and one-time outcomes.
+const eventState={bag:{orb:1,ether:0},events:{},caught:{flamio:1,leafin:1,crag:1},defeated:{A:1,B:1},party:[fire],money:100,quest:'route',visited:{lake:true},badge:false};
+assert.equal(E.eventCondition({all:[{caughtAtLeast:3},{notFlag:'claimed'},{visited:'lake'}]},eventState),true);
+assert.equal(E.eventCondition({any:[{badge:true},{trainersAtLeast:2}]},eventState),true);
+assert.equal(E.eventCondition({not:{badge:true}},eventState),true);
+const optionScript=[
+ {op:'branch',test:{caughtAtLeast:3},then:[
+  {op:'message',text:'調査成功'},
+  {op:'choice',options:[
+   {text:'星玉',steps:[{op:'item',id:'orb',count:3},{op:'flag',key:'claimed'}]},
+   {text:'PP回復',steps:[{op:'item',id:'ether',count:2},{op:'flag',key:'claimed'}]}
+  ]}
+ ],else:[{op:'message',text:'まだ足りない'}]}
+];
+const offer=E.runEvent(optionScript,eventState);
+assert.equal(offer.messages[0],'調査成功');
+assert.equal(offer.choices.length,2);
+assert.equal(eventState.bag.orb,1,'Choice effects are deferred');
+E.runEvent(offer.choices[1].steps,eventState);
+assert.equal(eventState.bag.ether,2);
+assert.equal(eventState.events.claimed,true);
+E.runEvent([{op:'branch',test:{notFlag:'claimed'},then:[{op:'item',id:'orb',count:9}],else:[{op:'quest',value:'reward_claimed'}]}],eventState);
+assert.equal(eventState.bag.orb,1,'Branch excludes already claimed reward');
+assert.equal(eventState.quest,'reward_claimed');
+E.runEvent([{op:'takeItem',id:'orb',count:10}],eventState);
+assert.equal(eventState.bag.orb,1,'Unaffordable item transaction must not deduct');
+const exhausted=E.makeCreature('flamio',5,species,moves,stable);
+const recoilBefore=exhausted.hp;
+const struggle=E.calcDamage(exhausted,E.makeCreature('leafin',5,species,moves,stable),'わるあがき',species,moves,()=>1,()=>.5);
+assert.ok(struggle.damage>0&&struggle.recoil>0);
+assert.ok(exhausted.hp<recoilBefore,'Struggle inflicts recoil');
+console.log('PASS: growth, IV, evolution, combat, status, capture, inventory storage, event VM, conditional rewards, choices and recoil');
