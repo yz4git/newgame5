@@ -1,0 +1,64 @@
+name: Publish ASTRA TALES to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate HTML and embedded JavaScript
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const match = html.match(/<script>([\s\S]*?)<\/script>/);
+          if (!match || !html.includes('<canvas') || !html.includes('id="app"')) {
+            throw new Error('Game entry or embedded JavaScript missing');
+          }
+          new vm.Script(match[1], {filename: 'game.js'});
+          console.log('ASTRA TALES JavaScript syntax OK');
+          NODE
+      - name: Prepare versioned static site
+        env:
+          BUILD_ID: ${{ github.sha }}
+        run: |
+          mkdir -p _site
+          cp index.html manifest.json icon.svg _site/
+          touch _site/.nojekyll
+          printf '{"buildId":"%s"}\n' "$BUILD_ID" > _site/version.json
+          cat > _site/latest.html <<'EOF'
+          <!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ASTRA TALES - Latest</title></head>
+          <body style="background:#102930;color:#f4ebc8;font-family:sans-serif;text-align:center;padding:3rem">最新版を開いています…<script>
+          if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(regs=>Promise.all(regs.filter(r=>r.scope.includes('/newgame5/')).map(r=>r.unregister()))).finally(()=>location.replace('./?v='+Date.now()));
+          else location.replace('./?v='+Date.now());
+          </script></body></html>
+          EOF
+      - name: Configure and enable Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
