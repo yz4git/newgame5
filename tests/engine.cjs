@@ -1,0 +1,59 @@
+/* Automated unit tests for the original ASTRA RPG engine. */
+'use strict';
+const assert=require('node:assert/strict');
+const E=require('../src/rpg-engine.js');
+const species={
+ flamio:{name:'ヒノコロ',type:'火',hp:29,atk:11,def:8,spd:11,moves:['ひっかく','ひのこ']},
+ flaro:{name:'カグツバネ',type:'火',hp:44,atk:17,def:12,spd:15,moves:['ひっかく','ひのこ','ほのおのうず']},
+ leafin:{name:'モコリーフ',type:'草',hp:34,atk:9,def:11,spd:8,moves:['たいあたり','はっぱカッター']}
+};
+const moves={...E.NEW_MOVES,'ひのこ':{p:48,type:'火'},'はっぱカッター':{p:47,type:'草'},'きあいだめ':{effect:'focus'}};
+const stable=()=>0.5;
+const fire=E.makeCreature('flamio',15,species,moves,stable);
+const grass=E.makeCreature('leafin',15,species,moves,stable);
+assert.equal(fire.level,15);
+assert.ok(fire.iv.hp>=0&&fire.iv.hp<=31);
+assert.equal(fire.moves.includes('ひのこ'),true);
+assert.ok(fire.uid);
+assert.ok(E.statsFor(fire,species.flamio).spd>0);
+assert.ok(E.maxHpFor(species.flamio,fire.level,fire.iv)>species.flamio.hp);
+const hpBefore=grass.hp;
+const hit=E.calcDamage(fire,grass,'ひのこ',species,moves,(a,b)=>a==='火'&&b==='草'?1.5:1,stable);
+assert.ok(hit.damage>0);
+assert.equal(grass.hp,hpBefore-hit.damage);
+assert.ok(hit.efficacy>1);
+const missed=E.calcDamage(fire,grass,'ひのこ',species,moves,()=>1,()=>.99);
+assert.equal(missed.damage,0);
+fire.xp=0;
+const level=E.gainXP(fire,E.xpNeed(15),species,moves,stable);
+assert.ok(level.levels.includes(16));
+assert.equal(fire.id,'flaro','starter evolves at level 16');
+assert.equal(level.evolved.to,'flaro');
+assert.ok(fire.moves.length<=4);
+assert.ok(fire.hp<=fire.maxHp);
+const illness=E.makeCreature('leafin',5,species,moves,stable);
+illness.status='どく';const old=illness.hp;
+const tick=E.afterTurn(illness);
+assert.ok(tick.damage>0&&illness.hp<old);
+const pr=E.catchProbability(illness,species);
+illness.hp=1;illness.status='ねむり';
+assert.ok(E.catchProbability(illness,species)>pr);
+illness.statusTurns=2;assert.equal(E.skipStatus(illness,stable),'ねむり');
+const encounter=E.chooseEncounter([['flamio',5],['leafin',7]],{rng:stable,phase:1});
+assert.ok(encounter.id&&encounter.level>=5);
+const boxes=E.emptyBoxes();
+const party=[E.makeCreature('flamio',5,species,moves,stable)];
+assert.equal(E.deposit(boxes,party,0).ok,false,'last creature protected');
+party.push(E.makeCreature('leafin',6,species,moves,stable));
+assert.equal(E.deposit(boxes,party,1).ok,true);
+assert.equal(party.length,1);
+assert.equal(boxes[0].members.length,1);
+assert.equal(E.takeFromStorage(boxes,0,0,party).ok,true);
+assert.equal(party.length,2);
+const legacy={saveVersion:1,map:'village',party:[{id:'flamio',level:5,hp:9,maxHp:41,xp:2,moves:null}],boxes:null};
+const migrated=E.migrateSave(legacy,species,moves,stable);
+assert.equal(migrated.saveVersion,2);
+assert.equal(migrated.party[0].hp,9,'legacy health is preserved');
+assert.ok(migrated.party[0].iv&&migrated.party[0].pp);
+assert.ok(Array.isArray(migrated.boxes));
+console.log('PASS: IV/nature, stats, moves, damage, accuracy, XP, evolution, ailments, catching, encounters, storage and legacy migration');
