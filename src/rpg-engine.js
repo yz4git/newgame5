@@ -10,11 +10,11 @@
 'use strict';
 const cap=(v,a,b)=>Math.max(a,Math.min(b,v));
 const NATURES=[
-  {id:'steady',name:'おだやか',atk:1,def:1,spd:1},
-  {id:'bold',name:'ゆうかん',atk:1.10,def:1,spd:.90},
-  {id:'swift',name:'せっかち',atk:1,def:.90,spd:1.10},
-  {id:'tough',name:'がんじょう',atk:.90,def:1.10,spd:1},
-  {id:'sharp',name:'いじっぱり',atk:1.08,def:1,spd:.94}
+  {id:'steady',name:'おだやか',atk:1,def:1,spAtk:1,spDef:1,spd:1},
+  {id:'bold',name:'ゆうかん',atk:1.10,def:1,spAtk:1,spDef:1,spd:.90},
+  {id:'swift',name:'せっかち',atk:1,def:.90,spAtk:1,spDef:1,spd:1.10},
+  {id:'tough',name:'がんじょう',atk:.90,def:1.10,spAtk:1,spDef:1,spd:1},
+  {id:'sharp',name:'いじっぱり',atk:1.10,def:1,spAtk:.90,spDef:1,spd:1}
 ];
 const NEW_MOVES={
  'ほのおのうず':{p:62,type:'火',accuracy:92,category:'special',pp:15},
@@ -59,7 +59,7 @@ const WEATHERS={
  sand:{name:'砂あらし',icon:'◌'}
 };
 const WEATHER_BY_MAP={lake:'rain',highland:'wind',shrine:'clear',forest:'clear',route:'clear',village:'clear'};
-const STAGES=['atk','def','spd','accuracy'];
+const STAGES=['atk','def','spAtk','spDef','spd','accuracy'];
 const stageFactor=stage=>stage>=0?(2+stage)/2:2/(2-stage);
 function abilityFor(mon){return mon.ability||ABILITIES[mon.id]||'なし'}
 function ensureBattleStats(mon){
@@ -132,7 +132,7 @@ const EVOLUTIONS={flamio:{to:'flaro',level:16},leafin:{to:'leafaro',level:16},aq
 const RARITIES={flamio:1,leafin:1,aquill:1,chiro:1.25,koro:1.25,fugale:1.1,puddlo:1.15,sparkit:1.45,lumin:1.6,crag:1.5,shade:1.55,orchid:1.6,glint:2.2,flaro:1.8,leafaro:1.8,aquaron:1.8};
 let uidSequence=1;
 function uid(){return 'a'+Date.now().toString(36)+'-'+(uidSequence++).toString(36)}
-function ivs(rng=Math.random){return {hp:Math.floor(rng()*32),atk:Math.floor(rng()*32),def:Math.floor(rng()*32),spd:Math.floor(rng()*32)}}
+function ivs(rng=Math.random){return {hp:Math.floor(rng()*32),atk:Math.floor(rng()*32),def:Math.floor(rng()*32),spAtk:Math.floor(rng()*32),spDef:Math.floor(rng()*32),spd:Math.floor(rng()*32)}}
 function xpNeed(level){return cap(Math.floor(13+level*8+level*level*.16),19,2000)}
 function maxHpFor(s,lv,iv={hp:16}){return Math.floor(s.hp+lv*2.4+(iv.hp||0)*lv/120)}
 function statsFor(m,s){
@@ -140,6 +140,8 @@ function statsFor(m,s){
  return {
  atk:Math.floor((s.atk+m.level*1.3+(iv.atk||0)*m.level/130+(ev.atk||0)/40)*nature.atk*(m.heldItem==='powerCharm'?1.15:1)),
  def:Math.floor((s.def+m.level*.8+10+(iv.def||0)*m.level/130+(ev.def||0)/40)*nature.def*(m.heldItem==='guardCharm'?1.15:1)),
+ spAtk:Math.floor(((s.spAtk??s.atk)+m.level*1.2+(iv.spAtk||0)*m.level/130+(ev.spAtk||0)/40)*(nature.spAtk||1)),
+ spDef:Math.floor(((s.spDef??s.def)+m.level*.8+10+(iv.spDef||0)*m.level/130+(ev.spDef||0)/40)*(nature.spDef||1)),
  spd:Math.floor((s.spd+m.level*.9+(iv.spd||0)*m.level/130+(ev.spd||0)/40)*nature.spd*(m.heldItem==='speedCharm'?1.15:1))
  };
 }
@@ -154,7 +156,7 @@ function makeCreature(id,level,species,moves,rng=Math.random){
  const s=species[id];if(!s)throw Error('Unknown creature '+id);
  const iv=ivs(rng),nature=NATURES[Math.floor(rng()*NATURES.length)].id;
  const movelist=availableMoves(id,level,species,moves),hp=maxHpFor(s,level,iv);
- return {uid:uid(),id,level,hp,maxHp:hp,xp:0,status:'',statusTurns:0,focus:false,guard:false,iv,nature,ev:{hp:0,atk:0,def:0,spd:0},
+ return {uid:uid(),id,level,hp,maxHp:hp,xp:0,status:'',statusTurns:0,focus:false,guard:false,iv,nature,ev:{hp:0,atk:0,def:0,spAtk:0,spDef:0,spd:0},
  moves:movelist,pp:Object.fromEntries(movelist.map(n=>[n,maxPP(n,moves)])),friendship:70,metAt:'旅の途中',heldItem:null,ability:ABILITIES[id]||'なし',stages:null};
 }
 function normalize(mon,species,moves,rng=Math.random){
@@ -208,8 +210,8 @@ function gainXP(mon,amount,species,moves,rng=Math.random){
 }
 function gainEffort(mon,opponent,species){
  if(!mon||!opponent||!species[opponent.id])return;
- mon.ev=mon.ev||{hp:0,atk:0,def:0,spd:0};
- const s=species[opponent.id],key=Object.entries({atk:s.atk,def:s.def,spd:s.spd,hp:s.hp/3}).sort((a,b)=>b[1]-a[1])[0][0];
+ mon.ev=mon.ev||{hp:0,atk:0,def:0,spAtk:0,spDef:0,spd:0};
+ const s=species[opponent.id],key=Object.entries({atk:s.atk,def:s.def,spAtk:s.spAtk??s.atk,spDef:s.spDef??s.def,spd:s.spd,hp:s.hp/3}).sort((a,b)=>b[1]-a[1])[0][0];
  const total=Object.values(mon.ev).reduce((a,b)=>a+(Number(b)||0),0);
  if(total>=510)return;
  mon.ev[key]=cap((mon.ev[key]||0)+1,0,252);
@@ -244,10 +246,10 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const stab=!m.recoilRatio&&type===source.type?1.5:1,critical=rng()<.0625?2:1;
  const stageA=ensureBattleStats(attacker),stageD=ensureBattleStats(target);
  // Gen-IV-like critical hits bypass the attacker's penalties and defender's boosts.
- const offenseStage=critical>1?Math.max(0,stageA.atk):stageA.atk;
- const defenseStage=critical>1?Math.min(0,stageD.def):stageD.def;
- const attack=stA.atk*(category==='special'?1.08:1)*stageFactor(offenseStage);
- const defense=stD.def*(category==='special'?.92:1)*stageFactor(defenseStage);
+ const offenseStage=critical>1?Math.max(0,category==='special'?stageA.spAtk:stageA.atk):(category==='special'?stageA.spAtk:stageA.atk);
+ const defenseStage=critical>1?Math.min(0,category==='special'?stageD.spDef:stageD.def):(category==='special'?stageD.spDef:stageD.def);
+ const attack=(category==='special'?stA.spAtk:stA.atk)*stageFactor(offenseStage);
+ const defense=(category==='special'?stD.spDef:stD.def)*stageFactor(defenseStage);
  const ability=abilityFor(attacker),targetAbility=abilityFor(target);
  const boost=(attacker.hp<=attacker.maxHp/3&&(
    (ability==='もうか'&&type==='火')||(ability==='しんりょく'&&type==='草')||(ability==='げきりゅう'&&type==='水')
