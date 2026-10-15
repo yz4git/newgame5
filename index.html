@@ -86,7 +86,7 @@ const W=416,H=352,T=32,STORE='astra-tales-v1';
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
 let follower={map:'',x:0,y:0};
-let movement=null,companionMove=null;
+let movement=null,companionMove=null,forcedTrainer=false;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -313,13 +313,14 @@ if(n.kind==='shop'){screen('shop');shop();return}
 if(n.kind==='trainer'||n.kind==='boss'){
 const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
 const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
+forcedTrainer=automatic;
 dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
 dialog(n.name,n.say||'いい旅になりますように！')}
 function dialog(name,txt,options){screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
 function wildBattle(){const table=mapMeta[state.map].wild;if(!table.length)return;const pick=table[Math.floor(Math.random()*table.length)];state.encounterSteps=0;startBattle([makeMonster(pick[0],pick[1]+Math.floor(Math.random()*3))],{trainer:false})}
 function firstAlive(){return state.party.findIndex(m=>m.hp>0)}
 function current(){return state.party[state.battle?.active??0]}
-function startBattle(enemies,options){const active=firstAlive();if(active<0){healAndReturn();return}state.party.forEach(m=>{m.focus=false;m.guard=false;m.pp=m.pp||normalizeMonster(m).pp});enemies.forEach(m=>{m.pp=m.pp||normalizeMonster(m).pp});state.battle={enemies,index:0,active,participants:[active],turn:0,action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};enemies.forEach(m=>state.seen[m.id]=1);screen('battle');showBattle('あ！ '+(options.trainer?options.npc.name+' が勝負をしかけてきた！':'野生の '+byId[enemies[0].id].name+' が現れた！'));sfx('bad')}
+function startBattle(enemies,options){forcedTrainer=false;const active=firstAlive();if(active<0){healAndReturn();return}state.party.forEach(m=>{m.focus=false;m.guard=false;m.pp=m.pp||normalizeMonster(m).pp});enemies.forEach(m=>{m.pp=m.pp||normalizeMonster(m).pp});state.battle={enemies,index:0,active,participants:[active],turn:0,action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};enemies.forEach(m=>state.seen[m.id]=1);screen('battle');showBattle('あ！ '+(options.trainer?options.npc.name+' が勝負をしかけてきた！':'野生の '+byId[enemies[0].id].name+' が現れた！'));sfx('bad')}
 function foe(){return state.battle.enemies[state.battle.index]}
 function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy=false;ui('BATTLE / '+byId[foe().id].name,message,[
 {text:'⚔ たたかう',on:chooseMove},{text:'◉ バッグ',on:()=>battleBag()},
@@ -415,7 +416,7 @@ function partyDetail(i){const m=state.party[i],s=byId[m.id];ui('PARTY / '+s.name
 {text:'↶ もどる',on:()=>openPage('party')}])}
 function itemTarget(id){ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map((m,i)=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'){if(!forcedTrainer)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
