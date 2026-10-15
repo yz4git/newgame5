@@ -105,7 +105,7 @@ const MOVES={
 'あわガード':{effect:'guard'}};
 const ADV={火:['草'],草:['水','岩'],水:['火','岩'],雷:['水','風'],風:['草'],岩:['風','火'],光:['影'],影:['光']};
 const RES={火:['水','岩'],水:['草','雷'],草:['火','風'],風:['岩'],雷:['岩'],影:['光']};
-function effectiveness(a,b){return (ADV[a]||[]).includes(b)?1.5:(RES[a]||[]).includes(b)?.7:1}
+function effectiveness(a,b){return (ADV[a]||[]).includes(b)?1.5:(RES[a]||[]).includes(b)?0.7:1}
 const dirDelta={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const mapMeta={
 village:{name:'ミナモリの町',w:24,h:20,theme:'village',wild:[]},
@@ -166,7 +166,7 @@ shrine:[
 {x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'}
 ]};
 function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false};}
-function fresh(){return {scene:'title',map:'village',x:11,y:15,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
+function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(p=>({...makeMonster(p.id,p.level),...p}));return true}}catch(e){}return false}
@@ -186,7 +186,7 @@ screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲
 {text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
 {text:'💧 アワルン / 水',on:()=>pick('aquill')},{text:'◀ タイトル',on:title}]);
 }
-function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=11;state.y=15;state.dir='up';world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
+function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
 function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
@@ -228,13 +228,13 @@ function foe(){return state.battle.enemies[state.battle.index]}
 function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy=false;ui('BATTLE / '+byId[foe().id].name,message,[
 {text:'⚔ たたかう',on:chooseMove},{text:'◉ バッグ',on:()=>battleBag()},
 {text:'✦ こうたい',on:()=>battleParty()},{text:'↗ にげる',on:runAway}]);setHud()}
-function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:()=>{if(!b.busy)return;callback()}}]);if(delay>0)setTimeout(()=>{if(state.battle===b&&b.busy)callback()},delay)}
+function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;let done=false;const finish=()=>{if(done||state.battle!==b)return;done=true;callback()};b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:finish}]);if(delay>0)setTimeout(finish,delay)}
 function chooseMove(){const m=current(),moves=byId[m.id].moves;ui('ATTACK / '+byId[m.id].name,'つかう技を選んでね。',moves.map(name=>({text:name+'  '+(MOVES[name].type||'補助'),on:()=>turn(name)})).concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]))}
 function combatDamage(attacker,target,name){const move=MOVES[name],s=byId[attacker.id],d=byId[target.id];if(move.effect==='heal'){const amount=Math.floor(target.maxHp*.35);attacker.hp=Math.min(attacker.maxHp,attacker.hp+Math.floor(attacker.maxHp*.35));return {text:s.name+' は元気を取り戻した！',damage:-amount}}
 if(move.effect==='guard'){attacker.guard=true;return {text:s.name+' は守りを固めた！',damage:0}}
 if(move.effect==='focus'){attacker.focus=true;return {text:s.name+' は力をためている！',damage:0}}
 const mult=effectiveness(move.type,d.type);
-const dmg=Math.max(1,Math.round((move.p*(s.atk+attacker.level*1.2)/(d.def+target.level*.65+10))*((attacker.level+10)/20)*(.83+Math.random()*.28)*mult*(attacker.focus?1.6:1)*(target.guard?.55:1)));
+const dmg=Math.max(1,Math.round((0.68*move.p*(s.atk+attacker.level*1.2)/(d.def+target.level*.65+10))*((attacker.level+10)/20)*(.83+Math.random()*.28)*mult*(attacker.focus?1.6:1)*(target.guard?.55:1)));
 attacker.focus=false;target.guard=false;target.hp=clamp(target.hp-dmg,0,target.maxHp);
 return {text:s.name+' の '+name+'！'+(mult>1?' 効果は抜群！':mult<1?' 効果はいまひとつ…':''),damage:dmg}}
 function turn(move){const b=state.battle;if(!b||b.busy)return;
@@ -258,7 +258,7 @@ let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利
 if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
-function healAndReturn(){state.map='village';state.x=11;state.y=15;state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
+function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){const b=state.battle;if(!b)return;const m=foe();const r=combatDamage(m,current(),enemyMove(m));b.shake=12;beep(180,.1,'square');battleMessage(r.text,()=>{if(current().hp<=0)knockout();else showBattle('どうする？')},750)}
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
