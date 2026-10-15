@@ -33,22 +33,97 @@ const NEW_MOVES={
  'ねむりのこな':{effect:'inflict',status:'ねむり',accuracy:77,pp:10},
  'たいあたり':{p:35,type:'無',accuracy:99,category:'physical',pp:30},
  'ひっかく':{p:32,type:'無',accuracy:100,category:'physical',pp:30},
- 'わるあがき':{p:46,type:'無',accuracy:100,category:'physical',pp:1,recoilRatio:.12}
+ 'わるあがき':{p:46,type:'無',accuracy:100,category:'physical',pp:1,recoilRatio:.12},
+ 'いばる':{effect:'stage',stat:'atk',stages:1,scope:'self',pp:15},
+ 'からにこもる':{effect:'stage',stat:'def',stages:1,scope:'self',pp:20},
+ 'すなかけ':{effect:'stage',stat:'accuracy',stages:-1,scope:'target',accuracy:95,pp:15},
+ 'おいかぜ':{effect:'stage',stat:'spd',stages:2,scope:'self',pp:12},
+ 'あまごい':{effect:'weather',weather:'rain',turns:5,pp:5},
+ 'にほんばれ':{effect:'weather',weather:'sun',turns:5,pp:5},
+ 'ほしのまもり':{effect:'stage',stat:'def',stages:2,scope:'self',pp:8},
+ 'しっぽをふる':{effect:'stage',stat:'def',stages:-1,scope:'target',accuracy:100,pp:25}
 };
+// HGSS-style responsibilities, original names, types and simplified balance rules.
+const ABILITIES={
+ flamio:'もうか',flaro:'もうか',leafin:'しんりょく',leafaro:'しんりょく',
+ aquill:'げきりゅう',aquaron:'げきりゅう',chiro:'ようりょくそ',
+ koro:'するどいめ',fugale:'はやてのつばさ',puddlo:'すいすい',
+ sparkit:'せいでんき',lumin:'りんぷん',crag:'がんじょう',
+ shade:'ふゆう',orchid:'さいせいりょく',glint:'プレッシャー'
+};
+const WEATHERS={
+ clear:{name:'晴れ',icon:'☀'},
+ rain:{name:'雨',icon:'☂'},
+ sun:{name:'強い日差し',icon:'☀'},
+ wind:{name:'強風',icon:'≋'},
+ sand:{name:'砂あらし',icon:'◌'}
+};
+const WEATHER_BY_MAP={lake:'rain',highland:'wind',shrine:'clear',forest:'clear',route:'clear',village:'clear'};
+const STAGES=['atk','def','spd','accuracy'];
+const stageFactor=stage=>stage>=0?(2+stage)/2:2/(2-stage);
+function abilityFor(mon){return mon.ability||ABILITIES[mon.id]||'なし'}
+function ensureBattleStats(mon){
+ if(!mon.stages)mon.stages={atk:0,def:0,spd:0,accuracy:0};
+ for(const k of STAGES)mon.stages[k]=cap(Math.trunc(Number(mon.stages[k])||0),-6,6);
+ return mon.stages;
+}
+function changeStage(mon,stat,amount){
+ const stats=ensureBattleStats(mon),before=stats[stat]||0;
+ stats[stat]=cap(before+amount,-6,6);
+ return stats[stat]-before;
+}
+function battleEnter(mon,opponent,weather){
+ ensureBattleStats(mon);
+ const ability=abilityFor(mon);
+ if(ability==='いかく'&&opponent){changeStage(opponent,'atk',-1);return mon.id+' の威嚇で相手の攻撃が下がった！'}
+ if(ability==='プレッシャー')return 'プレッシャーを感じる！';
+ if(ability==='すいすい'&&weather==='rain')return '雨で素早く動けそうだ！';
+ return '';
+}
+function battleLeave(mon){
+ if(!mon)return '';
+ const a=abilityFor(mon);let msg='';
+ if(a==='さいせいりょく'&&mon.hp>0){
+  const amount=Math.max(1,Math.floor(mon.maxHp/3));mon.hp=cap(mon.hp+amount,0,mon.maxHp);
+  msg='再生力でHPが回復した！';
+ }
+ mon.stages=null;mon.guard=false;mon.focus=false;
+ return msg;
+}
+function weatherFor(map){return WEATHER_BY_MAP[map]||'clear'}
+function weatherInfo(name){return WEATHERS[name]||WEATHERS.clear}
+function speedFor(mon,species,weather){
+ const base=statsFor(mon,species[mon.id]).spd;
+ const ability=abilityFor(mon);
+ return Math.floor(base*stageFactor(ensureBattleStats(mon).spd)*(mon.status==='まひ'?.5:1)*(ability==='すいすい'&&weather==='rain'?2:1)*(ability==='ようりょくそ'&&weather==='sun'?2:1));
+}
+function weatherHit(mon,species,weather){
+ if(weather!=='sand'||!mon||mon.hp<=0||species[mon.id]?.type==='岩')return null;
+ const amount=Math.max(1,Math.floor(mon.maxHp/16));
+ mon.hp=cap(mon.hp-amount,0,mon.maxHp);
+ return {damage:amount,text:'砂あらしで '+amount+' ダメージ！'};
+}
+function tickWeather(battle){
+ if(!battle||battle.weather==='clear')return '';
+ if(battle.weatherTurns===null)return '';
+ battle.weatherTurns=Math.max(0,(battle.weatherTurns||0)-1);
+ if(battle.weatherTurns===0){battle.weather='clear';return '天候が元に戻った！'}
+ return '';
+}
 const LEARNSETS={
- flamio:[[1,'ひっかく'],[4,'ひのこ'],[8,'きあいだめ'],[12,'ほのおのうず']],
- leafin:[[1,'たいあたり'],[4,'はっぱカッター'],[8,'こうごうせい'],[12,'リーフシールド'],[16,'ソーラーブレード']],
- aquill:[[1,'たいあたり'],[4,'みずてっぽう'],[8,'あわガード'],[12,'みずのはどう'],[16,'アクアリング']],
+ flamio:[[1,'ひっかく'],[4,'ひのこ'],[8,'きあいだめ'],[12,'ほのおのうず'],[15,'にほんばれ']],
+ leafin:[[1,'たいあたり'],[4,'はっぱカッター'],[8,'こうごうせい'],[12,'リーフシールド'],[14,'しっぽをふる'],[16,'ソーラーブレード']],
+ aquill:[[1,'たいあたり'],[4,'みずてっぽう'],[8,'あわガード'],[12,'みずのはどう'],[14,'あまごい'],[16,'アクアリング']],
  chiro:[[1,'たいあたり'],[4,'はっぱカッター'],[10,'リーフシールド'],[14,'しびれごな']],
- koro:[[1,'ひっかく'],[5,'たいあたり'],[11,'きあいだめ']],
- fugale:[[1,'かぜおこし'],[5,'ひっかく'],[11,'つむじかぜ']],
+ koro:[[1,'ひっかく'],[5,'たいあたり'],[8,'すなかけ'],[11,'きあいだめ']],
+ fugale:[[1,'かぜおこし'],[5,'ひっかく'],[11,'つむじかぜ'],[15,'おいかぜ']],
  puddlo:[[1,'たいあたり'],[4,'みずてっぽう'],[10,'みずのはどう']],
  sparkit:[[1,'ひっかく'],[4,'でんきショック'],[11,'せいでんき']],
  lumin:[[1,'かぜおこし'],[5,'ひかりのこな'],[12,'ねむりのこな']],
- crag:[[1,'たいあたり'],[5,'いわおとし'],[12,'いわくだき']],
+ crag:[[1,'たいあたり'],[5,'いわおとし'],[9,'からにこもる'],[12,'いわくだき']],
  shade:[[1,'かぜおこし'],[5,'かげうち'],[12,'よるのやいば']],
  orchid:[[1,'はっぱカッター'],[5,'こうごうせい'],[12,'どくのつゆ']],
- glint:[[1,'かぜおこし'],[7,'ほしのひかり'],[13,'せいなるひかり']],
+ glint:[[1,'かぜおこし'],[7,'ほしのひかり'],[13,'せいなるひかり'],[15,'ほしのまもり']],
  flaro:[[1,'ひっかく'],[5,'ひのこ'],[12,'ほのおのうず'],[18,'きあいだめ']],
  leafaro:[[1,'たいあたり'],[5,'はっぱカッター'],[12,'リーフシールド'],[18,'ソーラーブレード']],
  aquaron:[[1,'たいあたり'],[5,'みずてっぽう'],[12,'みずのはどう'],[18,'アクアリング']]
@@ -80,7 +155,7 @@ function makeCreature(id,level,species,moves,rng=Math.random){
  const iv=ivs(rng),nature=NATURES[Math.floor(rng()*NATURES.length)].id;
  const movelist=availableMoves(id,level,species,moves),hp=maxHpFor(s,level,iv);
  return {uid:uid(),id,level,hp,maxHp:hp,xp:0,status:'',statusTurns:0,focus:false,guard:false,iv,nature,ev:{hp:0,atk:0,def:0,spd:0},
- moves:movelist,pp:Object.fromEntries(movelist.map(n=>[n,maxPP(n,moves)])),friendship:70,metAt:'旅の途中',heldItem:null};
+ moves:movelist,pp:Object.fromEntries(movelist.map(n=>[n,maxPP(n,moves)])),friendship:70,metAt:'旅の途中',heldItem:null,ability:ABILITIES[id]||'なし',stages:null};
 }
 function normalize(mon,species,moves,rng=Math.random){
  if(!mon||!species[mon.id])return null;
@@ -96,6 +171,7 @@ function normalize(mon,species,moves,rng=Math.random){
  out.xp=Math.max(0,Number(out.xp)||0);
  out.status=typeof out.status==='string'?out.status:'';
  out.statusTurns=Math.max(0,Number(out.statusTurns)||0);
+ out.ability=out.ability||ABILITIES[out.id]||'なし';out.stages=null;
  return out;
 }
 function gainXP(mon,amount,species,moves,rng=Math.random){
@@ -286,5 +362,5 @@ function migrateSave(save,species,moves,rng=Math.random){
  if(!next.events||typeof next.events!=='object')next.events={};
  return next;
 }
-return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,runEvent,eventCondition,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
+return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ABILITIES,WEATHERS,WEATHER_BY_MAP,STAGES,stageFactor,abilityFor,ensureBattleStats,changeStage,battleEnter,battleLeave,weatherFor,weatherInfo,speedFor,weatherHit,tickWeather,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,runEvent,eventCondition,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
 });
