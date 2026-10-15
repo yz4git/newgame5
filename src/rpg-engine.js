@@ -49,7 +49,7 @@ const ABILITIES={
  aquill:'げきりゅう',aquaron:'げきりゅう',chiro:'ようりょくそ',
  koro:'するどいめ',fugale:'はやてのつばさ',puddlo:'すいすい',
  sparkit:'せいでんき',lumin:'りんぷん',crag:'がんじょう',
- shade:'ふゆう',orchid:'さいせいりょく',glint:'プレッシャー'
+ shade:'いかく',orchid:'さいせいりょく',glint:'プレッシャー'
 };
 const WEATHERS={
  clear:{name:'晴れ',icon:'☀'},
@@ -95,7 +95,7 @@ function weatherInfo(name){return WEATHERS[name]||WEATHERS.clear}
 function speedFor(mon,species,weather){
  const base=statsFor(mon,species[mon.id]).spd;
  const ability=abilityFor(mon);
- return Math.floor(base*stageFactor(ensureBattleStats(mon).spd)*(mon.status==='まひ'?.5:1)*(ability==='すいすい'&&weather==='rain'?2:1)*(ability==='ようりょくそ'&&weather==='sun'?2:1));
+ return Math.floor(base*stageFactor(ensureBattleStats(mon).spd)*(mon.status==='まひ'?.25:1)*(ability==='すいすい'&&weather==='rain'?2:1)*(ability==='ようりょくそ'&&weather==='sun'?2:1));
 }
 function weatherHit(mon,species,weather){
  if(weather!=='sand'||!mon||mon.hp<=0||species[mon.id]?.type==='岩')return null;
@@ -241,22 +241,26 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const level=Math.floor(attacker.level),power=m.p||30,type=m.type||'無';
  const category=m.category||(['火','水','草','雷','風','光','影'].includes(type)?'special':'physical');
  const multiplier=m.recoilRatio?1:effectiveness(type,dest.type);
- const stab=!m.recoilRatio&&type===source.type?1.3:1,critical=rng()<.0625?1.5:1;
+ const stab=!m.recoilRatio&&type===source.type?1.5:1,critical=rng()<.0625?2:1;
  const stageA=ensureBattleStats(attacker),stageD=ensureBattleStats(target);
- const attack=stA.atk*(category==='special'?1.08:1)*stageFactor(stageA.atk);
- const defense=stD.def*(category==='special'?.92:1)*stageFactor(stageD.def);
+ // Gen-IV-like critical hits bypass the attacker's penalties and defender's boosts.
+ const offenseStage=critical>1?Math.max(0,stageA.atk):stageA.atk;
+ const defenseStage=critical>1?Math.min(0,stageD.def):stageD.def;
+ const attack=stA.atk*(category==='special'?1.08:1)*stageFactor(offenseStage);
+ const defense=stD.def*(category==='special'?.92:1)*stageFactor(defenseStage);
  const ability=abilityFor(attacker),targetAbility=abilityFor(target);
  const boost=(attacker.hp<=attacker.maxHp/3&&(
    (ability==='もうか'&&type==='火')||(ability==='しんりょく'&&type==='草')||(ability==='げきりゅう'&&type==='水')
  ))?1.5:1;
  const weather=context.weather||'clear';
- const weatherBoost=weather==='rain'?(type==='水'?1.5:type==='火'?.70:1)
- :weather==='sun'?(type==='火'?1.5:type==='水'?.70:1)
+ const weatherBoost=weather==='rain'?(type==='水'?1.5:type==='火'?.5:1)
+ :weather==='sun'?(type==='火'?1.5:type==='水'?.5:1)
  :weather==='wind'&&type==='風'?1.25:1;
- const defenseFactor=attacker.status==='やけど'&&category==='physical'?.72:1;
+ const defenseFactor=attacker.status==='やけど'&&category==='physical'?.5:1;
  const base=Math.floor((Math.floor(2*level/5+2)*power*(attack/(defense+5)))/50)+2;
- const damage=Math.max(1,Math.floor(base*1.5*stab*multiplier*critical*(.85+rng()*.15)*defenseFactor*boost*weatherBoost*(attacker.focus?1.6:1)*(target.guard?.5:1)));
- const actual=targetAbility==='がんじょう'&&target.hp===target.maxHp&&damage>=target.hp?target.hp-1:damage;
+ const damage=Math.max(1,Math.floor(base*stab*multiplier*critical*(.85+rng()*.15)*defenseFactor*boost*weatherBoost*(attacker.focus?1.6:1)*(target.guard?.5:1)));
+ // Fourth-generation Sturdy counters one-hit knockout moves only.
+ const actual=m.oneHitKO?(targetAbility==='がんじょう'?0:target.hp):damage;
  target.hp=cap(target.hp-actual,0,target.maxHp);
  attacker.focus=false;target.guard=false;
  let msg=source.name+' の '+name+'！';
@@ -266,7 +270,7 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const statusChance=m.statusChance??(name==='ひのこ'?.13:name==='でんきショック'?.16:0);
  const ailment=m.status||(name==='ひのこ'?'やけど':name==='でんきショック'?'まひ':null);
  if(ailment&&target.hp>0&&!target.status&&targetAbility!=='りんぷん'&&rng()<statusChance){target.status=ailment;target.statusTurns=0;msg+=' '+dest.name+' は '+ailment+' した！'}
-if(targetAbility==='がんじょう'&&actual<damage)msg+=' がんじょうで耐えた！';
+if(m.oneHitKO&&targetAbility==='がんじょう')msg+=' がんじょうで一撃必殺を防いだ！';
 if(targetAbility==='せいでんき'&&category==='physical'&&target.hp>0&&!attacker.status&&rng()<.22){
  attacker.status='まひ';msg+=' '+source.name+' はせいでんきでまひした！'
 }
