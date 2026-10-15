@@ -525,15 +525,16 @@ function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.f
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){resetBattleStats();state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){
  const b=state.battle;if(!b)return;
+ b.turn++;
  const m=foe(),target=current(),name=enemyMove(m),skip=Engine.skipStatus(m);
- if(skip){battleMessage(byId[m.id].name+(skip==='ねむり'?' は眠っている…':' はまひで動けなかった！'),()=>showBattle('どうする？'),700);return}
+ if(skip){battleMessage(byId[m.id].name+(skip==='ねむり'?' は眠っている…':' はまひで動けなかった！'),()=>takeTurns([],0),700);return}
  if(name!=='わるあがき'&&m.pp?.[name]>0)m.pp[name]=Math.max(0,m.pp[name]-(Engine.abilityFor(target)==='プレッシャー'?2:1));
  b.action={who:'enemy',name,started:performance.now()};
  const r=combatDamage(m,target,name);b.shake=12;beep(180,.1,'square');
  battleMessage(r.text,()=>{
   if(target.hp<=0)knockout();
   else if(m.hp<=0)defeatEnemy();
-  else showBattle('どうする？');
+  else takeTurns([],0);
  },750);
 }
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
