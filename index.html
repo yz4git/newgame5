@@ -204,6 +204,7 @@ village:[
 {x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
 {x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
 {x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。'},
+{x:15,y:14,name:'図鑑調査員 ユズ',kind:'script',script:'dexResearch',color:'#a9c8c8'},
 {x:6,y:12,name:'看板',kind:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
 ],
 route:[
@@ -225,26 +226,78 @@ lake:[
 {x:4,y:8,name:'釣り人 リョウ',kind:'trainer',facing:'down',vision:4,color:'#789bbd',party:[['puddlo',6],['aquill',7]],reward:320,say:'水辺の星霊は、粘り強いんだ。'},
 {x:25,y:15,name:'野鳥観察家 ナツ',kind:'trainer',facing:'up',vision:3,color:'#b8cf9d',party:[['fugale',7],['sparkit',6]],reward:390,say:'空を飛ぶ子の動きに見とれないでね！'},
 {x:5,y:18,name:'湖畔の立て札',kind:'sign',color:'#d1b585',say:'青凪の湖畔　水面が星空を映す静かな場所。'},
+{x:8,y:20,name:'湖の生態学者 ハル',kind:'script',script:'lakeSurvey',color:'#9bd0c0'},
 {x:18,y:19,name:'拾える星玉',kind:'item',item:'orb',amount:3,color:'#f3d5a2'}],
 highland:[
 {x:12,y:18,name:'山登り ツバサ',kind:'trainer',facing:'down',vision:4,color:'#d6a97e',party:[['crag',11],['sparkit',12]],reward:640,say:'高いところから見る星は格別だぜ！'},
 {x:7,y:8,name:'星読み サヨ',kind:'trainer',facing:'right',vision:4,color:'#cebad3',party:[['lumin',12],['shade',12],['orchid',13]],reward:730,say:'星の導きが、どちらを選ぶか見てみましょう。'},
 {x:20,y:12,name:'古びた道具箱',kind:'item',item:'potion',amount:3,color:'#f2dec1'},
-{x:12,y:5,name:'高原の石碑',kind:'sign',color:'#bcbcc6',say:'星のしるしを持つ者は、ここでさらなる星霊と出会う。'}],
+{x:12,y:5,name:'高原の石碑',kind:'script',script:'starPillar',color:'#bcbcc6'}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
-lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'talk',color:'#a4b9a3',say:'タイプ相性と技の残りPPに注意してね。'}]
+lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'script',script:'labAssistant',color:'#a4b9a3'}]
 };
+// Script tables are data, not hard-coded dialogue branches.
+const EVENT_SCRIPTS={
+dexResearch:[
+ {op:'branch',test:{flag:'dex_reward'},then:[
+   {op:'message',text:'調査ありがとう！ ほかの星霊も探してみてね。'}
+ ],else:[
+   {op:'branch',test:{caughtAtLeast:3},then:[
+    {op:'message',text:'3種類以上の星霊を仲間にしたね！ 研究のお礼を渡すよ。'},
+    {op:'item',id:'ether',count:2,text:'PP回復を2個もらった！'},
+    {op:'flag',key:'dex_reward'}
+   ],else:[{op:'message',text:'まず3種類の星霊を仲間にして。図鑑が充実したら報告してね！'}]}
+ ]}
+],
+lakeSurvey:[
+ {op:'branch',test:{flag:'lake_reward'},then:[{op:'message',text:'湖の調査記録は大切に保管しているよ。'}],else:[
+   {op:'branch',test:{caughtAtLeast:4},then:[
+     {op:'message',text:'珍しい星霊をたくさん見つけたね！ 湖の調査は大成功だ。'},
+     {op:'item',id:'orb',count:5,text:'星玉を5個もらった！'},
+     {op:'flag',key:'lake_reward'}
+   ],else:[{op:'message',text:'湖畔では水の星霊を観察できるよ。4種類仲間にしたら教えて。'}]}
+ ]}
+],
+labAssistant:[
+ {op:'branch',test:{flag:'lab_gift'},then:[{op:'message',text:'技はPPがなくなると使えない。こまめに回復してね！'}],else:[
+  {op:'message',text:'研究のサンプルをひとつ進呈するよ。好きなほうを選んで。'},
+  {op:'choice',options:[
+   {text:'◉ 星玉を3個',steps:[{op:'item',id:'orb',count:3},{op:'flag',key:'lab_gift'}]},
+   {text:'◆ PP回復を2個',steps:[{op:'item',id:'ether',count:2},{op:'flag',key:'lab_gift'}]}
+  ]}
+ ]}
+],
+starPillar:[
+ {op:'branch',test:{flag:'highland_reward'},then:[{op:'message',text:'星の光は、これからも君の旅を照らすだろう。'}],else:[
+  {op:'branch',test:{all:[{badge:true},{trainersAtLeast:5}]},then:[
+   {op:'message',text:'星のしるしと、幾度もの勝負が光を呼び覚ました…'},
+   {op:'item',id:'speedCharm',count:1,text:'速さのお守りを手に入れた！'},
+   {op:'quest',value:'star_master'},
+   {op:'flag',key:'highland_reward'}
+  ],else:[{op:'message',text:'星のしるしを得て、5人のトレーナーに勝利した者に星の祝福を。'}]}
+ ]}
+]};
+function runNpcScript(name,script){
+ const result=Engine.runEvent(script,state);
+ save();
+ if(result.warp){switchMap(result.warp);return}
+ const msg=result.messages.join('\n')||'静かな風が吹いている。';
+ if(result.choices?.length){
+  dialog(name,msg,result.choices.map(option=>({text:option.text,on:()=>runNpcScript(name,option.steps)})).concat([{text:'↶ やめる',on:()=>world()}]));
+ }else dialog(name,msg);
+}
 function moveMaxPP(name){return Engine.maxPP(name,MOVES)}
 function makeMonster(id,level){return Engine.makeCreature(id,level,byId,MOVES)}
 function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
-function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2,ether:1,powerCharm:0,guardCharm:0,speedCharm:0},money:400,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
+function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2,ether:1,powerCharm:0,guardCharm:0,speedCharm:0},money:400,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},visited:{village:true},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&x.party?.length&&maps[x.map]){
  const migrated=Engine.migrateSave(x,byId,MOVES);
  state={...fresh(),...migrated,scene:'world',battle:null};
  state.bag={...fresh().bag,...(x.bag||{})};
+ state.visited={village:true,...(x.visited||{}),[state.map]:true};
  follower={map:state.map,x:state.x,y:state.y+1};
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
@@ -269,7 +322,7 @@ function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
 }
-function questText(){return state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];if(door){switchMap(door);return}
@@ -312,13 +365,14 @@ if(!state.badge){toast('星の守り手を越えなければ進めない！');re
 return {id:'highland',x:12,y:27,dir:'up'}}
 if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'};
 return null}
-function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
+function switchMap(e){state.map=e.id;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
 const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
 function npc(n,automatic=false){
+if(n.kind==='script'){runNpcScript(n.name,EVENT_SCRIPTS[n.script]||[{op:'message',text:n.say||'何もない。'}]);return}
 if(n.kind==='prof'){
 const messages=Engine.applyEvent([
 {op:'message',text:n.say},
