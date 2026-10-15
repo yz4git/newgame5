@@ -72,7 +72,7 @@ footer{flex:none;text-align:center;font-size:9px;color:#819a95;letter-spacing:.0
 <div id="bottom"><div id="console" aria-live="polite"></div>
 <div id="controls">
 <div id="dpad"><button class="dkey" data-dir="up" aria-label="上">▲</button><button class="dkey" data-dir="left" aria-label="左">◀</button><button class="dkey" data-dir="right" aria-label="右">▶</button><button class="dkey" data-dir="down" aria-label="下">▼</button></div>
-<div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>A：調べる・決定<br>B：戻る</span></div>
+<div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>A：調べる・決定<br>B：走る / 戻る</span></div>
 <div id="btns"><button id="aBtn" class="round" aria-label="決定">A</button><button id="bBtn" class="round" aria-label="戻る">B</button><button id="menuBtn" aria-label="メニュー">MENU</button></div>
 </div></div>
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
@@ -232,7 +232,7 @@ lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の�
 function moveMaxPP(name){return MOVES[name].effect?12:(MOVES[name].p>=55?12:20)}
 function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false,pp:Object.fromEntries(s.moves.map(name=>[name,moveMaxPP(name)]))};}
 function normalizeMonster(m){const built=makeMonster(m.id,m.level);const item={...built,...m};item.pp={...built.pp,...(m.pp||{})};return item;}
-function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},collected:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
+function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},collected:{},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(normalizeMonster);follower={map:state.map,x:state.x,y:state.y+1};return true}}catch(e){}return false}
@@ -241,7 +241,7 @@ function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
 function ui(label,text,options){consoleEl.dataset.mode=state.scene==='battle'?'battle':'normal';consoleEl.innerHTML='';const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;const say=document.createElement('div');say.className='say';say.textContent=text;const ops=document.createElement('div');ops.className='options';options.forEach((o,i)=>{const b=document.createElement('button');b.textContent=o.text;b.className=i===0?'primary':'';b.disabled=!!o.disabled;b.addEventListener('click',()=>{beep(600,.045);o.on()});ops.appendChild(b)});consoleEl.append(sub,say,ops);consoleEl.scrollTop=0}
 function screen(scene){state.scene=scene;setHud()}
-function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅')}
+function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':(state.running?'⚡ RUN · ':'')+(state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅'))}
 function title(){
 screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE';
 const hasSave=!!localStorage.getItem(STORE);
@@ -266,8 +266,8 @@ if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
 if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name])))return;
 const prevX=state.x,prevY=state.y;
-companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now()};
-follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now()};
+companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now(),duration:state.running?90:142};
+follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now(),duration:state.running?90:142};
 state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
@@ -415,7 +415,7 @@ function partyDetail(i){const m=state.party[i],s=byId[m.id];ui('PARTY / '+s.name
 {text:'↶ もどる',on:()=>openPage('party')}])}
 function itemTarget(id){ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map((m,i)=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -480,7 +480,7 @@ if(dir==='left')pixel(x-7,y-14+bob,3,3,'#263e46');
 if(dir==='right')pixel(x+4,y-14+bob,3,3,'#263e46');
 pixel(x-12,y-6+bob,5,10,'#b58e6e');}
 function posTween(step){
-if(!step)return null;const t=clamp((performance.now()-step.start)/142,0,1),ease=t*t*(3-2*t);
+if(!step)return null;const t=clamp((performance.now()-step.start)/(step.duration||142),0,1),ease=t*t*(3-2*t);
 return {x:step.fromX+(step.toX-step.fromX)*ease,y:step.fromY+(step.toY-step.fromY)*ease,t};
 }
 function worldPhase(){return Math.floor(state.time/240)%3}
@@ -622,7 +622,7 @@ txt('− STARBOUND ADVENTURE −',208,322,11,'#e7f1e4','center');
 }
 function draw(){
 frame++;
-if(holdDir&&state.scene==='world'&&performance.now()-lastStep>145){walk(holdDir);lastStep=performance.now()}
+if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:145)){walk(holdDir);lastStep=performance.now()}
 if(state.scene==='battle')drawBattle();else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();else drawWorld();
 if(state.scene!=='title'&&state.scene!=='starter')state.time+=1/60;
 requestAnimationFrame(draw)}
