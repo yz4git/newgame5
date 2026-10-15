@@ -333,7 +333,13 @@ if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collecte
 const prevX=state.x,prevY=state.y;
 companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now(),duration:state.running?90:142};
 follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now(),duration:state.running?90:142};
-state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;if(state.steps%120===0)state.party.forEach(m=>m.friendship=Math.min(255,(m.friendship||70)+1));sfx('walk');if(state.steps%5===0)save();
+state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;if(state.steps%120===0)state.party.forEach(m=>m.friendship=Math.min(255,(m.friendship||70)+1));
+if(state.steps%8===0){
+ const sick=state.party.filter(m=>m.hp>1&&m.status==='どく');
+ for(const m of sick)m.hp=Math.max(1,m.hp-1);
+ if(sick.length)toast('どくの影響で仲間が少し疲れている…');
+}
+sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
@@ -398,18 +404,27 @@ function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy
 {text:'⚔ たたかう',on:chooseMove},{text:'◉ バッグ',on:()=>battleBag()},
 {text:'✦ こうたい',on:()=>battleParty()},{text:'↗ にげる',on:runAway}]);setHud()}
 function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;let done=false;const finish=()=>{if(done||state.battle!==b)return;done=true;callback()};b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:finish}]);if(delay>0)setTimeout(finish,delay)}
-function chooseMove(){const m=current(),moves=m.moves||byId[m.id].moves;ui('ATTACK / '+byId[m.id].name,'技を選ぼう。残りPPを確認してね。',moves.map(name=>({text:name+'  '+(MOVES[name].type||'補助')+' '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})).concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]))}
+function chooseMove(){
+ const m=current(),moves=m.moves||byId[m.id].moves,remaining=moves.some(n=>(m.pp?.[n]??moveMaxPP(n))>0);
+ ui('ATTACK / '+byId[m.id].name,remaining?'技を選ぼう。残りPPを確認してね。':'PPがすべて尽きた！ わるあがきを使える。',
+ (remaining?moves.map(name=>({text:name+'  '+(MOVES[name].type||'補助')+' '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
+ [{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}])
+ .concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]));
+}
 function combatDamage(attacker,target,name){return Engine.calcDamage(attacker,target,name,byId,MOVES,effectiveness)}
 function turn(move){const b=state.battle;if(!b||b.busy)return;
-const user=current(),enemy=foe();if((user.pp?.[move]??0)<=0){chooseMove();return}
-user.pp[move]--;b.turn++;
+const user=current(),enemy=foe();
+if(move!=='わるあがき'&&(user.pp?.[move]??0)<=0){chooseMove();return}
+if(move==='わるあがき'&&(user.moves||[]).some(n=>(user.pp?.[n]??0)>0)){chooseMove();return}
+if(move!=='わるあがき')user.pp[move]--;
+b.turn++;
 const uStats=Engine.statsFor(user,byId[user.id]),eStats=Engine.statsFor(enemy,byId[enemy.id]);
 const priority=MOVES[move].priority||(move==='かげうち'?1:0);
 const userFirst=priority>0||(priority===0&&uStats.spd>=(eStats.spd+(enemy.status==='まひ'?-20:0)));
 const sequence=userFirst?[['you',move],['enemy',enemyMove(enemy)]]:[['enemy',enemyMove(enemy)],['you',move]];
 takeTurns(sequence,0)}
 function enemyMove(m){const choices=(m.moves||byId[m.id].moves).filter(x=>(m.pp?.[x]??1)>0);
-if(!choices.length)return 'たいあたり';
+if(!choices.length)return 'わるあがき';
 if(m.hp/m.maxHp<.3&&choices.includes('こうごうせい')&&Math.random()<.65)return 'こうごうせい';
 const type=byId[current()?.id]?.type;
 return choices.map(name=>({name,score:(MOVES[name].p||5)*(type?effectiveness(MOVES[name].type,type):1)*(MOVES[name].type===byId[m.id].type?1.3:1)*(.9+Math.random()*.2)})).sort((a,b)=>b.score-a.score)[0].name;
@@ -421,12 +436,13 @@ showBattle('どうする？');return}
 const [who,name]=sequence[i],mine=who==='you',actor=mine?current():foe(),target=mine?foe():current();
 if(actor.hp<=0){takeTurns(sequence,i+1);return}
 const stop=Engine.skipStatus(actor);if(stop){battleMessage(byId[actor.id].name+(stop==='ねむり'?' は眠っている…':' は体がしびれて動けない！'),()=>takeTurns(sequence,i+1),650);return}
-if(!mine&&actor.pp&&actor.pp[name]>0)actor.pp[name]--;
+if(!mine&&name!=='わるあがき'&&actor.pp&&actor.pp[name]>0)actor.pp[name]--;
 b.action={who,name,started:performance.now()};
 const res=combatDamage(actor,target,name);b.shake=res.damage>0?14:0;b.flash=11;sfx(res.damage>0?'bad':'ok');
 const extra=target.hp===0?(mine?' '+byId[target.id].name+' を倒した！':' '+byId[target.id].name+' は倒れてしまった！'):'';
 battleMessage(res.text+extra,()=>{
 if(target.hp<=0){if(mine)defeatEnemy();else knockout()}
+else if(actor.hp<=0){if(mine)knockout();else defeatEnemy()}
 else takeTurns(sequence,i+1)},950)}
 function defeatEnemy(){
 const b=state.battle;if(!b)return;
@@ -445,7 +461,19 @@ state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',o
 function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;if(!state.battle.participants.includes(idx))state.battle.participants.push(idx);battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
 function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
-function enemyFreeTurn(){const b=state.battle;if(!b)return;const m=foe();const r=combatDamage(m,current(),enemyMove(m));b.shake=12;beep(180,.1,'square');battleMessage(r.text,()=>{if(current().hp<=0)knockout();else showBattle('どうする？')},750)}
+function enemyFreeTurn(){
+ const b=state.battle;if(!b)return;
+ const m=foe(),target=current(),name=enemyMove(m),skip=Engine.skipStatus(m);
+ if(skip){battleMessage(byId[m.id].name+(skip==='ねむり'?' は眠っている…':' はまひで動けなかった！'),()=>showBattle('どうする？'),700);return}
+ if(name!=='わるあがき'&&m.pp?.[name]>0)m.pp[name]--;
+ b.action={who:'enemy',name,started:performance.now()};
+ const r=combatDamage(m,target,name);b.shake=12;beep(180,.1,'square');
+ battleMessage(r.text,()=>{
+  if(target.hp<=0)knockout();
+  else if(m.hp<=0)defeatEnemy();
+  else showBattle('どうする？');
+ },750);
+}
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
 {text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer,on:throwOrb},
 {text:'✚ キズぐすり ×'+p.potion,disabled:p.potion<=0,on:()=>{state.bag.potion--;current().hp=Math.min(current().maxHp,current().hp+25);battleMessage(byId[current().id].name+' のHPを25回復！',enemyFreeTurn,800)}},
