@@ -36,6 +36,12 @@ header{display:flex;align-items:center;gap:10px;height:36px;flex:none}
 #console .options button:active{transform:translateY(1px);box-shadow:0 1px #adb9a0}
 #console .options button.primary{background:#31595b;color:#e5f3da;border-color:#2a4347}
 #console .options button:disabled{opacity:.45}
+#console[data-mode="battle"]{background:linear-gradient(140deg,#eff4ed,#cbdada);border-color:#8eacb2}
+#console[data-mode="battle"] .options{grid-template-columns:repeat(2,minmax(0,1fr))}
+#console[data-mode="battle"] .options button{border:2px solid #8babb0;background:#f8f7eb;box-shadow:0 2px #90a8ac;padding:8px}
+#console[data-mode="battle"] .options button.primary{background:#c64c48;border-color:#9e4b52;color:#fff7e5}
+#screenShell{overflow:hidden}
+#hud span{box-shadow:0 2px 4px #11282a77}
 #controls{height:172px;display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:155px}
 #dpad{width:156px;height:150px;position:relative;flex:none}
 .dkey{position:absolute;width:54px;height:49px;display:grid;place-items:center;background:linear-gradient(#436368,#29444b);border:2px solid #66888a;color:#dfebdf;font-size:22px;font-weight:900;box-shadow:0 4px #07171e;border-radius:8px;touch-action:none}
@@ -80,6 +86,7 @@ const W=416,H=352,T=32,STORE='astra-tales-v1';
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
 let follower={map:'',x:0,y:0};
+let movement=null,companionMove=null;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -207,7 +214,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
 function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
 function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
-function ui(label,text,options){consoleEl.innerHTML='';const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;const say=document.createElement('div');say.className='say';say.textContent=text;const ops=document.createElement('div');ops.className='options';options.forEach((o,i)=>{const b=document.createElement('button');b.textContent=o.text;b.className=i===0?'primary':'';b.disabled=!!o.disabled;b.addEventListener('click',()=>{beep(600,.045);o.on()});ops.appendChild(b)});consoleEl.append(sub,say,ops);consoleEl.scrollTop=0}
+function ui(label,text,options){consoleEl.dataset.mode=state.scene==='battle'?'battle':'normal';consoleEl.innerHTML='';const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;const say=document.createElement('div');say.className='say';say.textContent=text;const ops=document.createElement('div');ops.className='options';options.forEach((o,i)=>{const b=document.createElement('button');b.textContent=o.text;b.className=i===0?'primary':'';b.disabled=!!o.disabled;b.addEventListener('click',()=>{beep(600,.045);o.on()});ops.appendChild(b)});consoleEl.append(sub,say,ops);consoleEl.scrollTop=0}
 function screen(scene){state.scene=scene;setHud()}
 function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅')}
 function title(){
@@ -220,7 +227,7 @@ screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲
 {text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
 {text:'💧 アワルン / 水',on:()=>pick('aquill')},{text:'◀ タイトル',on:title}]);
 }
-function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
+function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
 function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
@@ -233,7 +240,10 @@ const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
 if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny))return;
-follower={map:state.map,x:state.x,y:state.y};state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
+const prevX=state.x,prevY=state.y;
+companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now()};
+follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now()};
+state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
@@ -259,7 +269,7 @@ if(map==='forest'&&y>=m.h&&x>=12&&x<=15)return {id:'route',x:11,y:1,dir:'down'};
 if(map==='forest'&&y<0&&x>=12&&x<=15)return {id:'shrine',x:9,y:17,dir:'up'};
 if(map==='shrine'&&y>=m.h&&x>=8&&x<=11)return {id:'forest',x:13,y:1,dir:'down'};
 return null}
-function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
+function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
 const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty);if(n){npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
@@ -322,7 +332,7 @@ let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利
 if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;if(!state.battle.participants.includes(idx))state.battle.participants.push(idx);battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
-function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.pp=Object.fromEntries(byId[m.id].moves.map(n=>[n,moveMaxPP(n)]))});follower={map:'village',x:12,y:18};state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
+function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.pp=Object.fromEntries(byId[m.id].moves.map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){const b=state.battle;if(!b)return;const m=foe();const r=combatDamage(m,current(),enemyMove(m));b.shake=12;beep(180,.1,'square');battleMessage(r.text,()=>{if(current().hp<=0)knockout();else showBattle('どうする？')},750)}
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
@@ -372,7 +382,7 @@ function partyDetail(i){const m=state.party[i],s=byId[m.id];ui('PARTY / '+s.name
 {text:'↶ もどる',on:()=>openPage('party')}])}
 function itemTarget(id){ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map((m,i)=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='battle'){showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -395,12 +405,12 @@ function line(x,y,x2,y2,col,w=2){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPa
 function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
 function txt(str,x,y,size=12,col='#fff',align='left'){ctx.fillStyle=col;ctx.font='bold '+size+'px system-ui,sans-serif';ctx.textAlign=align;ctx.fillText(str,x,y);ctx.textAlign='left'}
 function drawTile(t,x,y,gx,gy,theme){
-if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':'#cbb37d');pixel(x,y+2,T,2,'#c4ad79');if(rand(gx,gy,3)>.8)pixel(x+6,y+19,9,2,'#a48e65')}
+if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':theme==='interior'?'#c4c9b4':'#cbb37d');pixel(x,y+2,T,2,theme==='interior'?'#a8b5a3':'#c4ad79');if(rand(gx,gy,3)>.8)pixel(x+6,y+19,9,2,'#a48e65');if(theme==='interior'){line(x,y,x+T,y,'#a5afa3',1);line(x,y,x,y+T,'#a5afa3',1)}}
 else{pixel(x,y,T,T,theme==='shrine'?'#668774':theme==='forest'?'#588c60':'#81ad71');if(rand(gx,gy,9)<.65){pixel(x+3,y+19,3,4,'#629c66');pixel(x+21,y+9,2,4,'#aad187')}}
-if(t===2){for(let i=0;i<4;i++){const ox=(rand(gx,gy,i)*22+3)|0;const oy=(rand(gx,gy,i+9)*20+7)|0;line(x+ox,y+oy+7,x+ox-2,y+oy-1,'#326f50',2);line(x+ox,y+oy+7,x+ox+3,y+oy-3,'#a0c77b',2)}}
+if(t===2){for(let i=0;i<5;i++){const ox=(rand(gx,gy,i)*22+3)|0,oy=(rand(gx,gy,i+9)*20+7)|0,bend=Math.sin(frame*.047+i+gx)*2;line(x+ox,y+oy+7,x+ox-2+bend,y+oy-1,'#326f50',2);line(x+ox,y+oy+7,x+ox+3+bend,y+oy-3,'#a0c77b',2)}pixel(x+8,y+17,3,2,'#d1dc95')}
 if(t===7){for(let i=0;i<3;i++){const ox=5+(rand(gx,gy,i)*21)|0,oy=6+(rand(gx,gy,i+5)*19)|0;pixel(x+ox,y+oy,3,3,['#f2d186','#dca0ca','#d6d7f9'][i]);pixel(x+ox+1,y+oy+4,1,3,'#377a50')}}
 if(t===3){pixel(x,y,T,T,'#458a9a');for(let j=0;j<2;j++){const a=(frame*.7+j*14+gx*9)%36;line(x+a-4,y+8+j*13,x+a+5,y+8+j*13,'#8bc9c6',1)}}
-if(t===4){pixel(x,y,T,T,'#508059');ellipse(x+17,y+25,14,8,'#3b634c');pixel(x+13,y+13,7,15,'#715d46');ellipse(x+17,y+12,15,12,'#346b4f');ellipse(x+12,y+9,11,10,'#47865a');ellipse(x+21,y+7,8,9,'#639e67');pixel(x+9,y+8,5,3,'#88b476')}
+if(t===4){pixel(x,y,T,T,'#508059');ellipse(x+17,y+25,14,8,'#3b634c');pixel(x+13,y+13,7,15,'#715d46');ellipse(x+17,y+12,15,12,'#346b4f');ellipse(x+12,y+9,11,10,'#47865a');ellipse(x+21,y+7,8,9,'#639e67');pixel(x+9,y+8,5,3,'#88b476');pixel(x+23,y+10,3,2,'#c1d08f')}
 if(t===5){pixel(x,y,T,T,'#bbafa0');pixel(x+1,y+1,T-2,T-2,'#647b80');line(x+3,y+3,x+25,y+3,'#a5b6b0',3);line(x+4,y+20,x+30,y+20,'#425d65',2)}
 if(t===6){pixel(x,y,T,T,'#bb8c65');pixel(x+8,y+2,16,30,'#6c514b');pixel(x+12,y+8,3,3,'#edca87')}
 if(t===8){pixel(x,y,T,T,'#8c735c');pixel(x+2,y+3,28,24,'#e8cba4');pixel(x+5,y+10,22,7,'#a8b8b2')}
@@ -414,6 +424,9 @@ pixel(sx+7,sy+45,w-14,56,'#e5d4b0');pixel(sx+17,sy+68,22,24,'#80b8ae');pixel(sx+
 pixel(sx+2,sy+18,w-4,41,roof);pixel(sx+12,sy+8,w-24,19,roof);pixel(sx+24,sy,w-48,12,roof);pixel(sx+8,sy+52,w-16,5,'#596269');
 pixel(sx+w/2-5,sy+79,10,22,'#b69d80');rounded(sx+w/2-22,sy+41,44,15,3,'#f8f0d4');
 txt(kind==='lab'?'LAB':kind==='shop'?'SHOP':'HEAL',sx+w/2,sy+53,10,'#354e4f','center');
+pixel(sx+7,sy+47,w-14,3,'#45616a');pixel(sx+8,sy+100,w-16,3,'#5e7971');
+for(let i=13;i<w-8;i+=22){pixel(sx+i,sy+24,12,3,'#f2d49b');pixel(sx+i+4,sy+31,8,3,'#fff0bf')}
+pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
 }
 function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
 if(x<-35||x>W+35||y<-45||y>H+45)return;
@@ -431,18 +444,27 @@ if(dir==='up')pixel(x-6,y-17+bob,12,9,'#414955');
 if(dir==='left')pixel(x-7,y-14+bob,3,3,'#263e46');
 if(dir==='right')pixel(x+4,y-14+bob,3,3,'#263e46');
 pixel(x-12,y-6+bob,5,10,'#b58e6e');}
+function posTween(step){
+if(!step)return null;const t=clamp((performance.now()-step.start)/142,0,1),ease=t*t*(3-2*t);
+return {x:step.fromX+(step.toX-step.fromX)*ease,y:step.fromY+(step.toY-step.fromY)*ease,t};
+}
+function worldPhase(){return Math.floor(state.time/240)%3}
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
-const camX=clamp(state.x*T+16-W/2,0,m.w*T-W),camY=clamp(state.y*T+16-H/2,0,m.h*T-H);
+const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
+const camX=clamp(px*T+16-W/2,0,m.w*T-W),camY=clamp(py*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
 if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map])drawNpc(n,camX,camY);
-if(state.party.length){const pos=follower.map===state.map?follower:{x:state.x,y:state.y+1};drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
-drawHero(state.x*T-camX+16,state.y*T-camY+19,state.dir);
+if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
+drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
+drawHero(px*T-camX+16,py*T-camY+19,state.dir);
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
+if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
+if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
 }
 function drawMonster(m,x,y,scale=1,back=false){if(!m)return;const s=byId[m.id];ctx.save();ctx.translate(x,y+Math.sin(frame*.045)*2);ctx.scale((back?-1:1)*scale,scale);
