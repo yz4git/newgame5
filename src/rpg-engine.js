@@ -62,9 +62,9 @@ function maxHpFor(s,lv,iv={hp:16}){return Math.floor(s.hp+lv*2.4+(iv.hp||0)*lv/1
 function statsFor(m,s){
  const iv=m.iv||{atk:0,def:0,spd:0},nature=NATURES.find(n=>n.id===m.nature)||NATURES[0],ev=m.ev||{};
  return {
- atk:Math.floor((s.atk+m.level*1.3+(iv.atk||0)*m.level/130+(ev.atk||0)/40)*nature.atk),
- def:Math.floor((s.def+m.level*.8+10+(iv.def||0)*m.level/130+(ev.def||0)/40)*nature.def),
- spd:Math.floor((s.spd+m.level*.9+(iv.spd||0)*m.level/130+(ev.spd||0)/40)*nature.spd)
+ atk:Math.floor((s.atk+m.level*1.3+(iv.atk||0)*m.level/130+(ev.atk||0)/40)*nature.atk*(m.heldItem==='powerCharm'?1.15:1)),
+ def:Math.floor((s.def+m.level*.8+10+(iv.def||0)*m.level/130+(ev.def||0)/40)*nature.def*(m.heldItem==='guardCharm'?1.15:1)),
+ spd:Math.floor((s.spd+m.level*.9+(iv.spd||0)*m.level/130+(ev.spd||0)/40)*nature.spd*(m.heldItem==='speedCharm'?1.15:1))
  };
 }
 function maxPP(name,moves){return moves[name]?.pp|| (moves[name]?.effect?12:(moves[name]?.p>=55?12:20))}
@@ -128,6 +128,14 @@ function gainXP(mon,amount,species,moves,rng=Math.random){
   }
  }
  return {levels,learned,evolved};
+}
+function gainEffort(mon,opponent,species){
+ if(!mon||!opponent||!species[opponent.id])return;
+ mon.ev=mon.ev||{hp:0,atk:0,def:0,spd:0};
+ const s=species[opponent.id],key=Object.entries({atk:s.atk,def:s.def,spd:s.spd,hp:s.hp/3}).sort((a,b)=>b[1]-a[1])[0][0];
+ const total=Object.values(mon.ev).reduce((a,b)=>a+(Number(b)||0),0);
+ if(total>=510)return;
+ mon.ev[key]=cap((mon.ev[key]||0)+1,0,252);
 }
 function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.random){
  const m=moves[name];if(!m)return {text:'技を使えなかった！',damage:0};
@@ -206,6 +214,22 @@ function deposit(boxes,party,index){
  const where=putInStorage(boxes,party[index]);if(!where)return {ok:false,reason:'ボックスがいっぱい'};
  party.splice(index,1);return {ok:true,box:where};
 }
+function applyEvent(script,state){
+ const logs=[],events=state.events||(state.events={});
+ for(const step of script){
+  if(step.when&&!events[step.when])continue;
+  if(step.unless&&events[step.unless])continue;
+  switch(step.op){
+   case 'message':logs.push(step.text);break;
+   case 'flag':events[step.key]=true;break;
+   case 'item':state.bag[step.id]=(state.bag[step.id]||0)+Math.max(1,step.count||1);logs.push(step.text||step.id+' を手に入れた！');break;
+   case 'money':state.money=Math.max(0,state.money+(step.amount||0));break;
+   case 'quest':state.quest=step.value;break;
+   case 'badge':state.badge=!!step.value;break;
+  }
+ }
+ return logs;
+}
 function migrateSave(save,species,moves,rng=Math.random){
  const next={...save,party:(save.party||[]).filter(m=>species[m.id]).map(m=>normalize(m,species,moves,rng)),
    boxes:fixBoxes(save.boxes),saveVersion:2};
@@ -213,5 +237,5 @@ function migrateSave(save,species,moves,rng=Math.random){
  if(!next.events||typeof next.events!=='object')next.events={};
  return next;
 }
-return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
+return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
 });
