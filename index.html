@@ -79,6 +79,7 @@ const consoleEl=document.getElementById('console'),areaEl=document.getElementByI
 const W=416,H=352,T=32,STORE='astra-tales-v1';
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
+let follower={map:'',x:0,y:0};
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -171,7 +172,7 @@ function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s
 function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(p=>({...makeMonster(p.id,p.level),...p}));return true}}catch(e){}return false}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(p=>({...makeMonster(p.id,p.level),...p}));follower={map:state.map,x:state.x,y:state.y+1};return true}}catch(e){}return false}
 function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
 function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
@@ -188,7 +189,7 @@ screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲
 {text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
 {text:'💧 アワルン / 水',on:()=>pick('aquill')},{text:'◀ タイトル',on:title}]);
 }
-function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
+function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
 function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
@@ -199,7 +200,7 @@ function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
 if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny))return;
-state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
+follower={map:state.map,x:state.x,y:state.y};state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
 function isExit(map,x,y){const m=mapMeta[map];if(map==='village'&&y<0&&x>=10&&x<=13)return {id:'route',x:11,y:24,dir:'up'};
@@ -209,7 +210,7 @@ if(map==='forest'&&y>=m.h&&x>=12&&x<=15)return {id:'route',x:11,y:1,dir:'down'};
 if(map==='forest'&&y<0&&x>=12&&x<=15)return {id:'shrine',x:9,y:17,dir:'up'};
 if(map==='shrine'&&y>=m.h&&x>=8&&x<=11)return {id:'forest',x:13,y:1,dir:'down'};
 return null}
-function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
+function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
 const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty);if(n){npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){npc(NPCS.village[0]);return}
@@ -260,7 +261,7 @@ let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利
 if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
-function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
+function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});follower={map:'village',x:12,y:18};state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){const b=state.battle;if(!b)return;const m=foe();const r=combatDamage(m,current(),enemyMove(m));b.shake=12;beep(180,.1,'square');battleMessage(r.text,()=>{if(current().hp<=0)knockout();else showBattle('どうする？')},750)}
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
@@ -365,6 +366,7 @@ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-c
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map])drawNpc(n,camX,camY);
+if(state.party.length){const pos=follower.map===state.map?follower:{x:state.x,y:state.y+1};drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
 drawHero(state.x*T-camX+16,state.y*T-camY+19,state.dir);
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
