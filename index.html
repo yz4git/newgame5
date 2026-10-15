@@ -110,6 +110,12 @@ const SPECIES=[
 {id:'leafaro',name:'シンリョク',type:'草',color:'#579e68',accent:'#ddeb9a',shape:'deer',hp:52,atk:13,def:17,spd:12,moves:['たいあたり','はっぱカッター','リーフシールド','ソーラーブレード']},
 {id:'aquaron',name:'ナギルーン',type:'水',color:'#438db4',accent:'#c1f4ee',shape:'otter',hp:48,atk:16,def:14,spd:15,moves:['たいあたり','みずてっぽう','みずのはどう','アクアリング']}
 ];
+const SPECIAL_BASES={
+ flamio:[14,9],leafin:[11,14],aquill:[13,12],chiro:[9,8],koro:[7,9],fugale:[12,8],
+ puddlo:[11,14],sparkit:[15,9],lumin:[14,12],crag:[7,17],shade:[14,10],
+ orchid:[15,13],glint:[19,17],flaro:[20,14],leafaro:[16,21],aquaron:[20,18]
+};
+for(const s of SPECIES){[s.spAtk,s.spDef]=SPECIAL_BASES[s.id]||[s.atk,s.def]}
 const byId=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
 const MOVES={
 'たいあたり':{p:35,type:'無'},'ひっかく':{p:32,type:'無'},'ひのこ':{p:48,type:'火'},
@@ -119,6 +125,12 @@ const MOVES={
 'ほしのひかり':{p:65,type:'光'},'きあいだめ':{effect:'focus'},'こうごうせい':{effect:'heal'},
 'あわガード':{effect:'guard'}};
 Object.assign(MOVES,Engine.NEW_MOVES);
+for(const name of ['たいあたり','ひっかく','はっぱカッター','いわおとし','かげうち','ソーラーブレード','よるのやいば','いわくだき']){
+ if(MOVES[name])MOVES[name].category='physical';
+}
+for(const name of ['ひのこ','みずてっぽう','かぜおこし','でんきショック','ひかりのこな','ほしのひかり','ほのおのうず','みずのはどう','せいでんき','つむじかぜ','せいなるひかり']){
+ if(MOVES[name])MOVES[name].category='special';
+}
 const ADV={火:['草'],草:['水','岩'],水:['火','岩'],雷:['水','風'],風:['草'],岩:['風','火'],光:['影'],影:['光']};
 const RES={火:['水','岩'],水:['草','雷'],草:['火','風'],風:['岩'],雷:['岩'],影:['光']};
 function effectiveness(a,b){return (ADV[a]||[]).includes(b)?2:(RES[a]||[]).includes(b)?0.5:1}
@@ -435,7 +447,7 @@ function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)re
 function chooseMove(){
  const m=current(),moves=m.moves||byId[m.id].moves,remaining=moves.some(n=>(m.pp?.[n]??moveMaxPP(n))>0);
  ui('ATTACK / '+byId[m.id].name,remaining?'タイプ・PP・技の効果に注目。':'PPがすべて尽きた！ わるあがきを使える。',
- (remaining?moves.map(name=>({text:name+' ['+(MOVES[name].type||'変化')+'] '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
+ (remaining?moves.map(name=>({text:name+' '+(MOVES[name].category==='physical'?'物理':MOVES[name].category==='special'?'特殊':'変化')+' '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
  [{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}])
  .concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]));
 }
@@ -609,7 +621,7 @@ function partyDetail(i){
 const m=state.party[i],s=byId[m.id],stats=Engine.statsFor(m,s),nature=Engine.NATURES.find(n=>n.id===m.nature)?.name||'ふつう';
 const detail=s.type+'タイプ / Lv.'+m.level+' 性格:'+nature+' / 特性:'+Engine.abilityFor(m)
 +'\nHP '+m.hp+'/'+m.maxHp+'　EXP '+m.xp+'/'+Engine.xpNeed(m.level)
-+'\n攻撃 '+stats.atk+' 防御 '+stats.def+' 速度 '+stats.spd+' なつき度 '+(m.friendship||70)
++'\n攻 '+stats.atk+' 防 '+stats.def+' 特攻 '+stats.spAtk+' 特防 '+stats.spDef+' 速 '+stats.spd+'\nなつき度 '+(m.friendship||70)
 +'\n努力値 攻'+(m.ev?.atk||0)+' 防'+(m.ev?.def||0)+' 速'+(m.ev?.spd||0)
 +'\n持ち物 '+(CHARM_NAMES[m.heldItem]||'なし')
 +'\n技：'+(m.moves||s.moves).map(n=>n+' '+(m.pp?.[n]??moveMaxPP(n))+'/'+moveMaxPP(n)).join(' / ');
