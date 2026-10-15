@@ -280,7 +280,7 @@ if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collecte
 const prevX=state.x,prevY=state.y;
 companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now(),duration:state.running?90:142};
 follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now(),duration:state.running?90:142};
-state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
+state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;if(state.steps%120===0)state.party.forEach(m=>m.friendship=Math.min(255,(m.friendship||70)+1));sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
@@ -390,17 +390,22 @@ function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選ん�
 {text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer,on:throwOrb},
 {text:'✚ キズぐすり ×'+p.potion,disabled:p.potion<=0,on:()=>{state.bag.potion--;current().hp=Math.min(current().maxHp,current().hp+25);battleMessage(byId[current().id].name+' のHPを25回復！',enemyFreeTurn,800)}},
 {text:'☘ げんき草 ×'+p.herb,disabled:p.herb<=0,on:()=>{state.bag.herb--;current().hp=Math.min(current().maxHp,current().hp+50);battleMessage('HPを大きく回復した！',enemyFreeTurn,800)}},
+{text:'◆ PP回復 ×'+p.ether,disabled:p.ether<=0,on:()=>{state.bag.ether--;const m=current();m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]));battleMessage('技のPPが回復した！',enemyFreeTurn,800)}},
 {text:'↶ もどる',on:()=>showBattle('どうする？')}])}
 function throwOrb(){const b=state.battle;if(!b)return;
 if(b.trainer){showBattle('トレーナーの星霊は捕まえられない！');return}
-if(state.party.length>=6){showBattle('パーティがいっぱいだ！');return}
+if(state.party.length>=6&&!state.boxes.some(b=>b.members.length<30)){showBattle('パーティとボックスがいっぱいだ！');return}
 if(state.bag.orb<=0){battleBag();return}
 state.bag.orb--;const m=foe(),health=1-m.hp/m.maxHp;
-const chance=clamp(.18+health*.76+(current().level>m.level?.07:0),.15,.92);
+const chance=Engine.catchProbability(m,byId);
 b.capture={started:performance.now(),success:Math.random()<chance};sfx('catch');
 battleMessage('星玉を投げた！ '+byId[m.id].name+' を捕まえられるかな…',()=>{
 const caught=b.capture?.success;b.capture=null;
-if(caught){state.party.push(m);state.caught[m.id]=(state.caught[m.id]||0)+1;state.battle=null;save();sfx('catch');dialog('CAPTURE','カチッ！ やった！ '+byId[m.id].name+' を仲間にした！',[{text:'▶ 冒険へ',on:()=>world()}]);}
+if(caught){
+const boxName=state.party.length<6?null:Engine.putInStorage(state.boxes,m);
+if(!boxName)state.party.push(m);
+state.caught[m.id]=(state.caught[m.id]||0)+1;state.battle=null;save();sfx('catch');
+dialog('CAPTURE','カチッ！ '+byId[m.id].name+' をゲット！'+(boxName?'\nパーティがいっぱいなので '+boxName+' に預けた。':''),[{text:'▶ 冒険へ',on:()=>world()}]);}
 else battleMessage('ああっ！ 星玉から飛び出した！',enemyFreeTurn,850);
 },1850);}
 function battleParty(){ui('BATTLE / PARTY','交代する仲間を選ぼう。',state.party.map((p,i)=>({text:byId[p.id].name+' '+p.hp+'/'+p.maxHp,disabled:p.hp===0||i===state.battle.active,on:()=>{state.battle.active=i;if(!state.battle.participants.includes(i))state.battle.participants.push(i);battleMessage(byId[p.id].name+'、いけっ！',enemyFreeTurn,700)}})).concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]))}
@@ -408,19 +413,23 @@ function shop(){screen('shop');ui('MINAMORI SHOP','いらっしゃい！ 所持�
 {text:'◉ 星玉 100G',on:()=>buy('orb',100)},
 {text:'✚ キズぐすり 80G',on:()=>buy('potion',80)},
 {text:'☘ げんき草 180G',on:()=>buy('herb',180)},
+{text:'◆ PP回復 230G',on:()=>buy('ether',230)},
 {text:'↶ お店を出る',on:()=>world()}])}
 function buy(id,cost){if(state.money<cost){toast('お金が足りない！');sfx('bad');return}state.money-=cost;state.bag[id]++;save();sfx('ok');shop();toast('購入しました！')}
 function openPage(page){state.prevScene=state.scene==='world'?'world':state.prevScene;state.menuPage=page;screen('menu');menu()}
 function menu(){const p=state.menuPage;
 if(p==='home'){ui('ADVENTURE MENU','おこづかい '+state.money+'G / 歩数 '+state.steps+' / '+(state.badge?'✦ 星のしるし所持':'聖域を目指そう'),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
-{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☷ 旅のきろく',on:()=>openPage('record')},
+{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'▤ 預かりボックス',on:()=>openPage('storage')},
+{text:'☷ 旅のきろく',on:()=>openPage('record')},
 {text:'▣ セーブ',on:()=>{save();toast('セーブしました！');menu()}},{text:'↶ もどる',on:()=>world()}]);return}
+if(p==='storage'){storageMenu();return}
 if(p==='party'){ui('PARTY / 仲間',state.party.length+'/6 体の星霊と旅をしているよ。',state.party.map((m,i)=>({text:(i===0?'★ ':'')+byId[m.id].name+' Lv'+m.level+'  '+m.hp+'/'+m.maxHp+(m.status?' '+m.status:''),on:()=>partyDetail(i)})).concat([{text:'↶ メニュー',on:()=>openPage('home')}]))}
 else if(p==='bag'){ui('BAG / バッグ','道具を選んで使おう。',[
 {text:'◉ 星玉 ×'+state.bag.orb,disabled:true,on:()=>{}},
 {text:'✚ キズぐすり ×'+state.bag.potion,disabled:!state.bag.potion,on:()=>itemTarget('potion')},
 {text:'☘ げんき草 ×'+state.bag.herb,disabled:!state.bag.herb,on:()=>itemTarget('herb')},
+{text:'◆ PP回復 ×'+state.bag.ether,disabled:!state.bag.ether,on:()=>itemTarget('ether')},
 {text:'↶ メニュー',on:()=>openPage('home')}])}
 else if(p==='dex'){let seen=Object.keys(state.seen).length,caught=Object.keys(state.caught).length;
 const entries=SPECIES.map((s,i)=> (state.seen[s.id]?'#'+String(i+1).padStart(2,'0')+' '+s.name+' '+s.type:'????')).join('  /  ');
@@ -431,7 +440,48 @@ else if(p==='record'){ui('JOURNAL / 旅のきろく','目的：'+questText()+'\n
 function partyDetail(i){const m=state.party[i],s=byId[m.id];ui('PARTY / '+s.name,s.type+'タイプ / Lv.'+m.level+'\nHP '+m.hp+'/'+m.maxHp+'　EXP '+m.xp+'/'+m.level*19+'\n技：'+(m.moves||s.moves).map(n=>n+' '+(m.pp?.[n]??moveMaxPP(n))+'/'+moveMaxPP(n)).join(' / '),[
 {text:'★ 先頭にする',disabled:i===0,on:()=>{const q=state.party.splice(i,1)[0];state.party.unshift(q);save();openPage('party')}},
 {text:'↶ もどる',on:()=>openPage('party')}])}
-function itemTarget(id){ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map((m,i)=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
+function storageMenu(){
+const count=state.boxes.reduce((a,b)=>a+b.members.length,0);
+ui('STORAGE / 星霊ボックス','保管中 '+count+' 体 / '+state.boxes.length*30+' 枠。\n好きな星霊を預けたり引き出したりできます。',[
+{text:'★ 仲間を預ける',on:depositScreen},
+{text:'▤ ボックスを見る',on:()=>boxList()},
+{text:'↶ メニュー',on:()=>openPage('home')}]);
+}
+function depositScreen(){
+ui('PC / DEPOSIT','先頭の仲間も含めて選べますが、戦える仲間を最低1体残してください。',
+state.party.map((m,i)=>({text:byId[m.id].name+' Lv'+m.level,disabled:state.party.length<=1,on:()=>{
+const result=Engine.deposit(state.boxes,state.party,i);
+if(result.ok){save();sfx('ok');toast(byId[m.id].name+' を '+result.box+' に預けた');depositScreen()}
+else{toast(result.reason);sfx('bad')}
+}})).concat([{text:'↶ ボックス',on:storageMenu}]));
+}
+function boxList(){
+ui('PC / BOX','見たいボックスを選ぼう。',
+state.boxes.map((b,i)=>({text:b.name+' ('+b.members.length+'/30)',on:()=>boxContents(i,0)}))
+.concat([{text:'↶ ボックス',on:storageMenu}]));
+}
+function boxContents(boxIndex,page=0){
+const box=state.boxes[boxIndex];if(!box){boxList();return}
+const size=6,max=Math.max(0,Math.ceil(box.members.length/size)-1),p=clamp(page,0,max);
+const items=box.members.slice(p*size,(p+1)*size);
+ui('PC / '+box.name,'預かり中 '+box.members.length+'/30体。引き出したい星霊を選んでね。',
+items.map((m,i)=>({text:byId[m.id].name+' Lv'+m.level+' HP'+m.hp,disabled:state.party.length>=6,on:()=>{
+const result=Engine.takeFromStorage(state.boxes,boxIndex,p*size+i,state.party);
+if(result.ok){save();sfx('ok');toast('仲間をパーティに加えた！');boxContents(boxIndex,p)}
+else{toast(result.reason);sfx('bad')}
+}})).concat([
+{text:'◀ 前ページ',disabled:p===0,on:()=>boxContents(boxIndex,p-1)},
+{text:'次ページ ▶',disabled:p===max,on:()=>boxContents(boxIndex,p+1)},
+{text:'↶ ボックス一覧',on:boxList}]));
+}
+function itemTarget(id){
+if(id==='ether'){
+ui('USE ITEM / PP回復','PPをすべて回復する星霊を選んでね。',state.party.map(m=>({text:byId[m.id].name+' Lv'+m.level,disabled:(m.moves||byId[m.id].moves).every(n=>(m.pp[n]??moveMaxPP(n))>=moveMaxPP(n)),on:()=>{
+state.bag.ether--;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]));save();sfx('ok');openPage('bag');toast('PPが回復した！')}
+})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]));
+return;
+}
+ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
 function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'){if(!forcedTrainer)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
