@@ -31,6 +31,8 @@ const context={document:doc,window:{addEventListener:noop},Math:deterministicMat
   localStorage:{getItem:key=>store[key]||null,setItem:(key,val)=>store[key]=val,removeItem:key=>delete store[key]},
   requestAnimationFrame:noop,setTimeout:callback=>{timers.push(callback);return timers.length},clearTimeout:noop};
 context.globalThis=context;
+vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:5000,filename:'rpg-engine.js'});
+assert(context.AstraEngine,'RPG engine was initialized');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
 assert(g);
@@ -39,6 +41,8 @@ g.draw();
 g.pick('flamio');
 assert.equal(g.get().scene,'world');
 assert.equal(g.get().party[0].pp['ひのこ'],20);
+assert(g.get().party[0].iv&&g.get().party[0].nature,'Creature has individual stats');
+assert.equal(g.get().saveVersion,2);
 assert(store['astra-tales-v1'],'Autosave exists');
 g.switchMap({id:'village',x:6,y:9,dir:'up'});g.walk('up');
 assert.equal(g.get().map,'center','Enter recovery center');
