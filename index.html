@@ -77,12 +77,14 @@ footer{flex:none;text-align:center;font-size:9px;color:#819a95;letter-spacing:.0
 </div></div>
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
 </div>
+<script src="./src/rpg-engine.js"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1';
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine;
+if(!Engine)throw Error('RPG engine failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
 let follower={map:'',x:0,y:0};
@@ -103,7 +105,10 @@ const SPECIES=[
 {id:'crag',name:'イワカブ',type:'岩',color:'#9093a3',accent:'#d3c8ae',shape:'beetle',hp:40,atk:12,def:14,spd:4,moves:['たいあたり','いわおとし']},
 {id:'shade',name:'ヨルカゲ',type:'影',color:'#776fa9',accent:'#d7ace7',shape:'bat',hp:29,atk:12,def:8,spd:13,moves:['かげうち','かぜおこし']},
 {id:'orchid',name:'ランカ',type:'草',color:'#d58aac',accent:'#f5d4df',shape:'flower',hp:32,atk:10,def:10,spd:9,moves:['はっぱカッター','こうごうせい']},
-{id:'glint',name:'セイラン',type:'光',color:'#bfd1d2',accent:'#fcdf9b',shape:'dragon',hp:49,atk:16,def:13,spd:12,moves:['ほしのひかり','かぜおこし','きあいだめ']}
+{id:'glint',name:'セイラン',type:'光',color:'#bfd1d2',accent:'#fcdf9b',shape:'dragon',hp:49,atk:16,def:13,spd:12,moves:['ほしのひかり','かぜおこし','きあいだめ']},
+{id:'flaro',name:'カグツバネ',type:'火',color:'#d65e46',accent:'#ffdc8b',shape:'fox',hp:44,atk:17,def:12,spd:15,moves:['ひっかく','ひのこ','ほのおのうず','きあいだめ']},
+{id:'leafaro',name:'シンリョク',type:'草',color:'#579e68',accent:'#ddeb9a',shape:'deer',hp:52,atk:13,def:17,spd:12,moves:['たいあたり','はっぱカッター','リーフシールド','ソーラーブレード']},
+{id:'aquaron',name:'ナギルーン',type:'水',color:'#438db4',accent:'#c1f4ee',shape:'otter',hp:48,atk:16,def:14,spd:15,moves:['たいあたり','みずてっぽう','みずのはどう','アクアリング']}
 ];
 const byId=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
 const MOVES={
@@ -113,6 +118,7 @@ const MOVES={
 'ひかりのこな':{p:42,type:'光'},'いわおとし':{p:53,type:'岩'},'かげうち':{p:49,type:'影'},
 'ほしのひかり':{p:65,type:'光'},'きあいだめ':{effect:'focus'},'こうごうせい':{effect:'heal'},
 'あわガード':{effect:'guard'}};
+Object.assign(MOVES,Engine.NEW_MOVES);
 const ADV={火:['草'],草:['水','岩'],水:['火','岩'],雷:['水','風'],風:['草'],岩:['風','火'],光:['影'],影:['光']};
 const RES={火:['水','岩'],水:['草','雷'],草:['火','風'],風:['岩'],雷:['岩'],影:['光']};
 function effectiveness(a,b){return (ADV[a]||[]).includes(b)?1.5:(RES[a]||[]).includes(b)?0.7:1}
@@ -229,13 +235,19 @@ center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'talk',color:'#a4b9a3',say:'タイプ相性と技の残りPPに注意してね。'}]
 };
-function moveMaxPP(name){return MOVES[name].effect?12:(MOVES[name].p>=55?12:20)}
-function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false,pp:Object.fromEntries(s.moves.map(name=>[name,moveMaxPP(name)]))};}
-function normalizeMonster(m){const built=makeMonster(m.id,m.level);const item={...built,...m};item.pp={...built.pp,...(m.pp||{})};return item;}
-function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},collected:{},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
+function moveMaxPP(name){return Engine.maxPP(name,MOVES)}
+function makeMonster(id,level){return Engine.makeCreature(id,level,byId,MOVES)}
+function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
+function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2,ether:1},money:400,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(normalizeMonster);follower={map:state.map,x:state.x,y:state.y+1};return true}}catch(e){}return false}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&x.party?.length&&maps[x.map]){
+ const migrated=Engine.migrateSave(x,byId,MOVES);
+ state={...fresh(),...migrated,scene:'world',battle:null};
+ state.bag={...fresh().bag,...(x.bag||{})};
+ follower={map:state.map,x:state.x,y:state.y+1};
+ return true
+}}catch(e){console.warn('Save migration:',e)}return false}
 function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
 function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
