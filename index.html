@@ -659,7 +659,7 @@ pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
 function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
 if(x<-35||x>W+35||y<-45||y>H+45)return;
 if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(frame*.07)*2,9,'#f2d2a8');ellipse(x,y-5,4,5,'#8f9fbe');for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.06;ellipse(x+Math.cos(a)*12,y-5+Math.sin(a)*12,2,2,'#f5efbd')}return}
-if(n.kind==='sign'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
+if(n.kind==='sign'||n.name==='高原の石碑'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
 ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
 if(n.kind==='trainer'||n.kind==='boss')txt('!',x,y-25,13,'#ffeabb','center');
