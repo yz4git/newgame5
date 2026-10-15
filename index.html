@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f2024">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="星のかけらを探す、モンスター育成と冒険のドット絵RPG">
+<title>星霊譚 - ASTRA TALES</title>
+<style>
+:root{--bg:#0c1d23;--panel:#193138;--panel2:#25454a;--paper:#e8eccb;--ink:#193238;--accent:#e5b96c;--line:#65857c;--glow:#a5d5b1}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{padding:0;margin:0;width:100%;height:100%;overflow:hidden;touch-action:none;overscroll-behavior:none}
+body{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;background:radial-gradient(ellipse at top,#244a52 0%,#081519 85%);color:var(--paper);user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:none;outline-offset:2px}
+#app{width:min(100%,670px);height:100dvh;margin:auto;padding:calc(env(safe-area-inset-top) + 5px) 9px calc(env(safe-area-inset-bottom) + 6px);display:flex;flex-direction:column;gap:6px;min-height:0}
+header{display:flex;align-items:center;gap:10px;height:36px;flex:none}
+.logo{font-family:Georgia,serif;font-size:17px;letter-spacing:1.3px;color:#f2dca8;white-space:nowrap;text-shadow:0 2px #2f3d33}
+.logo b{font-size:11px;color:#9fbcc0;letter-spacing:1px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.07em;color:#acc7c4}
+.mini{border:1px solid #6c8d8c;background:#1a3339;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700}
+#screenShell{position:relative;flex:1;min-height:0;max-height:64dvh;border-radius:10px;padding:6px;background:#0b1a20;border:2px solid #678782;box-shadow:0 5px 0 #071318,0 0 0 1px #0a1116,inset 0 1px 6px #567b85}
+#screenShell:before{content:"";position:absolute;left:50%;top:2px;width:50px;height:2px;border-radius:20px;background:#aec4b2;opacity:.5;transform:translateX(-50%)}
+#screen{display:block;width:100%;height:100%;object-fit:contain;background:#122b35;image-rendering:pixelated;touch-action:none}
+#hud{position:absolute;left:13px;top:12px;right:13px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;font-weight:700;text-shadow:1px 2px #112323,0 0 7px #152a34;font-size:11px;letter-spacing:.03em}
+#hud span{border-radius:5px;background:#09262ba8;padding:4px 8px}
+#bottom{display:flex;flex-direction:column;flex:0 0 auto;min-height:0;gap:6px}
+#console{border:2px solid #6e887a;background:linear-gradient(#f3eed7,#dbe2c2);box-shadow:0 3px #09171a;border-radius:8px;min-height:84px;max-height:180px;color:var(--ink);display:flex;flex-direction:column;padding:10px 12px 8px;gap:6px;overflow-y:auto;touch-action:pan-y}
+#console .eyebrow{font-size:10px;font-weight:900;color:#577b65;letter-spacing:.15em}
+#console .say{font-size:13px;font-weight:750;line-height:1.5;white-space:pre-line;min-height:18px}
+#console .options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#console .options button{color:#203a3b;background:#f7f5e4;border:1px solid #8ba99b;padding:7px 6px;border-radius:6px;font-size:12px;box-shadow:0 2px #adb9a0;font-weight:800}
+#console .options button:active{transform:translateY(1px);box-shadow:0 1px #adb9a0}
+#console .options button.primary{background:#31595b;color:#e5f3da;border-color:#2a4347}
+#console .options button:disabled{opacity:.45}
+#controls{height:172px;display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:155px}
+#dpad{width:156px;height:150px;position:relative;flex:none}
+.dkey{position:absolute;width:54px;height:49px;display:grid;place-items:center;background:linear-gradient(#436368,#29444b);border:2px solid #66888a;color:#dfebdf;font-size:22px;font-weight:900;box-shadow:0 4px #07171e;border-radius:8px;touch-action:none}
+.dkey:active,.dkey.pressed{background:#85aca0;color:#15353a;transform:translateY(2px);box-shadow:0 1px #07171e}
+.dkey[data-dir=up]{top:0;left:51px}.dkey[data-dir=down]{bottom:0;left:51px}
+.dkey[data-dir=left]{top:50px;left:0}.dkey[data-dir=right]{top:50px;right:0}
+#dpad:after{content:"✦";position:absolute;left:56px;top:54px;width:44px;text-align:center;line-height:39px;color:#60878b;pointer-events:none}
+#controlNote{display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:center;text-align:center;flex:1;color:#a3bbba;font-size:10px;letter-spacing:.05em;max-width:180px}
+#controlNote strong{font-family:Georgia,serif;font-size:16px;color:#d6be8b}
+#btns{flex:none;display:grid;grid-template-columns:60px 60px;grid-template-rows:61px 52px 32px;align-items:center;justify-items:center;column-gap:3px}
+.round{border:2px solid #ddc088;background:#ac534a;color:#fff0d6;width:59px;height:59px;border-radius:50%;font-weight:900;font-size:18px;box-shadow:0 4px #581f26,inset 0 3px #d47d62}
+.round:active{transform:translateY(2px);box-shadow:0 2px #581f26}
+#bBtn{grid-column:1;grid-row:2;background:#456b7d;border-color:#779daf;box-shadow:0 4px #183b53;width:53px;height:53px}
+#aBtn{grid-column:2;grid-row:1}
+#menuBtn{grid-column:1/3;grid-row:3;background:#20393d;border:1px solid #729188;border-radius:12px;font-size:10px;padding:5px 15px;letter-spacing:1px}
+#toast{position:absolute;bottom:20px;left:16px;right:16px;margin:auto;max-width:390px;border:2px solid #afbb9d;background:#243b3edb;color:#f1f5df;font-size:13px;border-radius:8px;padding:10px;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+footer{flex:none;text-align:center;font-size:9px;color:#819a95;letter-spacing:.05em}
+@media(max-height:760px){header{height:27px}.logo{font-size:14px}.header-right{font-size:9px}#screenShell{max-height:53dvh}#console{min-height:72px;padding:7px 10px}#controls{height:145px;min-height:137px}#dpad{transform:scale(.87);transform-origin:left center;margin-right:-17px}#btns{transform:scale(.88);transform-origin:right center;margin-left:-12px}footer{display:none}}
+@media(orientation:landscape) and (min-width:700px){#app{max-width:1100px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.9fr);grid-template-rows:32px 1fr 14px;gap:7px}header{grid-column:1/3}#screenShell{grid-column:1;grid-row:2;max-height:100%;height:100%}#bottom{grid-column:2;grid-row:2;justify-content:space-around}#controls{height:155px;min-height:0}#console{flex:1;max-height:none}footer{grid-column:1/3}}
+@media(max-width:360px){#dpad{transform:scale(.89);transform-origin:left center;margin-right:-14px}#btns{transform:scale(.91);transform-origin:right center;margin-left:-8px}#controlNote{font-size:9px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="logo">✦ 星霊譚 <b>ASTRA TALES</b></div><div class="header-right"><span>MONSTER RPG</span><button class="mini" id="audioBtn" aria-label="音声切替">♫ ON</button></div></header>
+<div id="screenShell"><canvas id="screen" width="416" height="352" aria-label="ゲーム画面"></canvas><div id="hud"><span id="areaName">星の大地</span><span id="hudRight">✦ はじまりの旅</span></div><div id="toast"></div></div>
+<div id="bottom"><div id="console" aria-live="polite"></div>
+<div id="controls">
+<div id="dpad"><button class="dkey" data-dir="up" aria-label="上">▲</button><button class="dkey" data-dir="left" aria-label="左">◀</button><button class="dkey" data-dir="right" aria-label="右">▶</button><button class="dkey" data-dir="down" aria-label="下">▼</button></div>
+<div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>A：調べる・決定<br>B：戻る</span></div>
+<div id="btns"><button id="aBtn" class="round" aria-label="決定">A</button><button id="bBtn" class="round" aria-label="戻る">B</button><button id="menuBtn" aria-label="メニュー">MENU</button></div>
+</div></div>
+<footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
+</div>
+<script>
+'use strict';
+(function(){
+const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
+const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
+const W=416,H=352,T=32,STORE='astra-tales-v1';
+const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
+let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
+const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const $=(s)=>document.querySelector(s);
+const SPECIES=[
+{id:'flamio',name:'ヒノコロ',type:'火',color:'#e77c54',accent:'#ffd18a',shape:'fox',hp:29,atk:11,def:8,spd:11,moves:['ひっかく','ひのこ','きあいだめ']},
+{id:'leafin',name:'モコリーフ',type:'草',color:'#83bf73',accent:'#e4eca4',shape:'deer',hp:34,atk:9,def:11,spd:8,moves:['たいあたり','はっぱカッター','こうごうせい']},
+{id:'aquill',name:'アワルン',type:'水',color:'#65a8d4',accent:'#b4eced',shape:'otter',hp:31,atk:10,def:9,spd:10,moves:['たいあたり','みずてっぽう','あわガード']},
+{id:'chiro',name:'チロップ',type:'草',color:'#b2cc75',accent:'#f0e8a4',shape:'rabbit',hp:25,atk:8,def:7,spd:14,moves:['たいあたり','はっぱカッター']},
+{id:'koro',name:'コロラット',type:'無',color:'#bf9b75',accent:'#eee4b9',shape:'mouse',hp:27,atk:10,def:8,spd:12,moves:['ひっかく','たいあたり']},
+{id:'fugale',name:'フワリル',type:'風',color:'#b7b6e7',accent:'#f2dcf1',shape:'bird',hp:24,atk:9,def:7,spd:15,moves:['かぜおこし','ひっかく']},
+{id:'puddlo',name:'ポチャム',type:'水',color:'#74b7b8',accent:'#d4ebdf',shape:'frog',hp:35,atk:9,def:12,spd:6,moves:['みずてっぽう','たいあたり']},
+{id:'sparkit',name:'ピカリス',type:'雷',color:'#dfbd5d',accent:'#fff0aa',shape:'squirrel',hp:25,atk:12,def:7,spd:14,moves:['でんきショック','ひっかく']},
+{id:'lumin',name:'ホタルナ',type:'光',color:'#dfb6d5',accent:'#fff2b4',shape:'moth',hp:28,atk:11,def:8,spd:12,moves:['ひかりのこな','かぜおこし']},
+{id:'crag',name:'イワカブ',type:'岩',color:'#9093a3',accent:'#d3c8ae',shape:'beetle',hp:40,atk:12,def:14,spd:4,moves:['たいあたり','いわおとし']},
+{id:'shade',name:'ヨルカゲ',type:'影',color:'#776fa9',accent:'#d7ace7',shape:'bat',hp:29,atk:12,def:8,spd:13,moves:['かげうち','かぜおこし']},
+{id:'orchid',name:'ランカ',type:'草',color:'#d58aac',accent:'#f5d4df',shape:'flower',hp:32,atk:10,def:10,spd:9,moves:['はっぱカッター','こうごうせい']},
+{id:'glint',name:'セイラン',type:'光',color:'#bfd1d2',accent:'#fcdf9b',shape:'dragon',hp:49,atk:16,def:13,spd:12,moves:['ほしのひかり','かぜおこし','きあいだめ']}
+];
+const byId=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
+const MOVES={
+'たいあたり':{p:35,type:'無'},'ひっかく':{p:32,type:'無'},'ひのこ':{p:48,type:'火'},
+'はっぱカッター':{p:47,type:'草'},'みずてっぽう':{p:47,type:'水'},
+'かぜおこし':{p:45,type:'風'},'でんきショック':{p:48,type:'雷'},
+'ひかりのこな':{p:42,type:'光'},'いわおとし':{p:53,type:'岩'},'かげうち':{p:49,type:'影'},
+'ほしのひかり':{p:65,type:'光'},'きあいだめ':{effect:'focus'},'こうごうせい':{effect:'heal'},
+'あわガード':{effect:'guard'}};
+const ADV={火:['草'],草:['水','岩'],水:['火','岩'],雷:['水','風'],風:['草'],岩:['風','火'],光:['影'],影:['光']};
+const RES={火:['水','岩'],水:['草','雷'],草:['火','風'],風:['岩'],雷:['岩'],影:['光']};
+function effectiveness(a,b){return (ADV[a]||[]).includes(b)?1.5:(RES[a]||[]).includes(b)?.7:1}
+const dirDelta={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const mapMeta={
+village:{name:'ミナモリの町',w:24,h:20,theme:'village',wild:[]},
+route:{name:'そよかぜの小道',w:24,h:26,theme:'route',wild:[['chiro',3],['koro',3],['fugale',4],['sparkit',6]]},
+forest:{name:'月影の森',w:28,h:28,theme:'forest',wild:[['lumin',5],['puddlo',6],['shade',7],['orchid',7],['crag',8]]},
+shrine:{name:'星降りの聖域',w:20,h:19,theme:'shrine',wild:[['shade',8],['lumin',8],['crag',9]]}
+};
+const maps={};
+function makeMap(id){
+const m=mapMeta[id],a=Array.from({length:m.h},(_,y)=>Array.from({length:m.w},(_,x)=>{
+if(x<2||y<2||x>=m.w-2||y>=m.h-2)return 4;
+let r=rand(x,y,id.length);
+if(id==='village')return r<.065?7:0;
+if(id==='shrine')return r<.08?7:(r<.2?2:0);
+return r<.28?2:(r<.38?7:0);
+}));
+function rect(x,y,w,h,v){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)if(a[j]&&a[j][i]!==undefined)a[j][i]=v}
+function road(cx,y1,y2,w=4){rect(cx,y1,w,y2-y1+1,1)}
+if(id==='village'){
+rect(9,0,5,20,1);rect(4,9,17,4,1);rect(5,5,5,4,1);rect(14,5,5,4,1);
+rect(4,5,4,3,5);rect(15,5,4,3,5);rect(7,14,5,3,5);
+rect(2,15,4,3,3);rect(17,14,4,2,2);rect(11,0,2,4,1);
+}else if(id==='route'){
+road(10,0,m.h-1,4);rect(3,8,17,3,1);rect(4,18,17,2,1);rect(2,4,5,4,2);rect(17,14,4,4,3);
+rect(10,0,4,3,1);rect(10,m.h-3,4,3,1);
+}else if(id==='forest'){
+road(12,0,m.h-1,4);rect(5,7,19,2,1);rect(6,17,17,2,1);
+for(let y=4;y<m.h-3;y++)for(let x=3;x<m.w-3;x++)if(rand(x,y,53)<.20&&Math.abs(x-13)>3&&a[y][x]!==1)a[y][x]=4;
+rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
+}else{
+road(8,0,m.h-1,4);rect(4,5,12,5,1);rect(5,4,10,1,3);rect(4,10,12,1,3);
+rect(8,0,4,4,1);rect(8,m.h-3,4,3,1);
+}
+maps[id]=a;
+}
+Object.keys(mapMeta).forEach(makeMap);
+const NPCS={
+village:[
+{x:10,y:12,name:'アオイ博士',kind:'prof',icon:'P',color:'#d9d1a9',say:'星霊たちと心を通わせる旅に出よう。草むらでは野生の星霊が現れるよ。'},
+{x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
+{x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
+{x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。'},
+{x:6,y:12,name:'看板',kind:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
+],
+route:[
+{x:11,y:13,name:'見習い ミオ',kind:'trainer',party:[['chiro',4]],reward:160,color:'#df9981',say:'私の仲間たちの強さ、見ていって！'},
+{x:16,y:7,name:'虫好き ソラ',kind:'trainer',party:[['koro',5],['fugale',4]],reward:230,color:'#c4b582',say:'野生の星霊と一緒に成長するんだ！'},
+{x:8,y:19,name:'散歩人',kind:'talk',color:'#a2cda8',say:'タイプの相性を覚えると、ずっと勝ちやすくなるよ。火は草に強いんだ。'}
+],
+forest:[
+{x:13,y:12,name:'森番 レン',kind:'trainer',party:[['puddlo',7],['lumin',7]],reward:380,color:'#b8cba0',say:'この先の聖域へ行くなら、私と勝負だ！'},
+{x:19,y:18,name:'探検家 ユイ',kind:'trainer',party:[['crag',8],['shade',8]],reward:420,color:'#dbba9e',say:'夜の森の秘密、知ってる？'},
+{x:9,y:7,name:'石碑',kind:'sign',color:'#95979e',say:'「星の光は、仲間を信じる心に応える」'},
+{x:13,y:22,name:'精霊の泉',kind:'spring',color:'#7bc6c4',say:'澄んだ光が体に満ちていく…'}
+],
+shrine:[
+{x:9,y:6,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
+{x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'}
+]};
+function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false};}
+function fresh(){return {scene:'title',map:'village',x:11,y:15,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
+let state=fresh();
+function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(p=>({...makeMonster(p.id,p.level),...p}));return true}}catch(e){}return false}
+function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
+function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
+function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
+function ui(label,text,options){consoleEl.innerHTML='';const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;const say=document.createElement('div');say.className='say';say.textContent=text;const ops=document.createElement('div');ops.className='options';options.forEach((o,i)=>{const b=document.createElement('button');b.textContent=o.text;b.className=i===0?'primary':'';b.disabled=!!o.disabled;b.addEventListener('click',()=>{beep(600,.045);o.on()});ops.appendChild(b)});consoleEl.append(sub,say,ops);consoleEl.scrollTop=0}
+function screen(scene){state.scene=scene;setHud()}
+function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅')}
+function title(){
+screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE';
+const hasSave=!!localStorage.getItem(STORE);
+ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else starter()}}]:[]),{text:'✦ はじめから',on:()=>{state=fresh();starter()}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
+}
+function starter(){
+screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲間を選んでね。どの子も、きっと頼りになるよ！」',[
+{text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
+{text:'💧 アワルン / 水',on:()=>pick('aquill')},{text:'◀ タイトル',on:title}]);
+}
+function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=11;state.y=15;state.dir='up';world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
+function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
+{text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
+{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
+}
+function questText(){return state.badge?'星のしるしを手に入れた！ この世界の星霊たちと冒険を続けよう。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
+function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
+if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
+if([3,4,5].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
+if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny))return;
+state.x=nx;state.y=ny;state.steps++;state.encounterSteps++;sfx('walk');if(state.steps%5===0)save();
+if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
+}
+function isExit(map,x,y){const m=mapMeta[map];if(map==='village'&&y<0&&x>=10&&x<=13)return {id:'route',x:11,y:24,dir:'up'};
+if(map==='route'&&y>=m.h&&x>=10&&x<=13)return {id:'village',x:11,y:1,dir:'down'};
+if(map==='route'&&y<0&&x>=10&&x<=13)return {id:'forest',x:13,y:26,dir:'up'};
+if(map==='forest'&&y>=m.h&&x>=12&&x<=15)return {id:'route',x:11,y:1,dir:'down'};
+if(map==='forest'&&y<0&&x>=12&&x<=15)return {id:'shrine',x:9,y:17,dir:'up'};
+if(map==='shrine'&&y>=m.h&&x>=8&&x<=11)return {id:'forest',x:13,y:1,dir:'down'};
+return null}
+function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
+function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
+const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty);if(n){npc(n);return}
+if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){npc(NPCS.village[0]);return}
+if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){npc(NPCS.village[2]);return}
+toast('キラキラした風が吹いている…')}
+function npc(n){if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
+if(n.kind==='shop'){screen('shop');shop();return}
+if(n.kind==='trainer'||n.kind==='boss'){
+const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
+dialog(n.name,n.say,[{text:'勝負する！',on:()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward})},{text:'まだ待って',on:()=>world()}]);return}
+dialog(n.name,n.say||'いい旅になりますように！')}
+function dialog(name,txt,options){screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
+function wildBattle(){const table=mapMeta[state.map].wild;if(!table.length)return;const pick=table[Math.floor(Math.random()*table.length)];state.encounterSteps=0;startBattle([makeMonster(pick[0],pick[1]+Math.floor(Math.random()*3))],{trainer:false})}
+function firstAlive(){return state.party.findIndex(m=>m.hp>0)}
+function current(){return state.party[state.battle?.active??0]}
+function startBattle(enemies,options){const active=firstAlive();if(active<0){healAndReturn();return}state.party.forEach(m=>{m.focus=false;m.guard=false});state.battle={enemies,index:0,active,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};enemies.forEach(m=>state.seen[m.id]=1);screen('battle');showBattle('あ！ '+(options.trainer?options.npc.name+' が勝負をしかけてきた！':'野生の '+byId[enemies[0].id].name+' が現れた！'));sfx('bad')}
+function foe(){return state.battle.enemies[state.battle.index]}
+function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy=false;ui('BATTLE / '+byId[foe().id].name,message,[
+{text:'⚔ たたかう',on:chooseMove},{text:'◉ バッグ',on:()=>battleBag()},
+{text:'✦ こうたい',on:()=>battleParty()},{text:'↗ にげる',on:runAway}]);setHud()}
+function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:()=>{if(!b.busy)return;callback()}}]);if(delay>0)setTimeout(()=>{if(state.battle===b&&b.busy)callback()},delay)}
+function chooseMove(){const m=current(),moves=byId[m.id].moves;ui('ATTACK / '+byId[m.id].name,'つかう技を選んでね。',moves.map(name=>({text:name+'  '+(MOVES[name].type||'補助'),on:()=>turn(name)})).concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]))}
+function combatDamage(attacker,target,name){const move=MOVES[name],s=byId[attacker.id],d=byId[target.id];if(move.effect==='heal'){const amount=Math.floor(target.maxHp*.35);attacker.hp=Math.min(attacker.maxHp,attacker.hp+Math.floor(attacker.maxHp*.35));return {text:s.name+' は元気を取り戻した！',damage:-amount}}
+if(move.effect==='guard'){attacker.guard=true;return {text:s.name+' は守りを固めた！',damage:0}}
+if(move.effect==='focus'){attacker.focus=true;return {text:s.name+' は力をためている！',damage:0}}
+const mult=effectiveness(move.type,d.type);
+const dmg=Math.max(1,Math.round((move.p*(s.atk+attacker.level*1.2)/(d.def+target.level*.65+10))*((attacker.level+10)/20)*(.83+Math.random()*.28)*mult*(attacker.focus?1.6:1)*(target.guard?.55:1)));
+attacker.focus=false;target.guard=false;target.hp=clamp(target.hp-dmg,0,target.maxHp);
+return {text:s.name+' の '+name+'！'+(mult>1?' 効果は抜群！':mult<1?' 効果はいまひとつ…':''),damage:dmg}}
+function turn(move){const b=state.battle;if(!b||b.busy)return;
+const user=current(),enemy=foe();const userFirst=(byId[user.id].spd+user.level)>=(byId[enemy.id].spd+enemy.level)||move==='かげうち';
+const sequence=userFirst?[['you',move],['enemy',enemyMove(enemy)]]:[['enemy',enemyMove(enemy)],['you',move]];
+takeTurns(sequence,0)}
+function enemyMove(m){const choices=byId[m.id].moves.filter(x=>MOVES[x].p);return choices[Math.floor(Math.random()*choices.length)]||'たいあたり'}
+function takeTurns(sequence,i){const b=state.battle;if(!b)return;if(i>=sequence.length){showBattle('どうする？');return}
+const [who,name]=sequence[i],mine=who==='you',actor=mine?current():foe(),target=mine?foe():current();
+if(actor.hp<=0){takeTurns(sequence,i+1);return}
+const res=combatDamage(actor,target,name);b.shake=res.damage>0?14:0;b.flash=11;sfx(res.damage>0?'bad':'ok');
+const extra=target.hp===0?(mine?' '+byId[target.id].name+' を倒した！':' '+byId[target.id].name+' は倒れてしまった！'):'';
+battleMessage(res.text+extra,()=>{
+if(target.hp<=0){if(mine)defeatEnemy();else knockout()}
+else takeTurns(sequence,i+1)},950)}
+function defeatEnemy(){const b=state.battle;if(!b)return;const killed=foe(),rewardXp=(killed.level+3)*13;const alive=state.party.filter(m=>m.hp>0);alive.forEach(m=>{m.xp+=Math.max(1,Math.floor(rewardXp/alive.length));while(m.xp>=m.level*19){m.xp-=m.level*19;m.level++;const diff=Math.floor(byId[m.id].hp+(m.level)*2.4)-m.maxHp;m.maxHp+=diff;m.hp+=diff;toast(byId[m.id].name+' は Lv.'+m.level+' に成長！')}});b.index++;
+if(b.index<b.enemies.length){b.enemies[b.index].hp=b.enemies[b.index].maxHp;state.seen[foe().id]=1;battleMessage('相手は '+byId[foe().id].name+' を繰り出した！',()=>showBattle('次の星霊が現れた！'),950)}
+else victory()}
+function victory(){const b=state.battle;if(!b)return;
+let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利！ 仲間に経験値が入った！';
+if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
+state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
+function knockout(){const idx=firstAlive();if(idx<0){healAndReturn();return}state.battle.active=idx;battleMessage(byId[current().id].name+' が飛び出した！',()=>showBattle('戦闘を続けよう！'),900)}
+function healAndReturn(){state.map='village';state.x=11;state.y=15;state.party.forEach(m=>{m.hp=m.maxHp;m.status=''});state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
+function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
+function enemyFreeTurn(){const b=state.battle;if(!b)return;const m=foe();const r=combatDamage(m,current(),enemyMove(m));b.shake=12;beep(180,.1,'square');battleMessage(r.text,()=>{if(current().hp<=0)knockout();else showBattle('どうする？')},750)}
+function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
+{text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer,on:throwOrb},
+{text:'✚ キズぐすり ×'+p.potion,disabled:p.potion<=0,on:()=>{state.bag.potion--;current().hp=Math.min(current().maxHp,current().hp+25);battleMessage(byId[current().id].name+' のHPを25回復！',enemyFreeTurn,800)}},
+{text:'☘ げんき草 ×'+p.herb,disabled:p.herb<=0,on:()=>{state.bag.herb--;current().hp=Math.min(current().maxHp,current().hp+50);battleMessage('HPを大きく回復した！',enemyFreeTurn,800)}},
+{text:'↶ もどる',on:()=>showBattle('どうする？')}])}
+function throwOrb(){const b=state.battle;if(b.trainer){showBattle('ほかの人の仲間は捕まえられない。');return}if(state.party.length>=6){showBattle('パーティがいっぱいだ！');return}
+state.bag.orb--;const m=foe(),chance=clamp(.23+(.75*(1-m.hp/m.maxHp))+(current().level>m.level?.06:0),.18,.95);
+b.flash=18;sfx('catch');
+if(Math.random()<chance){state.party.push(m);state.caught[m.id]=(state.caught[m.id]||0)+1;state.battle=null;save();dialog('CAPTURE','やった！ '+byId[m.id].name+' を仲間にした！',[{text:'▶ 冒険へ',on:()=>world()}]);return}
+battleMessage('惜しい！ 星玉から飛び出した！',enemyFreeTurn,1050)}
+function battleParty(){ui('BATTLE / PARTY','交代する仲間を選ぼう。',state.party.map((p,i)=>({text:byId[p.id].name+' '+p.hp+'/'+p.maxHp,disabled:p.hp===0||i===state.battle.active,on:()=>{state.battle.active=i;battleMessage(byId[p.id].name+'、いけっ！',enemyFreeTurn,700)}})).concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]))}
+function shop(){screen('shop');ui('MINAMORI SHOP','いらっしゃい！ 所持金：'+state.money+'G',[
+{text:'◉ 星玉 100G',on:()=>buy('orb',100)},
+{text:'✚ キズぐすり 80G',on:()=>buy('potion',80)},
+{text:'☘ げんき草 180G',on:()=>buy('herb',180)},
+{text:'↶ お店を出る',on:()=>world()}])}
+function buy(id,cost){if(state.money<cost){toast('お金が足りない！');sfx('bad');return}state.money-=cost;state.bag[id]++;save();sfx('ok');shop();toast('購入しました！')}
+function openPage(page){state.prevScene=state.scene==='world'?'world':state.prevScene;state.menuPage=page;screen('menu');menu()}
+function menu(){const p=state.menuPage;
+if(p==='home'){ui('ADVENTURE MENU','おこづかい '+state.money+'G / 歩数 '+state.steps+' / '+(state.badge?'✦ 星のしるし所持':'聖域を目指そう'),[
+{text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
+{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☷ 旅のきろく',on:()=>openPage('record')},
+{text:'▣ セーブ',on:()=>{save();toast('セーブしました！');menu()}},{text:'↶ もどる',on:()=>world()}]);return}
+if(p==='party'){ui('PARTY / 仲間',state.party.length+'/6 体の星霊と旅をしているよ。',state.party.map((m,i)=>({text:(i===0?'★ ':'')+byId[m.id].name+' Lv'+m.level+'  '+m.hp+'/'+m.maxHp,on:()=>partyDetail(i)})).concat([{text:'↶ メニュー',on:()=>openPage('home')}]))}
+else if(p==='bag'){ui('BAG / バッグ','道具を選んで使おう。',[
+{text:'◉ 星玉 ×'+state.bag.orb,disabled:true,on:()=>{}},
+{text:'✚ キズぐすり ×'+state.bag.potion,disabled:!state.bag.potion,on:()=>itemTarget('potion')},
+{text:'☘ げんき草 ×'+state.bag.herb,disabled:!state.bag.herb,on:()=>itemTarget('herb')},
+{text:'↶ メニュー',on:()=>openPage('home')}])}
+else if(p==='dex'){let seen=Object.keys(state.seen).length,caught=Object.keys(state.caught).length;
+const entries=SPECIES.map((s,i)=> (state.seen[s.id]?'#'+String(i+1).padStart(2,'0')+' '+s.name+' '+s.type:'????')).join('  /  ');
+ui('STAR DEX / 星霊図鑑','発見 '+seen+'/'+SPECIES.length+'　仲間にした種類 '+caught+'/'+SPECIES.length+'\n'+entries,[{text:'↶ メニュー',on:()=>openPage('home')}])}
+else if(p==='record'){ui('JOURNAL / 旅のきろく','目的：'+questText()+'\n勝利したトレーナー '+Object.keys(state.defeated).length+'人\n冒険時間 約'+Math.floor(state.time/60)+'分 / '+state.steps+'歩',[
+{text:'最初からやり直す',on:()=>{screen('confirm');ui('RESET','セーブデータを消して最初から始めますか？',[{text:'いいえ',on:()=>openPage('record')},{text:'はい・消去する',on:()=>{localStorage.removeItem(STORE);state=fresh();title()}}])}},
+{text:'↶ メニュー',on:()=>openPage('home')}])}}
+function partyDetail(i){const m=state.party[i],s=byId[m.id];ui('PARTY / '+s.name,s.type+'タイプ / Lv.'+m.level+'\nHP '+m.hp+'/'+m.maxHp+'　EXP '+m.xp+'/'+m.level*19+'\n技：'+s.moves.join('・'),[
+{text:'★ 先頭にする',disabled:i===0,on:()=>{const q=state.party.splice(i,1)[0];state.party.unshift(q);save();openPage('party')}},
+{text:'↶ もどる',on:()=>openPage('party')}])}
+function itemTarget(id){ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map((m,i)=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
+function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
+function buttonB(){if(state.scene==='battle'){showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'||state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
+$('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
+$('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
+$('#menuBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonMenu()});
+document.querySelectorAll('.dkey').forEach(el=>{const d=el.dataset.dir;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);resetHold();holdDir=d;el.classList.add('pressed');walk(d);lastStep=performance.now()});
+el.addEventListener('pointerup',()=>resetHold());el.addEventListener('pointercancel',()=>resetHold());el.addEventListener('lostpointercapture',()=>resetHold())});
+document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','Backspace','w','a','s','d','z','x','m'].includes(e.key))e.preventDefault();
+const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];if(dir&&!e.repeat){holdDir=dir;walk(dir);lastStep=performance.now()}
+if(e.repeat)return;if(e.key==='z'||e.key==='Enter'||e.key===' ')buttonA();if(e.key==='x'||e.key==='Escape'||e.key==='Backspace')buttonB();if(e.key==='m')buttonMenu()});
+document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key))resetHold()});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+$('#audioBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';if(soundOn)sfx('ok')});
+let pointerStart=null;
+C.addEventListener('pointerdown',e=>{if(state.scene!=='world')return;pointerStart={x:e.clientX,y:e.clientY}});
+C.addEventListener('pointerup',e=>{if(!pointerStart||state.scene!=='world')return;const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;if(Math.abs(dx)+Math.abs(dy)<14)interact();else {const d=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');walk(d)}});
+function pixel(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
+function ellipse(x,y,rx,ry,col){ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2);ctx.fill()}
+function line(x,y,x2,y2,col,w=2){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
+function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function txt(str,x,y,size=12,col='#fff',align='left'){ctx.fillStyle=col;ctx.font='bold '+size+'px system-ui,sans-serif';ctx.textAlign=align;ctx.fillText(str,x,y);ctx.textAlign='left'}
+function drawTile(t,x,y,gx,gy,theme){
+if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':'#cbb37d');pixel(x,y+2,T,2,'#c4ad79');if(rand(gx,gy,3)>.8)pixel(x+6,y+19,9,2,'#a48e65')}
+else{pixel(x,y,T,T,theme==='shrine'?'#668774':theme==='forest'?'#588c60':'#81ad71');if(rand(gx,gy,9)<.65){pixel(x+3,y+19,3,4,'#629c66');pixel(x+21,y+9,2,4,'#aad187')}}
+if(t===2){for(let i=0;i<4;i++){const ox=(rand(gx,gy,i)*22+3)|0;const oy=(rand(gx,gy,i+9)*20+7)|0;line(x+ox,y+oy+7,x+ox-2,y+oy-1,'#326f50',2);line(x+ox,y+oy+7,x+ox+3,y+oy-3,'#a0c77b',2)}}
+if(t===7){for(let i=0;i<3;i++){const ox=5+(rand(gx,gy,i)*21)|0,oy=6+(rand(gx,gy,i+5)*19)|0;pixel(x+ox,y+oy,3,3,['#f2d186','#dca0ca','#d6d7f9'][i]);pixel(x+ox+1,y+oy+4,1,3,'#377a50')}}
+if(t===3){pixel(x,y,T,T,'#458a9a');for(let j=0;j<2;j++){const a=(frame*.7+j*14+gx*9)%36;line(x+a-4,y+8+j*13,x+a+5,y+8+j*13,'#8bc9c6',1)}}
+if(t===4){pixel(x,y,T,T,'#508059');ellipse(x+17,y+25,14,8,'#3b634c');pixel(x+13,y+13,7,15,'#715d46');ellipse(x+17,y+12,15,12,'#346b4f');ellipse(x+12,y+9,11,10,'#47865a');ellipse(x+21,y+7,8,9,'#639e67');pixel(x+9,y+8,5,3,'#88b476')}
+if(t===5){pixel(x,y,T,T,'#bbafa0');pixel(x+1,y+1,T-2,T-2,'#647b80');line(x+3,y+3,x+25,y+3,'#a5b6b0',3);line(x+4,y+20,x+30,y+20,'#425d65',2)}
+}
+function drawBuilding(x,y,kind,camX,camY){const sx=x*T-camX,sy=y*T-camY;if(sx>W+130||sx<-140||sy>H+100||sy<-120)return;
+const w=kind==='lab'?154:122,roof=kind==='lab'?'#7397a7':kind==='shop'?'#cd8b6f':'#c8898b';
+pixel(sx+7,sy+45,w-14,56,'#e5d4b0');pixel(sx+17,sy+68,22,24,'#80b8ae');pixel(sx+w-39,sy+68,20,24,'#80b8ae');pixel(sx+w/2-15,sy+75,30,27,'#66584c');
+pixel(sx+2,sy+18,w-4,41,roof);pixel(sx+12,sy+8,w-24,19,roof);pixel(sx+24,sy,w-48,12,roof);pixel(sx+8,sy+52,w-16,5,'#596269');
+pixel(sx+w/2-5,sy+79,10,22,'#b69d80');rounded(sx+w/2-22,sy+41,44,15,3,'#f8f0d4');
+txt(kind==='lab'?'LAB':kind==='shop'?'SHOP':'HEAL',sx+w/2,sy+53,10,'#354e4f','center');
+}
+function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
+if(x<-35||x>W+35||y<-45||y>H+45)return;
+if(n.kind==='sign'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
+if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
+ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
+if(n.kind==='trainer'||n.kind==='boss')txt('!',x,y-25,13,'#ffeabb','center');
+}
+function drawHero(x,y,dir){const bob=Math.sin(frame*.12)*1.2;
+ellipse(x,y+12,11,4,'#294c4877');
+pixel(x-7,y-10+bob,14,19,'#496b90');pixel(x-7,y+7+bob,5,7,'#373947');pixel(x+2,y+7+bob,5,7,'#373947');
+pixel(x-7,y-20+bob,14,13,'#e7bc96');pixel(x-10,y-23+bob,20,7,'#df6260');pixel(x-7,y-27+bob,14,6,'#a3424b');
+if(dir==='down'){pixel(x-4,y-13+bob,3,3,'#263e46');pixel(x+2,y-13+bob,3,3,'#263e46')}
+if(dir==='up')pixel(x-6,y-17+bob,12,9,'#414955');
+if(dir==='left')pixel(x-7,y-14+bob,3,3,'#263e46');
+if(dir==='right')pixel(x+4,y-14+bob,3,3,'#263e46');
+pixel(x-12,y-6+bob,5,10,'#b58e6e');}
+function drawWorld(){
+const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
+const camX=clamp(state.x*T+16-W/2,0,m.w*T-W),camY=clamp(state.y*T+16-H/2,0,m.h*T-H);
+const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
+for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme);
+if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
+if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
+for(const n of NPCS[state.map])drawNpc(n,camX,camY);
+drawHero(state.x*T-camX+16,state.y*T-camY+19,state.dir);
+if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
+const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
+}
+function drawMonster(m,x,y,scale=1,back=false){if(!m)return;const s=byId[m.id];ctx.save();ctx.translate(x,y+Math.sin(frame*.045)*2);ctx.scale((back?-1:1)*scale,scale);
+const body=s.color,light=s.accent;
+ellipse(0,5,35,9,'#1b334044');
+const ear=(px,py,w,h)=>ellipse(px,py,w,h,body),mark=(px,py,w,h)=>ellipse(px,py,w,h,light);
+switch(s.shape){
+case 'fox':ear(-27,-39,13,30);ear(27,-39,13,30);ellipse(0,-13,38,39,body);mark(0,-4,22,22);ellipse(34,-4,19,10,body);break;
+case 'deer':ellipse(0,-7,37,37,body);ear(-23,-46,9,21);ear(23,-46,9,21);mark(0,-10,24,23);line(-26,-37,-36,-55,'#9dca77',5);line(26,-37,36,-55,'#9dca77',5);break;
+case 'otter':ellipse(0,-8,35,38,body);ear(-30,-30,11,13);ear(30,-30,11,13);mark(0,-4,24,24);ellipse(34,-3,24,11,body);break;
+case 'rabbit':ear(-17,-56,13,30);ear(17,-56,13,30);ellipse(0,-12,34,34,body);mark(0,-5,20,20);break;
+case 'mouse':ear(-27,-40,18,18);ear(27,-40,18,18);ellipse(0,-12,34,32,body);mark(0,-3,19,18);line(30,-5,56,-24,body,9);break;
+case 'bird':ellipse(0,-13,32,36,body);ellipse(-32,-11,23,12,body);ellipse(32,-11,23,12,body);mark(0,-3,19,20);ellipse(0,-19,6,7,'#f3c789');break;
+case 'frog':ellipse(0,-8,40,30,body);ear(-22,-32,14,15);ear(22,-32,14,15);mark(0,-1,25,17);break;
+case 'squirrel':ear(-22,-36,12,19);ear(22,-36,12,19);ellipse(0,-10,34,36,body);ellipse(37,-31,18,28,body);mark(0,-4,20,20);break;
+case 'moth':ellipse(-29,-24,29,21,light);ellipse(29,-24,29,21,light);ellipse(0,-14,23,29,body);line(-7,-40,-17,-52,body,3);line(7,-40,17,-52,body,3);break;
+case 'beetle':ellipse(0,-7,42,30,body);ellipse(0,-23,29,19,light);line(-13,-39,-24,-52,body,7);line(13,-39,24,-52,body,7);break;
+case 'bat':ellipse(-33,-16,31,22,body);ellipse(33,-16,31,22,body);ellipse(0,-13,25,27,body);ear(-16,-40,9,18);ear(16,-40,9,18);mark(0,-6,14,13);break;
+case 'flower':ellipse(0,-8,28,34,body);for(let a=0;a<6;a++){let theta=a*Math.PI/3;ellipse(Math.sin(theta)*22,-31+Math.cos(theta)*19,12,15,light)}ellipse(0,-32,15,15,'#e6b75a');break;
+case 'dragon':ellipse(0,-5,37,42,body);ear(-21,-48,12,22);ear(21,-48,12,22);ellipse(-35,-13,17,36,light);ellipse(35,-13,17,36,light);mark(0,-2,22,22);break;
+}
+ellipse(-11,-22,4.5,5.5,'#203b44');ellipse(11,-22,4.5,5.5,'#203b44');ellipse(-12,-24,1.5,2,'#ffffff');ellipse(10,-24,1.5,2,'#ffffff');
+ellipse(0,-10,3,2,'#744e54');ctx.restore()}
+function drawBar(x,y,w,val,col){rounded(x,y,w,9,4,'#49616b');rounded(x+2,y+2,Math.max(0,(w-4)*clamp(val,0,1)),5,3,col)}
+function drawBattle(){const b=state.battle;if(!b){drawWorld();return}const m=foe(),mine=current();const forest=state.map==='forest',shrine=state.map==='shrine';
+const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,shrine?'#384960':forest?'#7b9b9b':'#90b9c5');grad.addColorStop(1,shrine?'#77808e':'#a5bd97');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ellipse(310,151,150,35,shrine?'#918a9b':'#789d83');ellipse(120,323,170,45,'#6e988c');
+for(let j=0;j<6;j++){const x=j*79+(Math.sin(frame*.01+j)*3);pixel(x,76,7,66,shrine?'#687c92':'#588675');ellipse(x+3,72,19,33,shrine?'#7b8b9e':'#64997d')}
+if(shrine){for(let i=0;i<20;i++)ellipse(rand(i,4,3)*W,rand(i,8,3)*H,2,2,'#f1e5a599')}
+rounded(13,14,176,53,9,'#edf2dadd');rounded(16,17,170,47,7,'#314b52');
+txt(byId[m.id].name+'  Lv.'+m.level,25,35,12,'#f0f1d9');txt(m.hp+'/'+m.maxHp,157,35,11,'#f0f1d9','right');
+drawBar(25,46,149,m.hp/m.maxHp,m.hp/m.maxHp<.28?'#df8967':'#9fce8a');
+rounded(222,269,181,68,9,'#edf2dadd');rounded(225,272,175,62,7,'#314b52');
+txt(byId[mine.id].name+'  Lv.'+mine.level,236,291,12,'#f0f1d9');txt(mine.hp+'/'+mine.maxHp,389,291,11,'#f0f1d9','right');
+drawBar(235,301,152,mine.hp/mine.maxHp,mine.hp/mine.maxHp<.28?'#df8967':'#9fce8a');
+const shake=b.shake>0?((Math.random()-.5)*b.shake):0;
+drawMonster(m,310+shake,164,1.02,false);drawMonster(mine,104-shake,308,1.32,true);
+if(b.flash>0){pixel(0,0,W,H,'#ffffff'+Math.round(b.flash*7).toString(16).padStart(2,'0'));b.flash--}
+b.shake=Math.max(0,b.shake-1);
+}
+function drawTitle(){
+const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#152d43');gr.addColorStop(1,'#567a74');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+for(let i=0;i<42;i++){const x=rand(i,2,4)*W,y=rand(i,3,4)*H*.72;ellipse(x,y,rand(i,1)*2+1,rand(i,1)*2+1,'#f0e7bc')}
+ellipse(208,126,82,82,'#f3dba38c');ellipse(208,126,64,64,'#f2dfa49c');
+for(let i=0;i<4;i++){ellipse(50+i*110,335,95,93,['#345e55','#407262','#49715b','#2a5b55'][i])}
+drawMonster(makeMonster('flamio',5),99,286,.82);drawMonster(makeMonster('leafin',5),208,284,.85);drawMonster(makeMonster('aquill',5),317,286,.82);
+txt('ASTRA TALES',208,64,30,'#f8eac6','center');txt('星　霊　譚',208,100,23,'#fff3d0','center');
+txt('− STARBOUND ADVENTURE −',208,322,11,'#e7f1e4','center');
+}
+function draw(){
+frame++;
+if(holdDir&&state.scene==='world'&&performance.now()-lastStep>145){walk(holdDir);lastStep=performance.now()}
+if(state.scene==='battle')drawBattle();else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();else drawWorld();
+if(state.scene!=='title'&&state.scene!=='starter')state.time+=1/60;
+requestAnimationFrame(draw)}
+function init(){title();requestAnimationFrame(draw);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});window.addEventListener('pagehide',save)}
+init();
+})();
+</script>
+</body>
+</html>
