@@ -122,6 +122,8 @@ village:{name:'ミナモリの町',w:24,h:20,theme:'village',wild:[]},
 route:{name:'そよかぜの小道',w:24,h:26,theme:'route',wild:[['chiro',3],['koro',3],['fugale',4],['sparkit',6]]},
 forest:{name:'月影の森',w:28,h:28,theme:'forest',wild:[['lumin',5],['puddlo',6],['shade',7],['orchid',7],['crag',8]]},
 shrine:{name:'星降りの聖域',w:20,h:19,theme:'shrine',wild:[['shade',8],['lumin',8],['crag',9]]},
+lake:{name:'青凪の湖畔',w:30,h:24,theme:'lake',wild:[['puddlo',4],['fugale',6],['aquill',6],['lumin',7]]},
+highland:{name:'星見の高原',w:26,h:29,theme:'highland',wild:[['sparkit',10],['crag',11],['shade',12],['orchid',11],['glint',14]]},
 center:{name:'星霊センター',w:14,h:11,theme:'interior',wild:[]},
 mart:{name:'ミナモリ商店',w:14,h:11,theme:'interior',wild:[]},
 lab:{name:'アオイ研究所',w:16,h:13,theme:'interior',wild:[]}
@@ -148,6 +150,8 @@ if(x<2||y<2||x>=m.w-2||y>=m.h-2)return 4;
 let r=rand(x,y,id.length);
 if(id==='village')return r<.065?7:0;
 if(id==='shrine')return r<.08?7:(r<.2?2:0);
+if(id==='lake')return r<.16?7:r<.38?2:0;
+if(id==='highland')return r<.04?7:r<.40?2:0;
 return r<.28?2:(r<.38?7:0);
 }));
 function rect(x,y,w,h,v){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)if(a[j]&&a[j][i]!==undefined)a[j][i]=v}
@@ -163,11 +167,22 @@ rect(10,0,4,3,1);rect(10,m.h-3,4,3,1);
 road(12,0,m.h-1,4);rect(5,7,19,2,1);rect(6,17,17,2,1);
 for(let y=4;y<m.h-3;y++)for(let x=3;x<m.w-3;x++)if(rand(x,y,53)<.20&&Math.abs(x-13)>3&&a[y][x]!==1)a[y][x]=4;
 rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
+}else if(id==='lake'){
+rect(9,4,15,13,3);rect(7,6,3,9,3);rect(2,10,28,4,1);rect(10,10,15,3,10);
+rect(0,10,5,4,1);rect(m.w-4,10,4,4,1);
+rect(4,17,9,2,1);rect(11,18,10,2,1);
+for(let i=0;i<20;i++){let x=11+Math.floor(rand(i,91)*12),y=5+Math.floor(rand(i,57)*5);a[y][x]=3}
+}else if(id==='highland'){
+road(11,0,m.h-1,4);rect(3,6,19,3,1);rect(7,18,15,3,1);
+for(let i=0;i<31;i++){const x=3+Math.floor(rand(i,77)*20),y=4+Math.floor(rand(i,81)*23);if(x<10||x>15){a[y][x]=rand(i,9)<.5?4:5}}
+rect(10,0,6,3,1);rect(10,m.h-3,6,3,1);
 }else{
 road(8,0,m.h-1,4);rect(4,5,12,5,1);rect(5,4,10,1,3);rect(4,10,12,1,3);
 rect(8,0,4,4,1);rect(8,m.h-3,4,3,1);rect(8,10,4,1,1);
 }
 if(id==='village'){a[8][6]=6;a[8][17]=6;a[17][9]=6;}
+if(id==='route'){rect(20,10,4,4,1)}
+if(id==='shrine'){rect(8,0,4,3,1)}
 maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
@@ -200,6 +215,16 @@ shrine:[
 {x:9,y:6,facing:'down',vision:3,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
 {x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'}
 ],
+lake:[
+{x:4,y:8,name:'釣り人 リョウ',kind:'trainer',facing:'down',vision:4,color:'#789bbd',party:[['puddlo',6],['aquill',7]],reward:320,say:'水辺の星霊は、粘り強いんだ。'},
+{x:25,y:15,name:'野鳥観察家 ナツ',kind:'trainer',facing:'up',vision:3,color:'#b8cf9d',party:[['fugale',7],['sparkit',6]],reward:390,say:'空を飛ぶ子の動きに見とれないでね！'},
+{x:5,y:18,name:'湖畔の立て札',kind:'sign',color:'#d1b585',say:'青凪の湖畔　水面が星空を映す静かな場所。'},
+{x:18,y:19,name:'拾える星玉',kind:'item',item:'orb',amount:3,color:'#f3d5a2'}],
+highland:[
+{x:12,y:18,name:'山登り ツバサ',kind:'trainer',facing:'down',vision:4,color:'#d6a97e',party:[['crag',11],['sparkit',12]],reward:640,say:'高いところから見る星は格別だぜ！'},
+{x:7,y:8,name:'星読み サヨ',kind:'trainer',facing:'right',vision:4,color:'#cebad3',party:[['lumin',12],['shade',12],['orchid',13]],reward:730,say:'星の導きが、どちらを選ぶか見てみましょう。'},
+{x:20,y:12,name:'古びた道具箱',kind:'item',item:'potion',amount:3,color:'#f2dec1'},
+{x:12,y:5,name:'高原の石碑',kind:'sign',color:'#bcbcc6',say:'星のしるしを持つ者は、ここでさらなる星霊と出会う。'}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'talk',color:'#a4b9a3',say:'タイプ相性と技の残りPPに注意してね。'}]
@@ -207,7 +232,7 @@ lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の�
 function moveMaxPP(name){return MOVES[name].effect?12:(MOVES[name].p>=55?12:20)}
 function makeMonster(id,level){const s=byId[id];return {id,level,hp:Math.floor(s.hp+level*2.4),maxHp:Math.floor(s.hp+level*2.4),xp:0,status:'',focus:false,guard:false,pp:Object.fromEntries(s.moves.map(name=>[name,moveMaxPP(name)]))};}
 function normalizeMonster(m){const built=makeMonster(m.id,m.level);const item={...built,...m};item.pp={...built.pp,...(m.pp||{})};return item;}
-function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
+function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2},money:400,seen:{},caught:{},defeated:{},collected:{},badge:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:1};}
 let state=fresh();
 function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&x.saveVersion===1&&x.party?.length&&maps[x.map]){state={...fresh(),...x,scene:'world',battle:null};state.party=state.party.filter(p=>byId[p.id]).map(normalizeMonster);follower={map:state.map,x:state.x,y:state.y+1};return true}}catch(e){}return false}
@@ -232,14 +257,14 @@ function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
 }
-function questText(){return state.badge?'星のしるしを手に入れた！ この世界の星霊たちと冒険を続けよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){return state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];if(door){switchMap(door);return}
 const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
-if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny))return;
+if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name])))return;
 const prevX=state.x,prevY=state.y;
 companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now()};
 follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now()};
@@ -268,14 +293,22 @@ if(map==='route'&&y<0&&x>=10&&x<=13)return {id:'forest',x:13,y:26,dir:'up'};
 if(map==='forest'&&y>=m.h&&x>=12&&x<=15)return {id:'route',x:11,y:1,dir:'down'};
 if(map==='forest'&&y<0&&x>=12&&x<=15)return {id:'shrine',x:9,y:17,dir:'up'};
 if(map==='shrine'&&y>=m.h&&x>=8&&x<=11)return {id:'forest',x:13,y:1,dir:'down'};
+if(map==='route'&&x>=m.w&&y>=10&&y<=13)return {id:'lake',x:1,y:12,dir:'right'};
+if(map==='lake'&&x<0&&y>=10&&y<=13)return {id:'route',x:22,y:12,dir:'left'};
+if(map==='shrine'&&y<0&&x>=8&&x<=11){
+if(!state.badge){toast('星の守り手を越えなければ進めない！');return null}
+return {id:'highland',x:12,y:27,dir:'up'}}
+if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'};
 return null}
 function switchMap(e){state.map=e.id;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
-const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty);if(n){npc(n);return}
+const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
-function npc(n,automatic=false){if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.pp=Object.fromEntries(byId[m.id].moves.map(n=>[n,moveMaxPP(n)]))});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
+function npc(n,automatic=false){
+if(n.kind==='item'){const key=state.map+'/'+n.name;if(state.collected[key])return;state.collected[key]=true;state.bag[n.item]=(state.bag[n.item]||0)+(n.amount||1);save();sfx('catch');dialog('ITEM GET',n.name+' を見つけた！ '+(n.amount||1)+'個 手に入れた！');return}
+if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.pp=Object.fromEntries(byId[m.id].moves.map(n=>[n,moveMaxPP(n)]))});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
 if(n.kind==='shop'){screen('shop');shop();return}
 if(n.kind==='trainer'||n.kind==='boss'){
 const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
@@ -409,13 +442,14 @@ if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':theme==='interior'?'#c4c9b4':
 else{pixel(x,y,T,T,theme==='shrine'?'#668774':theme==='forest'?'#588c60':'#81ad71');if(rand(gx,gy,9)<.65){pixel(x+3,y+19,3,4,'#629c66');pixel(x+21,y+9,2,4,'#aad187')}}
 if(t===2){for(let i=0;i<5;i++){const ox=(rand(gx,gy,i)*22+3)|0,oy=(rand(gx,gy,i+9)*20+7)|0,bend=Math.sin(frame*.047+i+gx)*2;line(x+ox,y+oy+7,x+ox-2+bend,y+oy-1,'#326f50',2);line(x+ox,y+oy+7,x+ox+3+bend,y+oy-3,'#a0c77b',2)}pixel(x+8,y+17,3,2,'#d1dc95')}
 if(t===7){for(let i=0;i<3;i++){const ox=5+(rand(gx,gy,i)*21)|0,oy=6+(rand(gx,gy,i+5)*19)|0;pixel(x+ox,y+oy,3,3,['#f2d186','#dca0ca','#d6d7f9'][i]);pixel(x+ox+1,y+oy+4,1,3,'#377a50')}}
-if(t===3){pixel(x,y,T,T,'#458a9a');for(let j=0;j<2;j++){const a=(frame*.7+j*14+gx*9)%36;line(x+a-4,y+8+j*13,x+a+5,y+8+j*13,'#8bc9c6',1)}}
+if(t===3){pixel(x,y,T,T,'#458a9a');for(let j=0;j<2;j++){const a=(frame*.7+j*14+gx*9)%36;line(x+a-4,y+8+j*13,x+a+5,y+8+j*13,'#8bc9c6',1)}if(theme==='lake'&&rand(gx,gy,19)<.15){ellipse(x+15,y+18,9,5,'#629c81');ellipse(x+18,y+17,2,2,'#f3d6cd')}}
 if(t===4){pixel(x,y,T,T,'#508059');ellipse(x+17,y+25,14,8,'#3b634c');pixel(x+13,y+13,7,15,'#715d46');ellipse(x+17,y+12,15,12,'#346b4f');ellipse(x+12,y+9,11,10,'#47865a');ellipse(x+21,y+7,8,9,'#639e67');pixel(x+9,y+8,5,3,'#88b476');pixel(x+23,y+10,3,2,'#c1d08f')}
 if(t===5){pixel(x,y,T,T,'#bbafa0');pixel(x+1,y+1,T-2,T-2,'#647b80');line(x+3,y+3,x+25,y+3,'#a5b6b0',3);line(x+4,y+20,x+30,y+20,'#425d65',2)}
 if(t===6){pixel(x,y,T,T,'#bb8c65');pixel(x+8,y+2,16,30,'#6c514b');pixel(x+12,y+8,3,3,'#edca87')}
 if(t===8){pixel(x,y,T,T,'#8c735c');pixel(x+2,y+3,28,24,'#e8cba4');pixel(x+5,y+10,22,7,'#a8b8b2')}
 if(t===9){pixel(x,y,T,T,'#79635d');for(let i=0;i<5;i++)pixel(x+4+i*5,y+5,3,20,['#b7cea6','#cf948d','#edc47f'][i%3])}
-if(t===10){pixel(x,y,T,T,'#a2b5ac');pixel(x+3,y+4,26,24,'#bad0c4');pixel(x+5,y+25,23,2,'#849c92')}
+if(t===10){if(theme==='lake'){pixel(x,y,T,T,'#a68461');line(x+4,y,x+4,y+T,'#755d51',3);line(x+18,y,x+18,y+T,'#755d51',3);pixel(x+0,y+7,T,3,'#e1c294');pixel(x+0,y+26,T,2,'#e1c294')}
+else{pixel(x,y,T,T,'#a2b5ac');pixel(x+3,y+4,26,24,'#bad0c4');pixel(x+5,y+25,23,2,'#849c92')}}
 if(t===11){pixel(x,y,T,T,'#98b1b4');rounded(x+3,y+4,26,22,4,'#567d89');ellipse(x+16,y+15,8,8,'#8cdbcf')}
 }
 function drawBuilding(x,y,kind,camX,camY){const sx=x*T-camX,sy=y*T-camY;if(sx>W+130||sx<-140||sy>H+100||sy<-120)return;
@@ -430,6 +464,7 @@ pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
 }
 function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
 if(x<-35||x>W+35||y<-45||y>H+45)return;
+if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(frame*.07)*2,9,'#f2d2a8');ellipse(x,y-5,4,5,'#8f9fbe');for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.06;ellipse(x+Math.cos(a)*12,y-5+Math.sin(a)*12,2,2,'#f5efbd')}return}
 if(n.kind==='sign'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
 ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
@@ -458,11 +493,12 @@ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-c
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
 if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
-for(const n of NPCS[state.map])drawNpc(n,camX,camY);
+for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY)}
 if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
 drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
 drawHero(px*T-camX+16,py*T-camY+19,state.dir);
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
+if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47)*H+frame*.15)%H;ellipse(x,y,1.4,1.4,'#f5e5c996')}}
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
 if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
