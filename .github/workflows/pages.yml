@@ -37,13 +37,17 @@ jobs:
           console.log('ASTRA TALES JavaScript syntax OK');
           NODE
       - name: Game regression smoke tests
-        run: node tests/smoke.cjs
+        run: |
+          node tests/engine.cjs
+          node tests/smoke.cjs
       - name: Prepare versioned static site
         env:
           BUILD_ID: ${{ github.sha }}
         run: |
           mkdir -p _site
+          mkdir -p _site/src
           cp index.html manifest.json icon.svg _site/
+          cp src/rpg-engine.js _site/src/
           touch _site/.nojekyll
           printf '{"buildId":"%s"}\n' "$BUILD_ID" > _site/version.json
           cat > _site/latest.html <<'EOF'
