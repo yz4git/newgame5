@@ -434,8 +434,8 @@ function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy
 function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;let done=false;const finish=()=>{if(done||state.battle!==b)return;done=true;callback()};b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:finish}]);if(delay>0)setTimeout(finish,delay)}
 function chooseMove(){
  const m=current(),moves=m.moves||byId[m.id].moves,remaining=moves.some(n=>(m.pp?.[n]??moveMaxPP(n))>0);
- ui('ATTACK / '+byId[m.id].name,remaining?'技を選ぼう。残りPPを確認してね。':'PPがすべて尽きた！ わるあがきを使える。',
- (remaining?moves.map(name=>({text:name+'  '+(MOVES[name].type||'補助')+' '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
+ ui('ATTACK / '+byId[m.id].name,remaining?'タイプ・PP・技の効果に注目。':'PPがすべて尽きた！ わるあがきを使える。',
+ (remaining?moves.map(name=>({text:name+' ['+(MOVES[name].type||'変化')+'] '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
  [{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}])
  .concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]));
 }
@@ -552,7 +552,7 @@ const caught=b.capture?.success;b.capture=null;
 if(caught){
 const boxName=state.party.length<6?null:Engine.putInStorage(state.boxes,m);
 if(!boxName)state.party.push(m);
-state.caught[m.id]=(state.caught[m.id]||0)+1;state.battle=null;save();sfx('catch');
+state.caught[m.id]=(state.caught[m.id]||0)+1;resetBattleStats();state.battle=null;save();sfx('catch');
 dialog('CAPTURE','カチッ！ '+byId[m.id].name+' をゲット！'+(boxName?'\nパーティがいっぱいなので '+boxName+' に預けた。':''),[{text:'▶ 冒険へ',on:()=>world()}]);}
 else battleMessage('ああっ！ 星玉から飛び出した！',enemyFreeTurn,850);
 },1850);}
@@ -604,7 +604,7 @@ function equipCharm(i,item){
 }
 function partyDetail(i){
 const m=state.party[i],s=byId[m.id],stats=Engine.statsFor(m,s),nature=Engine.NATURES.find(n=>n.id===m.nature)?.name||'ふつう';
-const detail=s.type+'タイプ / Lv.'+m.level+' 性格:'+nature
+const detail=s.type+'タイプ / Lv.'+m.level+' 性格:'+nature+' / 特性:'+Engine.abilityFor(m)
 +'\nHP '+m.hp+'/'+m.maxHp+'　EXP '+m.xp+'/'+Engine.xpNeed(m.level)
 +'\n攻撃 '+stats.atk+' 防御 '+stats.def+' 速度 '+stats.spd+' なつき度 '+(m.friendship||70)
 +'\n努力値 攻'+(m.ev?.atk||0)+' 防'+(m.ev?.def||0)+' 速'+(m.ev?.spd||0)
@@ -796,6 +796,19 @@ ellipse(103,340,161,39,shrine?'#b5b1ad':'#aec39d');
 ellipse(103,342,133,29,shrine?'#8b9794':'#81aa87');
 for(let i=0;i<12;i++){const x=(i*47+19)%W,y=189+(i%5)*31;pixel(x,y,3,2,shrine?'#dad6b6':'#dce5a5')}
 if(shrine){for(let i=0;i<16;i++){const x=rand(i,47)*W,y=rand(i,17)*210;ellipse(x,y,2,2,'#f1e9bc88')}}
+if(b.weather==='rain')for(let i=0;i<34;i++){
+ const x=(rand(i,413)*W+frame*1.05)%W,y=(rand(i,63)*H+frame*4.8+i*13)%H;
+ line(x,y,x-4,y+10,'#e0f8ff77',1);
+}
+if(b.weather==='sun')pixel(0,0,W,H,'#f7bc6840');
+if(b.weather==='wind')for(let i=0;i<24;i++){
+ const x=(rand(i,713)*W+frame*2.4)%W,y=rand(i,66)*H;
+ line(x,y,x+17,y-3,'#d6f4e589',1);
+}
+if(b.weather==='sand')for(let i=0;i<30;i++){
+ const x=(rand(i,818)*W+frame*1.7)%W,y=rand(i,83)*H;
+ ellipse(x,y,2.2,1.2,'#bca786b3');
+}
 const t=b.action?clamp((performance.now()-b.action.started)/760,0,1):1;
 const attacking=t<1,bFrom=b.action?.who==='you';
 const surge=attacking?Math.sin(Math.PI*t)*15:0;
@@ -850,8 +863,16 @@ drawBar(259,299,129,mine.hp/mine.maxHp,mine.hp/mine.maxHp<.28?'#e88d71':mine.hp/
 txt(''+mine.hp+' / '+mine.maxHp,385,329,11,'#31464d','right');
 drawBar(231,332,155,(mine.xp||0)/(mine.level*19),'#7aa9cf');
 if(mine.status)txt(mine.status,267,327,10,'#a45e72');
-rounded(12,92,84,19,4,'#29434d99');
+rounded(12,92,104,19,4,'#29434d99');
 txt(b.trainer?'TRAINER':'WILD STAR',19,105,9,'#fff5db');
+if(b.weather!=='clear'){
+ rounded(224,92,180,21,5,'#29434db8');
+ txt(Engine.weatherInfo(b.weather).icon+' '+Engine.weatherInfo(b.weather).name+(b.weatherTurns!==null?'  '+b.weatherTurns+'T':''),233,106,10,'#fff4d9');
+}
+const playerStages=Engine.ensureBattleStats(mine),enemyStages=Engine.ensureBattleStats(m);
+const stages=stats=>Object.entries(stats).filter(([k,v])=>v).map(([k,v])=>k.slice(0,3)+(v>0?'+':'')+v).join(' ');
+if(stages(enemyStages))txt(stages(enemyStages),21,119,9,'#e0edc7');
+if(stages(playerStages))txt(stages(playerStages),228,258,9,'#e0edc7');
 if(b.enemies.length>1){for(let i=0;i<b.enemies.length;i++){ellipse(110+i*15,101,5,5,i<b.index?'#586b68':'#f2dfaf');ellipse(110+i*15,99,4,3,i<b.index?'#808f84':'#e9a175')}}
 b.shake=Math.max(0,b.shake-1);
 }
