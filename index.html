@@ -121,7 +121,7 @@ const MOVES={
 Object.assign(MOVES,Engine.NEW_MOVES);
 const ADV={火:['草'],草:['水','岩'],水:['火','岩'],雷:['水','風'],風:['草'],岩:['風','火'],光:['影'],影:['光']};
 const RES={火:['水','岩'],水:['草','雷'],草:['火','風'],風:['岩'],雷:['岩'],影:['光']};
-function effectiveness(a,b){return (ADV[a]||[]).includes(b)?1.5:(RES[a]||[]).includes(b)?0.7:1}
+function effectiveness(a,b){return (ADV[a]||[]).includes(b)?2:(RES[a]||[]).includes(b)?0.5:1}
 const dirDelta={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const mapMeta={
 village:{name:'ミナモリの町',w:24,h:20,theme:'village',wild:[]},
@@ -447,7 +447,9 @@ if(move==='わるあがき'&&(user.moves||[]).some(n=>(user.pp?.[n]??0)>0)){choo
 if(move!=='わるあがき')user.pp[move]=Math.max(0,user.pp[move]-(Engine.abilityFor(enemy)==='プレッシャー'?2:1));
 b.turn++;
 const opponentMove=enemyMove(enemy);
-const priority=MOVES[move].priority||(move==='かげうち'?1:0),enemyPriority=MOVES[opponentMove].priority||(opponentMove==='かげうち'?1:0);
+const pAbility=Engine.abilityFor(user),eAbility=Engine.abilityFor(enemy);
+const priority=(MOVES[move].priority||(move==='かげうち'?1:0))+(pAbility==='はやてのつばさ'&&MOVES[move].type==='風'&&user.hp===user.maxHp?1:0);
+const enemyPriority=(MOVES[opponentMove].priority||(opponentMove==='かげうち'?1:0))+(eAbility==='はやてのつばさ'&&MOVES[opponentMove].type==='風'&&enemy.hp===enemy.maxHp?1:0);
 const faster=Engine.speedFor(user,byId,b.weather)>=Engine.speedFor(enemy,byId,b.weather);
 const userFirst=priority>enemyPriority||(priority===enemyPriority&&faster);
 const sequence=userFirst?[['you',move],['enemy',opponentMove]]:[['enemy',opponentMove],['you',move]];
@@ -460,7 +462,7 @@ return choices.map(name=>{
  const skill=MOVES[name],weather=state.battle?.weather||'clear';
  const weatherBonus=weather==='rain'&&skill.type==='水'?1.5:weather==='sun'&&skill.type==='火'?1.5:1;
  const stageBonus=skill.effect==='stage'?(m.stages?.[skill.stat]||0)<2?30:5:0;
- return {name,score:((skill.p||8)*(type?effectiveness(skill.type,type):1)*(skill.type===byId[m.id].type?1.3:1)*weatherBonus+stageBonus)*(.90+Math.random()*.20)}
+ return {name,score:((skill.p||8)*(type?effectiveness(skill.type,type):1)*(skill.type===byId[m.id].type?1.5:1)*weatherBonus+stageBonus)*(.90+Math.random()*.20)}
 }).sort((a,b)=>b.score-a.score)[0].name;
 }
 function takeTurns(sequence,i){const b=state.battle;if(!b)return;
