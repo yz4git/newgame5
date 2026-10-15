@@ -214,13 +214,24 @@ function gainEffort(mon,opponent,species){
  if(total>=510)return;
  mon.ev[key]=cap((mon.ev[key]||0)+1,0,252);
 }
-function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.random){
+function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.random,context={}){
  const m=moves[name];if(!m)return {text:'技を使えなかった！',damage:0};
  const source=species[attacker.id],dest=species[target.id];
  if(m.effect==='heal'){const old=attacker.hp;attacker.hp=cap(attacker.hp+Math.max(1,Math.floor(attacker.maxHp*(m.healRatio||.4))),0,attacker.maxHp);return {text:source.name+' はHPを '+(attacker.hp-old)+' 回復！',damage:0}}
  if(m.effect==='guard'){attacker.guard=true;return {text:source.name+' は身を守った！',damage:0}}
  if(m.effect==='focus'){attacker.focus=true;return {text:source.name+' は集中した！',damage:0}}
- if(rng()*100>(m.accuracy??95))return {text:source.name+' の '+name+'！ しかし外れた！',damage:0};
+ if(m.effect==='weather'){
+  context.weather=m.weather;context.weatherTurns=m.turns||5;
+  return {text:source.name+' は '+name+'！ 天候が '+weatherInfo(m.weather).name+' に変わった！',damage:0,weather:m.weather,weatherTurns:context.weatherTurns};
+ }
+ const accuracyStage=ensureBattleStats(attacker).accuracy;
+ const accuracyBonus=abilityFor(attacker)==='するどいめ'?Math.max(1,stageFactor(accuracyStage)):stageFactor(accuracyStage);
+ if(rng()*100>(m.accuracy??95)*accuracyBonus)return {text:source.name+' の '+name+'！ しかし外れた！',damage:0,miss:true};
+ if(m.effect==='stage'){
+   const recipient=m.scope==='target'?target:attacker;
+   const delta=changeStage(recipient,m.stat,m.stages||0);
+   return {text:(m.scope==='target'?dest:source).name+' の '+m.stat+' が '+(delta>0?'上がった！':delta<0?'下がった！':'これ以上変わらない！'),damage:0,stageChange:delta};
+ }
  if(m.effect==='inflict'){
   if(target.status)return {text:dest.name+' はすでに状態異常だ！',damage:0};
   target.status=m.status;target.statusTurns=m.status==='ねむり'?2+Math.floor(rng()*3):0;
@@ -231,11 +242,22 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  const category=m.category||(['火','水','草','雷','風','光','影'].includes(type)?'special':'physical');
  const multiplier=m.recoilRatio?1:effectiveness(type,dest.type);
  const stab=!m.recoilRatio&&type===source.type?1.3:1,critical=rng()<.0625?1.5:1;
- const attack=stA.atk*(category==='special'?1.08:1),defense=stD.def*(category==='special'?.92:1);
+ const stageA=ensureBattleStats(attacker),stageD=ensureBattleStats(target);
+ const attack=stA.atk*(category==='special'?1.08:1)*stageFactor(stageA.atk);
+ const defense=stD.def*(category==='special'?.92:1)*stageFactor(stageD.def);
+ const ability=abilityFor(attacker),targetAbility=abilityFor(target);
+ const boost=(attacker.hp<=attacker.maxHp/3&&(
+   (ability==='もうか'&&type==='火')||(ability==='しんりょく'&&type==='草')||(ability==='げきりゅう'&&type==='水')
+ ))?1.5:1;
+ const weather=context.weather||'clear';
+ const weatherBoost=weather==='rain'?(type==='水'?1.5:type==='火'?.70:1)
+ :weather==='sun'?(type==='火'?1.5:type==='水'?.70:1)
+ :weather==='wind'&&type==='風'?1.25:1;
  const defenseFactor=attacker.status==='やけど'&&category==='physical'?.72:1;
  const base=Math.floor((Math.floor(2*level/5+2)*power*(attack/(defense+5)))/50)+2;
- const damage=Math.max(1,Math.floor(base*1.5*stab*multiplier*critical*(.85+rng()*.15)*defenseFactor*(attacker.focus?1.6:1)*(target.guard?.5:1)));
- target.hp=cap(target.hp-damage,0,target.maxHp);
+ const damage=Math.max(1,Math.floor(base*1.5*stab*multiplier*critical*(.85+rng()*.15)*defenseFactor*boost*weatherBoost*(attacker.focus?1.6:1)*(target.guard?.5:1)));
+ const actual=targetAbility==='がんじょう'&&target.hp===target.maxHp&&damage>=target.hp?target.hp-1:damage;
+ target.hp=cap(target.hp-actual,0,target.maxHp);
  attacker.focus=false;target.guard=false;
  let msg=source.name+' の '+name+'！';
  if(critical>1)msg+=' 急所に当たった！';
@@ -243,10 +265,14 @@ function calcDamage(attacker,target,name,species,moves,effectiveness,rng=Math.ra
  else if(multiplier<1)msg+=' 効果はいまひとつ…';
  const statusChance=m.statusChance??(name==='ひのこ'?.13:name==='でんきショック'?.16:0);
  const ailment=m.status||(name==='ひのこ'?'やけど':name==='でんきショック'?'まひ':null);
- if(ailment&&target.hp>0&&!target.status&&rng()<statusChance){target.status=ailment;target.statusTurns=0;msg+=' '+dest.name+' は '+ailment+' した！'}
+ if(ailment&&target.hp>0&&!target.status&&targetAbility!=='りんぷん'&&rng()<statusChance){target.status=ailment;target.statusTurns=0;msg+=' '+dest.name+' は '+ailment+' した！'}
+if(targetAbility==='がんじょう'&&actual<damage)msg+=' がんじょうで耐えた！';
+if(targetAbility==='せいでんき'&&category==='physical'&&target.hp>0&&!attacker.status&&rng()<.22){
+ attacker.status='まひ';msg+=' '+source.name+' はせいでんきでまひした！'
+}
 let recoil=0;
 if(m.recoilRatio){recoil=Math.max(1,Math.floor(attacker.maxHp*m.recoilRatio));attacker.hp=cap(attacker.hp-recoil,0,attacker.maxHp);msg+=' 反動で '+recoil+' ダメージ！'}
-return {text:msg,damage,critical:critical>1,efficacy:multiplier,recoil};
+return {text:msg,damage:actual,critical:critical>1,efficacy:multiplier,recoil};
 }
 function afterTurn(mon){
  if(!mon||mon.hp<=0)return null;
