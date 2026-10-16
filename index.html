@@ -204,13 +204,14 @@ footer{display:none}
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
 <script src="./src/story.js?v=__BUILD_ID__"></script>
 <script src="./src/music.js?v=__BUILD_ID__"></script>
+<script src="./src/creature-art.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory;
-if(!Engine||!Story)throw Error('RPG engine or story engine failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt;
+if(!Engine||!Story||!CreatureArt)throw Error('RPG engine, story, or creature renderer failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -1561,7 +1562,7 @@ if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY)}
 if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
-drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,false)}
+drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,state.dir==='up')}
 drawHero(px*T-camX+16,py*T-camY+19,state.dir);
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
 if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47)*H+frame*.15)%H;ellipse(x,y,1.4,1.4,'#f5e5c996')}}
@@ -1570,27 +1571,20 @@ if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=r
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
 if(state.scene==='dialog')drawDialoguePortrait();
 }
-function drawMonster(m,x,y,scale=1,back=false){if(!m)return;const s=byId[m.id];ctx.save();ctx.translate(x,y+Math.sin(frame*.045)*2);ctx.scale((back?-1:1)*scale,scale);
-const body=s.color,light=s.accent;
-ellipse(0,5,35,9,'#1b334044');
-const ear=(px,py,w,h)=>ellipse(px,py,w,h,body),mark=(px,py,w,h)=>ellipse(px,py,w,h,light);
-switch(s.shape){
-case 'fox':ear(-27,-39,13,30);ear(27,-39,13,30);ellipse(0,-13,38,39,body);mark(0,-4,22,22);ellipse(34,-4,19,10,body);break;
-case 'deer':ellipse(0,-7,37,37,body);ear(-23,-46,9,21);ear(23,-46,9,21);mark(0,-10,24,23);line(-26,-37,-36,-55,'#9dca77',5);line(26,-37,36,-55,'#9dca77',5);break;
-case 'otter':ellipse(0,-8,35,38,body);ear(-30,-30,11,13);ear(30,-30,11,13);mark(0,-4,24,24);ellipse(34,-3,24,11,body);break;
-case 'rabbit':ear(-17,-56,13,30);ear(17,-56,13,30);ellipse(0,-12,34,34,body);mark(0,-5,20,20);break;
-case 'mouse':ear(-27,-40,18,18);ear(27,-40,18,18);ellipse(0,-12,34,32,body);mark(0,-3,19,18);line(30,-5,56,-24,body,9);break;
-case 'bird':ellipse(0,-13,32,36,body);ellipse(-32,-11,23,12,body);ellipse(32,-11,23,12,body);mark(0,-3,19,20);ellipse(0,-19,6,7,'#f3c789');break;
-case 'frog':ellipse(0,-8,40,30,body);ear(-22,-32,14,15);ear(22,-32,14,15);mark(0,-1,25,17);break;
-case 'squirrel':ear(-22,-36,12,19);ear(22,-36,12,19);ellipse(0,-10,34,36,body);ellipse(37,-31,18,28,body);mark(0,-4,20,20);break;
-case 'moth':ellipse(-29,-24,29,21,light);ellipse(29,-24,29,21,light);ellipse(0,-14,23,29,body);line(-7,-40,-17,-52,body,3);line(7,-40,17,-52,body,3);break;
-case 'beetle':ellipse(0,-7,42,30,body);ellipse(0,-23,29,19,light);line(-13,-39,-24,-52,body,7);line(13,-39,24,-52,body,7);break;
-case 'bat':ellipse(-33,-16,31,22,body);ellipse(33,-16,31,22,body);ellipse(0,-13,25,27,body);ear(-16,-40,9,18);ear(16,-40,9,18);mark(0,-6,14,13);break;
-case 'flower':ellipse(0,-8,28,34,body);for(let a=0;a<6;a++){let theta=a*Math.PI/3;ellipse(Math.sin(theta)*22,-31+Math.cos(theta)*19,12,15,light)}ellipse(0,-32,15,15,'#e6b75a');break;
-case 'dragon':ellipse(0,-5,37,42,body);ear(-21,-48,12,22);ear(21,-48,12,22);ellipse(-35,-13,17,36,light);ellipse(35,-13,17,36,light);mark(0,-2,22,22);break;
+function drawMonster(m,x,y,scale=1,back=false){
+ if(!m)return;
+ const def=byId[m.id];if(!def)return;
+ const active=state.battle?.action;
+ const attacking=active&&((back&&active.who==='you')||(!back&&active.who==='enemy'));
+ const since=attacking?clamp((performance.now()-active.started)/760,0,1):1;
+ const effort=attacking&&since<1?Math.sin(since*Math.PI):0;
+ const sway=Math.sin(frame*.049+m.id.length*1.8)*1.8;
+ ctx.save();
+ ctx.translate(x+effort*(back?6:-6),y+sway-effort*8);
+ ctx.scale((scale||1)*(1+effort*.075),(scale||1)*(1-effort*.055));
+ CreatureArt.draw(ctx,def,frame,back);
+ ctx.restore();
 }
-ellipse(-11,-22,4.5,5.5,'#203b44');ellipse(11,-22,4.5,5.5,'#203b44');ellipse(-12,-24,1.5,2,'#ffffff');ellipse(10,-24,1.5,2,'#ffffff');
-ellipse(0,-10,3,2,'#744e54');ctx.restore()}
 function drawBar(x,y,w,val,col){rounded(x,y,w,9,4,'#49616b');rounded(x+2,y+2,Math.max(0,(w-4)*clamp(val,0,1)),5,3,col)}
 function drawBattle(){
 const b=state.battle;if(!b){drawWorld();return}
