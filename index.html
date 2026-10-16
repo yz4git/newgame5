@@ -576,7 +576,7 @@ function dialogSequence(name,pages,onDone,forced=true){
  const next=()=>{
   if(index>=list.length){forcedStory=false;if(onDone)onDone();else world();return}
   const page=list[index++];
-  screen('dialog');
+  state.dialogSpeaker=name;screen('dialog');
   ui(name,page,[{text:index===list.length?'▶ おわる':'▶ つぎへ',on:next}]);
   sfx('ok');
  };
@@ -853,7 +853,7 @@ const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{traine
 forcedTrainer=automatic;
 dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
 dialog(n.name,n.say||'いい旅になりますように！')}
-function dialog(name,txt,options){screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
+function dialog(name,txt,options){state.dialogSpeaker=name;screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
 function wildBattle(){const choice=Engine.chooseEncounter(mapMeta[state.map].wild,{phase:worldPhase()});if(!choice)return;state.encounterSteps=0;startBattle([makeMonster(choice.id,choice.level)],{trainer:false})}
 function firstAlive(){return state.party.findIndex(m=>m.hp>0)}
 function current(){return state.party[state.battle?.active??0]}
@@ -1278,6 +1278,32 @@ if(hour>=20||hour<4)return 2;
 if(hour>=17&&hour<20)return 1;
 return 0;
 }
+function drawDialoguePortrait(){
+ const name=state.dialogSpeaker||'';
+ if(!name||['星の朝','CAPTURE','VICTORY','帰還','ITEM GET'].some(x=>name.includes(x)))return;
+ const colors=['#d1a47f','#7dabc5','#a2b982','#b08eb3','#caa38b'];
+ let sum=0;for(const ch of name)sum=(sum+ch.charCodeAt(0))%997;
+ const coat=colors[sum%colors.length],hair=name.includes('博士')?'#91a8b7':name.includes('家族')?'#785d52':name.includes('旅人')?'#b96a53':'#495865';
+ const x=W-118,y=43;
+ rounded(x,y,105,147,10,'#284c5877');
+ rounded(x+4,y+4,97,139,9,'#d8e8e2');
+ ellipse(x+52,y+140,42,17,'#547a89');
+ ellipse(x+52,y+114,37,41,coat);
+ rounded(x+18,y+108,68,36,10,coat);
+ ellipse(x+52,y+71,29,37,'#edc9aa');
+ ellipse(x+52,y+44,33,16,hair);
+ ellipse(x+26,y+67,7,21,hair);ellipse(x+78,y+67,7,21,hair);
+ ellipse(x+40,y+77,2.6,3,'#263e47');ellipse(x+63,y+77,2.6,3,'#263e47');
+ line(x+45,y+92,x+59,y+91,'#b07572',2);
+ if(name.includes('博士')){
+  line(x+33,y+77,x+70,y+77,'#4c7180',2);
+  ellipse(x+40,y+78,9,7,'#b8d7e288');ellipse(x+63,y+78,9,7,'#b8d7e288');
+ }
+ if(name.includes('調査員')){pixel(x+19,y+45,66,7,'#415b79');pixel(x+29,y+32,47,16,'#506f91')}
+ if(name.includes('観測者')){pixel(x+26,y+39,51,8,'#639b86')}
+ rounded(x+5,y+120,95,21,4,'#335964');
+ txt(name.length>7?name.slice(0,7)+'…':name,x+52,y+135,11,'#f5f0cf','center');
+}
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -1297,6 +1323,7 @@ if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
 if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
+if(state.scene==='dialog')drawDialoguePortrait();
 }
 function drawMonster(m,x,y,scale=1,back=false){if(!m)return;const s=byId[m.id];ctx.save();ctx.translate(x,y+Math.sin(frame*.045)*2);ctx.scale((back?-1:1)*scale,scale);
 const body=s.color,light=s.accent;
