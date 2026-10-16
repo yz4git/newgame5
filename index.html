@@ -265,7 +265,10 @@ lake:{name:'青凪の湖畔',w:30,h:24,theme:'lake',wild:[['puddlo',4],['fugale'
 highland:{name:'星見の高原',w:26,h:29,theme:'highland',wild:[['sparkit',10],['crag',11],['shade',12],['orchid',11],['glint',14]]},
 center:{name:'星霊センター',w:14,h:11,theme:'interior',wild:[]},
 mart:{name:'ミナモリ商店',w:14,h:11,theme:'interior',wild:[]},
-lab:{name:'アオイ研究所',w:16,h:13,theme:'interior',wild:[]}
+lab:{name:'アオイ研究所',w:16,h:13,theme:'interior',wild:[]},
+home:{name:'ミナモリの自宅',w:14,h:11,theme:'interior',wild:[]},
+bedroom:{name:'自分の部屋',w:14,h:11,theme:'interior',wild:[]},
+observatory:{name:'青凪の観測小屋',w:14,h:11,theme:'interior',wild:[]}
 };
 const maps={};
 function makeMap(id){
@@ -282,6 +285,9 @@ if(m.theme==='interior'){
   if(id==='center'){row(3,4,9,8);arr[4][2]=11;arr[4][11]=11;row(6,2,4,10);row(6,9,11,10)}
   if(id==='mart'){row(3,4,9,8);row(4,2,3,9);row(5,2,3,9);row(4,10,11,9);row(5,10,11,9)}
   if(id==='lab'){row(4,5,10,8);row(6,2,4,9);row(6,11,13,9);arr[8][3]=11;arr[8][12]=11}
+  if(id==='home'){row(3,3,5,8);row(3,9,11,9);arr[5][3]=11;arr[7][10]=6}
+  if(id==='bedroom'){row(3,2,5,9);row(3,9,11,8);arr[6][3]=11;arr[6][10]=6}
+  if(id==='observatory'){row(3,4,9,8);row(5,2,4,9);row(6,10,11,11)}
   maps[id]=arr;return;
 }
 const a=Array.from({length:m.h},(_,y)=>Array.from({length:m.w},(_,x)=>{
@@ -299,6 +305,7 @@ if(id==='village'){
 rect(9,0,5,20,1);rect(4,9,17,4,1);rect(5,5,5,4,1);rect(14,5,5,4,1);
 rect(4,5,4,3,5);rect(15,5,4,3,5);rect(7,14,5,3,5);
 rect(2,15,4,3,3);rect(17,14,4,2,2);rect(11,0,2,4,1);
+ rect(18,14,5,5,1);rect(18,14,5,3,5);a[17][20]=6;
 }else if(id==='route'){
 road(10,0,m.h-1,4);rect(3,8,17,3,1);rect(4,18,17,2,1);rect(2,4,5,4,2);rect(17,14,4,4,3);
 rect(10,0,4,3,1);rect(10,m.h-3,4,3,1);
@@ -310,6 +317,7 @@ rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
 rect(9,4,15,13,3);rect(7,6,3,9,3);rect(2,10,28,4,1);rect(10,10,15,3,10);
 rect(0,10,5,4,1);rect(m.w-4,10,4,4,1);
 rect(4,17,9,2,1);rect(11,18,10,2,1);
+ rect(17,15,5,3,5);a[18][19]=6;rect(19,18,2,4,1);
 for(let i=0;i<20;i++){let x=11+Math.floor(rand(i,91)*12),y=5+Math.floor(rand(i,57)*5);a[y][x]=3}
 }else if(id==='highland'){
 road(11,0,m.h-1,4);rect(3,6,19,3,1);rect(7,18,15,3,1);
@@ -326,14 +334,19 @@ maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
 const DOORS={
-  village:{'6,8':{id:'center',x:7,y:9,dir:'up'},'17,8':{id:'mart',x:7,y:9,dir:'up'},'9,17':{id:'lab',x:8,y:11,dir:'up'}},
+  village:{'6,8':{id:'center',x:7,y:9,dir:'up'},'17,8':{id:'mart',x:7,y:9,dir:'up'},'9,17':{id:'lab',x:8,y:11,dir:'up'},'20,17':{id:'home',x:7,y:9,dir:'up'}},
   center:{'7,10':{id:'village',x:6,y:9,dir:'down'}},
   mart:{'7,10':{id:'village',x:17,y:9,dir:'down'}},
-  lab:{'8,12':{id:'village',x:10,y:17,dir:'down'}}
+  lab:{'8,12':{id:'village',x:10,y:17,dir:'down'}},
+home:{'7,10':{id:'village',x:20,y:18,dir:'down'},'7,7':{id:'bedroom',x:7,y:8,dir:'up'}},
+bedroom:{'7,10':{id:'home',x:7,y:8,dir:'down'}},
+lake:{'19,18':{id:'observatory',x:7,y:9,dir:'up'}},
+observatory:{'7,10':{id:'lake',x:19,y:19,dir:'down'}}
 };
 const NPCS={
 village:[
 {x:10,y:12,name:'アオイ博士',kind:'prof',icon:'P',color:'#d9d1a9',say:'星霊たちと心を通わせる旅に出よう。草むらでは野生の星霊が現れるよ。'},
+{x:14,y:13,name:'旅の友 ナギ',kind:'storyGuide',color:'#a4c6d9'},
 {x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
 {x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
 {x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。'},
@@ -369,7 +382,16 @@ highland:[
 {x:18,y:19,name:'星の試練官 マコト',kind:'script',script:'astralTrial',color:'#e1c29b'}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
-lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'}, {x:12,y:8,name:'研究助手',kind:'script',script:'labAssistant',color:'#a4b9a3'}]
+lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'},
+{x:5,y:8,name:'ヒノコロの端末',kind:'starter',species:'flamio',color:'#e77c54'},
+{x:9,y:8,name:'モコリーフの端末',kind:'starter',species:'leafin',color:'#83bf73'},
+{x:11,y:8,name:'アワルンの端末',kind:'starter',species:'aquill',color:'#65a8d4'},
+{x:13,y:9,name:'研究助手',kind:'script',script:'labAssistant',color:'#a4b9a3'}],
+home:[{x:7,y:4,name:'家族のミドリ',kind:'storyMom',color:'#d3a6b4'},
+{x:10,y:7,name:'階段',kind:'storyStairs',color:'#a6afba'}],
+bedroom:[{x:10,y:6,name:'星の手帳',kind:'storyDiary',color:'#a9bcc4'}],
+observatory:[{x:7,y:4,name:'観測者 ユラ',kind:'storyScholar',color:'#b9c8a1'},
+{x:3,y:7,name:'古い望遠鏡',kind:'talk',color:'#879fb1',say:'遠くの星の瞬きを追いかける、不思議な望遠鏡。'}]
 };
 // Script tables are data, not hard-coded dialogue branches.
 const EVENT_SCRIPTS={
@@ -940,11 +962,11 @@ else{pixel(x,y,T,T,'#a2b5ac');pixel(x+3,y+4,26,24,'#bad0c4');pixel(x+5,y+25,23,2
 if(t===11){pixel(x,y,T,T,'#98b1b4');rounded(x+3,y+4,26,22,4,'#567d89');ellipse(x+16,y+15,8,8,'#8cdbcf')}
 }
 function drawBuilding(x,y,kind,camX,camY){const sx=x*T-camX,sy=y*T-camY;if(sx>W+130||sx<-140||sy>H+100||sy<-120)return;
-const w=kind==='lab'?154:122,roof=kind==='lab'?'#7397a7':kind==='shop'?'#cd8b6f':'#c8898b';
+const w=kind==='lab'?154:122,roof=kind==='lab'?'#7397a7':kind==='shop'?'#cd8b6f':kind==='home'?'#8a9fc4':'#c8898b';
 pixel(sx+7,sy+45,w-14,56,'#e5d4b0');pixel(sx+17,sy+68,22,24,'#80b8ae');pixel(sx+w-39,sy+68,20,24,'#80b8ae');pixel(sx+w/2-15,sy+75,30,27,'#66584c');
 pixel(sx+2,sy+18,w-4,41,roof);pixel(sx+12,sy+8,w-24,19,roof);pixel(sx+24,sy,w-48,12,roof);pixel(sx+8,sy+52,w-16,5,'#596269');
 pixel(sx+w/2-5,sy+79,10,22,'#b69d80');rounded(sx+w/2-22,sy+41,44,15,3,'#f8f0d4');
-txt(kind==='lab'?'LAB':kind==='shop'?'SHOP':'HEAL',sx+w/2,sy+53,10,'#354e4f','center');
+txt(kind==='lab'?'LAB':kind==='shop'?'SHOP':kind==='home'?'HOME':'HEAL',sx+w/2,sy+53,10,'#354e4f','center');
 pixel(sx+7,sy+47,w-14,3,'#45616a');pixel(sx+8,sy+100,w-16,3,'#5e7971');
 for(let i=13;i<w-8;i+=22){pixel(sx+i,sy+24,12,3,'#f2d49b');pixel(sx+i+4,sy+31,8,3,'#fff0bf')}
 pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
@@ -983,7 +1005,8 @@ const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?ani
 const camX=clamp(px*T+16-W/2,0,m.w*T-W),camY=clamp(py*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme);
-if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY)}
+if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
+if(state.map==='lake')drawBuilding(17,15,'home',camX,camY);
 if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY)}
