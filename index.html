@@ -389,6 +389,7 @@ highland:[
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'},
+{x:5,y:7,name:'研究所の調査員',kind:'storyInspector',color:'#567c9e'},
 {x:5,y:8,name:'ヒノコロの端末',kind:'starter',species:'flamio',color:'#e77c54'},
 {x:9,y:8,name:'モコリーフの端末',kind:'starter',species:'leafin',color:'#83bf73'},
 {x:11,y:8,name:'アワルンの端末',kind:'starter',species:'aquill',color:'#65a8d4'},
@@ -631,7 +632,7 @@ function beginRivalEncounter(){
   '？？？「研究所の相棒を連れているのか。強いのか、確かめてやる！」'
  ],()=>{
    startBattle([makeMonster(rivalId,5)],{
-    trainer:true,trainerKey:'story/rival',npc:{name:'旅人 カイ',kind:'rival'},reward:0
+    trainer:true,trainerKey:'story/rival',npc:{name:'謎の旅人',kind:'rival'},reward:0
    });
  });
  return true;
@@ -665,6 +666,22 @@ function storyMother(){
  }
  dialog('家族のミドリ',stage<5?'博士は研究所で待っていると思うよ。':'いつでも帰っておいで。相棒と一緒に、よい旅を！');
 }
+function storyInspector(){
+ if(storyStage()!==10){dialog('研究所の調査員','研究所の安全を確認しているところです。');return}
+ dialog('研究所の調査員','「お帰りなさい！ 研究所で見慣れない旅人が目撃されました。\n途中で似た人物に会いませんでしたか？」',[
+  {text:'カイという名前だった',on:()=>identifyRival('カイ')},
+  {text:'レイという名前だった',on:()=>identifyRival('レイ')},
+  {text:'ソラという名前だった',on:()=>identifyRival('ソラ')}
+ ]);
+}
+function identifyRival(name){
+ state.story.rivalName=name;state.events.inspectionComplete=true;save();
+ dialogSequence('研究所の調査員',[
+  '「'+name+'、ですね。教えてくれてありがとう」',
+  '「どうやら星霊の研究データを狙っていたようです。あなたの相棒が無事で良かった」',
+  '「博士に湖で見つけたかけらを渡してください」'
+ ],()=>world());
+}
 function storyProfessor(n){
  const stage=storyStage();
  if(stage===2){
@@ -678,6 +695,7 @@ function storyProfessor(n){
  }
  if(stage===3){dialog('アオイ博士','端末が3つあるよ。火・草・水の中から、気になる子を選んでね。');return}
  if(stage===10){
+  if(!state.events.inspectionComplete){dialog('アオイ博士','「戻ってきたんだね！ まず調査員の聞き取りに答えてくれるかな？」');return}
   storyStep(11);state.story.parcel=false;save();
   dialogSequence('アオイ博士',[
    '「戻ったのか！ 無事でよかった。緊急連絡が届いて心配していたんだ」',
@@ -767,7 +785,7 @@ if(exit){
 }
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
-if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name])))return;
+if(NPCS[state.map].some(n=>isNpcVisible(n)&&n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name])))return;
 const prevX=state.x,prevY=state.y;
 companionMove={fromX:follower.x,fromY:follower.y,toX:prevX,toY:prevY,start:performance.now(),duration:state.running?90:142};
 follower={map:state.map,x:prevX,y:prevY};movement={fromX:prevX,fromY:prevY,toX:nx,toY:ny,start:performance.now(),duration:state.running?90:142};
@@ -811,7 +829,7 @@ if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'
 return null}
 function switchMap(e){state.map=e.id;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
-const n=NPCS[state.map].find(p=>p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){npc(n);return}
+const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
@@ -821,6 +839,7 @@ if(n.kind==='storyStairs'){dialog(n.name,'2階には自分の部屋がある。'
 if(n.kind==='storyDiary'){dialog(n.name,'まだ何も書かれていない。\nこの旅の思い出で、いつかいっぱいになるだろう。');return}
 if(n.kind==='storyScholar'){storyScholar();return}
 if(n.kind==='storyGuide'){storyGuide();return}
+if(n.kind==='storyInspector'){storyInspector();return}
 if(n.kind==='starter'){storyStarter(n);return}
 if(n.kind==='script'){if(storyStage()<12){dialog(n.name,'町のことは今度ゆっくり聞かせてね。');return}runNpcScript(n.name,EVENT_SCRIPTS[n.script]||[{op:'message',text:n.say||'何もない。'}]);return}
 if(n.kind==='prof'){storyProfessor(n);return}
@@ -1199,8 +1218,12 @@ pixel(sx+7,sy+47,w-14,3,'#45616a');pixel(sx+8,sy+100,w-16,3,'#5e7971');
 for(let i=13;i<w-8;i+=22){pixel(sx+i,sy+24,12,3,'#f2d49b');pixel(sx+i+4,sy+31,8,3,'#fff0bf')}
 pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
 }
+function isNpcVisible(n){
+ if(n.kind==='storyInspector')return storyStage()===10;
+ return true;
+}
 function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
-if(x<-35||x>W+35||y<-45||y>H+45)return;
+if(!isNpcVisible(n)||x<-35||x>W+35||y<-45||y>H+45)return;
 if(n.kind==='starter'){
  const p=Math.sin(frame*.067+n.x)*2;
  ellipse(x,y+13,15,5,'#1b4858a0');
@@ -1228,6 +1251,7 @@ if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(fr
 if(n.kind==='sign'||n.name==='高原の石碑'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
 ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
+if(n.kind==='storyInspector'){pixel(x-10,y-21,20,6,'#3b526d');pixel(x-7,y-27,14,9,'#52759a');txt('?',x,y-33,12,'#fff0bf','center')}
 if(n.kind==='trainer'||n.kind==='boss')txt('!',x,y-25,13,'#ffeabb','center');
 if((n.kind==='storyGuide'||n.kind==='storyScholar'||n.kind==='prof')&&storyStage()<12){
  ellipse(x,y-29,10,10,'#f5d998');
