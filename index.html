@@ -592,6 +592,16 @@ function storyWarpAllowed(destination){
 }
 function afterStoryWarp(previous,destination){
  const stage=storyStage();
+ if(previous==='observatory'&&destination.id==='lake'&&stage===8&&!state.events.emergencyCall){
+  state.events.emergencyCall=true;save();
+  dialogSequence('アストラギア / 着信',[
+   '観測小屋を出たところで、ギアが突然鳴り始めた。',
+   'ピピピ……！　博士から緊急連絡が入った。',
+   'アオイ博士「研究所でトラブルが起きた！ すぐに戻ってきてくれ！」',
+   '湖畔の道を戻り、そよかぜの小道から町へ帰ろう。'
+  ],()=>world());
+  return;
+ }
  if(previous==='bedroom'&&destination.id==='home'&&stage===0){
   storyStep(1);
   dialogSequence('自宅','一階から家族の声が聞こえる。\n「おはよう！ 話しておきたいことがあるの」',()=>world());
@@ -691,13 +701,7 @@ function storyScholar(){
    '不思議な「星のかけら」を受け取った！',
    '「そしてこれは星霊図鑑。出会った星霊の情報が自動で記録される装置だよ」',
    '星霊図鑑を使えるようになった！'
-  ],()=>{
-   dialogSequence('アストラギア / 着信',[
-    'ピピピ……！ 博士から緊急の連絡が入った。',
-    'アオイ博士「研究所で問題が起きた！ 急いで戻ってきてくれ！」',
-    '湖畔を出て、小道を通って町へ戻ろう。'
-   ],()=>world());
-  });return;
+  ],()=>world());return;
  }
  dialog('観測者 ユラ',stage<7?'夜空を調べているところだよ。':'星のかけらのことが分かったら、また教えてね。');
 }
@@ -1197,11 +1201,38 @@ pixel(sx+w/2-16,sy+91,32,10,'#59626c');pixel(sx+w/2-13,sy+83,26,17,'#946e53');
 }
 function drawNpc(n,camX,camY){const x=n.x*T-camX+16,y=n.y*T-camY+15;
 if(x<-35||x>W+35||y<-45||y>H+45)return;
+if(n.kind==='starter'){
+ const p=Math.sin(frame*.067+n.x)*2;
+ ellipse(x,y+13,15,5,'#1b4858a0');
+ rounded(x-15,y+3,30,11,4,'#42677c');
+ pixel(x-11,y+6,22,3,'#b7d9d9');
+ ellipse(x,y-8+p,13,14,'#cbe8f0aa');
+ ellipse(x,y-8+p,9,10,n.color);
+ ellipse(x,y-8+p,4,4,'#e4f8f1');
+ ellipse(x-4,y-9+p,2,2,'#2e4b55');ellipse(x+4,y-9+p,2,2,'#2e4b55');
+ for(let i=0;i<3;i++){const angle=frame*.05+i*Math.PI*2/3;ellipse(x+Math.cos(angle)*17,y-9+p+Math.sin(angle)*13,1.7,1.7,'#fff1b7')}
+ return;
+}
+if(n.kind==='storyDiary'){
+ ellipse(x,y+12,11,3,'#395e6477');pixel(x-13,y-7,27,20,'#896f5c');
+ rounded(x-10,y-13,21,21,2,'#ecdeb4');
+ pixel(x-4,y-10,15,2,'#a7b9aa');pixel(x-4,y-4,13,2,'#a7b9aa');
+ pixel(x-13,y+12,4,4,'#634d4b');pixel(x+9,y+12,4,4,'#634d4b');
+ return;
+}
+if(n.kind==='storyStairs'){
+ for(let i=0;i<4;i++){const t=i*5;pixel(x-15+t/4,y-10+t,30-t/2,5,'#b99f80');pixel(x-13+t/4,y-8+t,25-t/2,1,'#f0d5af')}
+ return;
+}
 if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(frame*.07)*2,9,'#f2d2a8');ellipse(x,y-5,4,5,'#8f9fbe');for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.06;ellipse(x+Math.cos(a)*12,y-5+Math.sin(a)*12,2,2,'#f5efbd')}return}
 if(n.kind==='sign'||n.name==='高原の石碑'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
 ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
 if(n.kind==='trainer'||n.kind==='boss')txt('!',x,y-25,13,'#ffeabb','center');
+if((n.kind==='storyGuide'||n.kind==='storyScholar'||n.kind==='prof')&&storyStage()<12){
+ ellipse(x,y-29,10,10,'#f5d998');
+ txt('!',x,y-25,14,'#405f5a','center');
+}
 }
 function drawHero(x,y,dir){const bob=Math.sin(frame*.12)*1.2;
 ellipse(x,y+12,11,4,'#294c4877');
