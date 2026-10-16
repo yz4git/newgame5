@@ -41,6 +41,8 @@ vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:
 vm.runInNewContext(fs.readFileSync('src/story.js','utf8'),context,{timeout:5000,filename:'story.js'});
 assert(context.AstraStory,'Story engine was initialized');
 assert(context.AstraEngine,'RPG engine was initialized');
+vm.runInNewContext(fs.readFileSync('src/creature-art.js','utf8'),context,{timeout:5000,filename:'creature-art.js'});
+assert(context.AstraCreatureArt,'Species-specific creature art was loaded');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
 assert(g);
