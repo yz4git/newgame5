@@ -541,7 +541,12 @@ function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hu
 function title(){
 screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE';
 const hasSave=!!localStorage.getItem(STORE);
-ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else beginIntro()}}]:[]),{text:'✦ はじめから',on:()=>{state=fresh();beginIntro()}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
+ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else beginIntro()}}]:[]),{text:'✦ はじめから',on:()=>{
+if(!hasSave){state=fresh();beginIntro();return}
+screen('dialog');ui('SAVE FILE / 確認','冒険を最初から始めると、前のセーブデータが上書きされます。\n現在の冒険を続ける場合は戻ってください。',[
+{text:'新しい冒険を始める',on:()=>{state=fresh();beginIntro()}},
+{text:'↶ タイトルへ戻る',on:title}]);
+}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
 }
 // Full introductory flow. Scenes are driven by the persisted story stage.
 function beginIntro(){
