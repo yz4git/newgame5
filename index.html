@@ -1549,6 +1549,112 @@ function drawScenery(camX,camY,x0,x1,y0,y1){
   }
  }
 }
+
+const LANDMARKS={
+ village:[['fountain',21,7],['garden',3,14]],
+ route:[['windmill',5,6],['windmill',20,19]],
+ forest:[['ancientTree',21,11],['lantern',7,14],['lantern',20,21]],
+ shrine:[['altar',7,5],['altar',15,5],['portal',15,13]],
+ lake:[['beacon',25,7],['reeds',15,8],['reeds',22,14]],
+ highland:[['crystals',6,14],['crystals',21,21],['portal',18,12]]
+};
+function drawLandmarks(camX,camY){
+ for(const [kind,gx,gy] of LANDMARKS[state.map]||[]){
+  const x=gx*T-camX+16,y=gy*T-camY+15;
+  if(x<-120||x>W+120||y<-160||y>H+130)continue;
+  const wave=Math.sin(frame*.032+gx)*3;
+  if(kind==='fountain'){
+   ellipse(x,y+7,53,23,'#6c8586');ellipse(x,y+2,48,18,'#d5d9cd');
+   ellipse(x,y,42,13,'#548e99');ellipse(x,y-3,30,9,'#8fc9cb');
+   pixel(x-6,y-32,12,34,'#b4c3b8');
+   ellipse(x,y-33,18,6,'#e5e1c8');ellipse(x,y-35,14,4,'#649ba5');
+   for(let i=0;i<9;i++){
+    const a=i*Math.PI*2/9+frame*.016;
+    ellipse(x+Math.cos(a)*26,y-17+Math.sin(a)*9+wave,2,3,'#d5fbebba');
+   }
+  }else if(kind==='garden'){
+   ellipse(x,y+2,42,15,'#547e5f');
+   for(let i=0;i<16;i++){
+    const a=i*2.4,r=10+Math.sqrt(i)*7;
+    const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r*.33;
+    line(px,py,px,py-8,'#497d60',2);
+    ellipse(px,py-9,3.5,3.5,i%3?'#f4d1c4':'#f9e3a7');
+   }
+  }else if(kind==='windmill'){
+   pixel(x-15,y-2,30,12,'#777867');
+   pixel(x-13,y-66,26,64,'#d7c4a5');
+   pixel(x-19,y-70,38,10,'#977866');
+   pixel(x-8,y-16,16,14,'#60554f');
+   for(let i=0;i<4;i++){
+    const a=frame*.011+i*Math.PI/2;
+    const dx=Math.cos(a)*40,dy=Math.sin(a)*40;
+    line(x,y-56,x+dx,y-56+dy,'#ecd9ae',5);
+    ellipse(x+dx,y-56+dy,8,4,'#fcf2d3');
+   }
+   ellipse(x,y-56,6,6,'#698993');
+  }else if(kind==='ancientTree'){
+   ellipse(x,y+8,63,19,'#294a3b77');
+   pixel(x-19,y-87,38,96,'#76634e');
+   for(let i=0;i<5;i++)line(x-16+i*8,y,x-13+i*7,y-75,'#ac8761',3);
+   line(x,y-54,x-54,y-111,'#6c584a',14);
+   line(x,y-54,x+54,y-104,'#6c584a',14);
+   for(const side of [-1,1]){
+    ellipse(x+side*43,y-101,36,37,'#3f7857');
+    ellipse(x+side*35,y-112,26,26,'#5b916b');
+   }
+   ellipse(x,y-118,48,42,'#396f53');
+   ellipse(x-17,y-126,30,22,'#659b70');
+   ellipse(x+20,y-126,24,24,'#6d9c76');
+   for(let i=0;i<6;i++){const a=i*1.13;ellipse(x+Math.cos(a)*45,y-109+Math.sin(a)*24+wave,2,3,'#dce7a5')}
+  }else if(kind==='lantern'){
+   pixel(x-4,y-43,8,49,'#796b56');
+   pixel(x-12,y-52,24,9,'#b3a181');
+   pixel(x-9,y-70,18,18,'#a0b1a4');
+   pixel(x-5,y-67,10,13,'#f4e5a9');
+   pixel(x-12,y-73,24,5,'#7e7967');
+   ellipse(x,y-62,23,27,'#f3e2a321');
+  }else if(kind==='altar'||kind==='portal'){
+   const h=kind==='altar'?52:80;
+   pixel(x-24,y-2,48,12,'#627b8c');
+   pixel(x-17,y-h,34,h,'#95a8b0');
+   pixel(x-21,y-h-6,42,9,'#c2c4b8');
+   line(x-11,y-h+22,x+11,y-h+22,'#d9d2b7',3);
+   line(x,y-h+7,x,y-h+31,'#d9d2b7',3);
+   if(kind==='portal'){
+    pixel(x-33,y-h-12,11,h+22,'#6b8197');
+    pixel(x+22,y-h-12,11,h+22,'#6b8197');
+    pixel(x-33,y-h-16,66,9,'#a1bac0');
+   }
+   for(let i=0;i<7;i++){const a=i*Math.PI*2/7+frame*.011;ellipse(x+Math.cos(a)*19,y-h+29+Math.sin(a)*18+wave,2.8,2.8,'#fff0b9b5')}
+  }else if(kind==='beacon'){
+   pixel(x-18,y-78,36,88,'#bac9c8');
+   for(let i=0;i<5;i++)pixel(x-18,y-65+i*16,36,6,i%2?'#839eaf':'#ece1c8');
+   pixel(x-23,y-86,46,12,'#5b8294');
+   pixel(x-14,y-106,28,22,'#6499ad');
+   pixel(x-11,y-103,22,16,'#fff0b5');
+   ellipse(x,y-96,18+Math.sin(frame*.026)*2,13,'#fff8d743');
+   pixel(x-28,y+6,56,9,'#748b9a');
+  }else if(kind==='reeds'){
+   for(let i=0;i<16;i++){
+    const px=x+i%6*9-24,py=y+Math.floor(i/6)*8;
+    const d=Math.sin(frame*.041+i)*3;
+    line(px,py+8,px+d,py-18-i%3*5,'#548b71',2.4);
+    if(i%3===0)ellipse(px+d,py-18,3,6,'#b7a37f');
+   }
+  }else if(kind==='crystals'){
+   ellipse(x,y+7,53,17,'#667b7b77');
+   for(let i=0;i<8;i++){
+    const px=x+(i-3.5)*11,h=22+(i*13%33);
+    pixel(px-5,y-h,10,h+8,'#7599ad');
+    line(px-5,y-h,px,y-h-10,'#d3f3ec',3);
+    line(px,y-h-10,px+5,y-h,'#b8ebe8',3);
+    line(px,y-h,px,y+1,'#89b7c7',2);
+    ellipse(px,y-h-2+wave,1.7,2.5,'#faf4d8');
+   }
+  }
+ }
+}
+
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -1556,6 +1662,7 @@ const camX=clamp(px*T+16-W/2,0,m.w*T-W),camY=clamp(py*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme,state.map);
 drawScenery(camX,camY,x0,x1,y0,y1);
+drawLandmarks(camX,camY);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
