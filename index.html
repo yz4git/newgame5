@@ -537,6 +537,173 @@ screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE
 const hasSave=!!localStorage.getItem(STORE);
 ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else beginIntro()}}]:[]),{text:'✦ はじめから',on:()=>{state=fresh();beginIntro()}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
 }
+// Full introductory flow. Scenes are driven by the persisted story stage.
+function beginIntro(){
+ screen('starter');
+ ui('PROLOGUE / 星霊譚',
+ 'むかし、夜空から落ちた小さな光が、大地に星霊を生んだ。\n人と星霊は、ともに旅をしている。\n\nあなたの冒険者の名前は？',[
+  {text:'ハル',on:()=>startBedroom('ハル')},
+  {text:'アキ',on:()=>startBedroom('アキ')},
+  {text:'ユウ',on:()=>startBedroom('ユウ')}
+ ]);
+}
+function startBedroom(name){
+ state.story.playerName=name;
+ const start=Story.startAt();state.map=start.id;state.x=start.x;state.y=start.y;state.dir=start.dir;
+ follower={map:start.id,x:start.x,y:start.y+1};world();save();
+ dialogSequence('星の朝',[
+  '窓からやわらかな光が差し込んでいる。\n'+name+' の新しい朝が始まった。',
+  '机の上には、アオイ研究所から届いた手紙。\n「研究の手伝いを頼みたい。まず家族に話してきてね」',
+  '階段を降りて、一階へ行こう。'
+ ],()=>world());
+}
+function dialogSequence(name,pages,onDone,forced=true){
+ const list=Array.isArray(pages)?pages:[pages];let index=0;
+ forcedStory=forced;
+ const next=()=>{
+  if(index>=list.length){forcedStory=false;if(onDone)onDone();else world();return}
+  const page=list[index++];
+  screen('dialog');
+  ui(name,page,[{text:index===list.length?'▶ おわる':'▶ つぎへ',on:next}]);
+  sfx('ok');
+ };
+ next();
+}
+function storyStage(){return state.story?.stage??Story.FREE_STAGE}
+function storyStep(to){
+ if(Story.advance(state.story,to)){save();return true}return false;
+}
+function storyWarpAllowed(destination){
+ const result=Story.canWarp(state.story,state.map,destination.id);
+ if(!result.allowed){toast(result.reason);sfx('bad');return false}
+ return true;
+}
+function afterStoryWarp(previous,destination){
+ const stage=storyStage();
+ if(previous==='bedroom'&&destination.id==='home'&&stage===0){
+  storyStep(1);
+  dialogSequence('自宅','一階から家族の声が聞こえる。\n「おはよう！ 話しておきたいことがあるの」',()=>world());
+ }else if(previous==='lab'&&destination.id==='village'&&stage===4){
+  storyStep(5);
+  state.bag.potion+=3;save();
+  dialogSequence('研究助手とナギ',[
+   '研究助手「旅の準備に、キズぐすりを3個渡しておくよ！」',
+   'ナギ「わあ！ もう相棒ができたんだね。いいなあ！」',
+   'ナギ「出発する前に、家族にその子を見せてあげて！」'
+  ],()=>world());
+ }else if(previous==='village'&&destination.id==='route'&&stage===6){
+  storyStep(7);
+  dialogSequence('旅立ち',[
+   'アオイ博士から連絡先が届いた。\n「困ったら研究所へ連絡するんだよ」',
+   '北の小道に出た。青凪の湖畔は、この道を東へ進んだ先にある。',
+   '草むらには野生の星霊がいる。\n戦いながら相棒と成長しよう。'
+  ],()=>world());
+ }
+}
+function beginRivalEncounter(){
+ if(storyStage()!==8)return false;
+ storyStep(9);
+ const rivalId=Story.rivalFor(state.story.starterId);
+ dialogSequence('謎の旅人',[
+  '帰り道で、見知らぬ旅人が行く手をふさいだ。',
+  '？？？「研究所の相棒を連れているのか。強いのか、確かめてやる！」'
+ ],()=>{
+   startBattle([makeMonster(rivalId,5)],{
+    trainer:true,trainerKey:'story/rival',npc:{name:'旅人 カイ',kind:'rival'},reward:0
+   });
+ });
+ return true;
+}
+function storyStarter(n){
+ if(storyStage()!==3){dialog(n.name,'3つの端末が、静かに光っている。');return}
+ const mon=byId[n.species];
+ dialog('相棒を選ぶ',mon.name+' / '+mon.type+'タイプ\n最初の相棒として、この子を選ぶ？',[
+  {text:'✦ '+mon.name+' に決める',on:()=>pick(mon.id)},
+  {text:'↶ ほかの子も見る',on:()=>world()}
+ ]);
+}
+function storyMother(){
+ const stage=storyStage();
+ if(stage===1){
+  storyStep(2);
+  dialogSequence('家族のミドリ',[
+   '「おはよう、'+state.story.playerName+'！ アオイ博士から伝言が届いているよ」',
+   '「最近、湖のそばで不思議な光が見つかったんだって。研究所へ行ってみない？」',
+   '「外に出る前に、持ち物と道をよく確認してね。気をつけて！」'
+  ],()=>world());return;
+ }
+ if(stage===5){
+  storyStep(6);state.story.gear=true;save();
+  dialogSequence('家族のミドリ',[
+   '「あら、すてきな相棒ね！ もう一緒に旅をするんだ」',
+   '「これを持っておいき。地図と時計が入ったアストラギアよ」',
+   'アストラギアを手に入れた！\n下画面のギアから地図や現在地を確認できる。',
+   '「星を追いかけるだけじゃなく、帰り道も覚えておくんだよ」'
+  ],()=>world());return;
+ }
+ dialog('家族のミドリ',stage<5?'博士は研究所で待っていると思うよ。':'いつでも帰っておいで。相棒と一緒に、よい旅を！');
+}
+function storyProfessor(n){
+ const stage=storyStage();
+ if(stage===2){
+  storyStep(3);
+  dialogSequence('アオイ博士',[
+   '「来てくれたんだね！ 今、とても珍しい光を調べているんだ」',
+   '「青凪の湖にいる観測者から、星のかけらを見つけたと連絡があってね」',
+   '「ぼくの代わりに受け取りに行ってくれないかな？」',
+   '「まずは3つの端末から、旅の相棒を1体選んでおくれ」'
+  ],()=>world());return;
+ }
+ if(stage===3){dialog('アオイ博士','端末が3つあるよ。火・草・水の中から、気になる子を選んでね。');return}
+ if(stage===10){
+  storyStep(11);state.story.parcel=false;save();
+  dialogSequence('アオイ博士',[
+   '「戻ったのか！ 無事でよかった。緊急連絡が届いて心配していたんだ」',
+   'かばんから星のかけらを取り出した。\n博士はその輝きを注意深く調べている。',
+   '「これは普通の鉱石じゃない。星霊が集まる秘密と関係しているかもしれない」',
+   '「図鑑の記録を続けながら、もっと遠くの世界も調べてほしい」',
+   '「まずは町の広場のナギに、野生の星霊を仲間にする方法を教わってきて！」'
+  ],()=>world());return;
+ }
+ if(stage<10){dialog('アオイ博士',stage<5?'端末から相棒を選んでくれるかな？':'湖の観測小屋に向かって、光の手がかりを受け取ってきて。');return}
+ const messages=Engine.applyEvent([{op:'message',text:n.say},{op:'item',id:'orb',count:3,unless:'prof_gift',text:'星玉を3個もらった！'},{op:'flag',key:'prof_gift'}],state);
+ save();dialog(n.name,messages.join('\n'));
+}
+function storyScholar(){
+ const stage=storyStage();
+ if(stage===7){
+  storyStep(8);state.story.parcel=true;state.story.dex=true;save();
+  dialogSequence('観測者 ユラ',[
+   '「遠いところからありがとう。君がアオイ博士の頼んだ旅人だね」',
+   '「昨夜、この湖に青白い光が落ちたんだ。残されていたのは、この小さな結晶……」',
+   '不思議な「星のかけら」を受け取った！',
+   '「そしてこれは星霊図鑑。出会った星霊の情報が自動で記録される装置だよ」',
+   '星霊図鑑を使えるようになった！'
+  ],()=>{
+   dialogSequence('アストラギア / 着信',[
+    'ピピピ……！ 博士から緊急の連絡が入った。',
+    'アオイ博士「研究所で問題が起きた！ 急いで戻ってきてくれ！」',
+    '湖畔を出て、小道を通って町へ戻ろう。'
+   ],()=>world());
+  });return;
+ }
+ dialog('観測者 ユラ',stage<7?'夜空を調べているところだよ。':'星のかけらのことが分かったら、また教えてね。');
+}
+function storyGuide(){
+ const stage=storyStage();
+ if(stage===11){
+  storyStep(12);state.bag.orb+=5;save();
+  dialogSequence('旅の友 ナギ',[
+   '「待ってたよ！ 野生の星霊を仲間にするコツを教えるね」',
+   '「まず相手のHPを減らそう。弱らせた方が星玉に収まりやすいんだ」',
+   '「まひやねむりの状態にできると、もっと捕まえやすくなるよ」',
+   '「バッグから星玉を選んで投げてみて。練習用に5個あげるね！」',
+   '星玉を5個もらった！\nこれからは野生の星霊を捕まえられる。',
+   '「図鑑をいっぱいにして、北の森のその先にも行ってみよう！」'
+  ],()=>world());return;
+ }
+ dialog('旅の友 ナギ',stage<11?'湖の観測小屋への用事、うまくいくといいね！':'いろんな星霊と出会うのが旅の醍醐味だよ！');
+}
 function starter(){
 screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲間を選んでね。どの子も、きっと頼りになるよ！」',[
 {text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
