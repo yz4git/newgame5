@@ -1743,13 +1743,22 @@ function drawMonster(m,x,y,scale=1,back=false){
  const def=byId[m.id];if(!def)return;
  const active=state.battle?.action;
  const attacking=active&&((back&&active.who==='you')||(!back&&active.who==='enemy'));
- const since=attacking?clamp((performance.now()-active.started)/760,0,1):1;
- const effort=attacking&&since<1?Math.sin(since*Math.PI):0;
+ const phase=active?clamp((performance.now()-active.started)/760,0,1):1;
+ const effort=attacking&&phase<1?Math.sin(phase*Math.PI):0;
+ const hit=!attacking&&active&&phase>.37&&phase<.73;
+ const reaction=hit?Math.sin((phase-.37)/.36*Math.PI):0;
  const sway=Math.sin(frame*.049+m.id.length*1.8)*1.8;
  ctx.save();
- ctx.translate(x+effort*(back?6:-6),y+sway-effort*8);
- ctx.scale((scale||1)*(1+effort*.075),(scale||1)*(1-effort*.055));
+ ctx.translate(x+effort*(back?6:-6)+reaction*(back?8:-8),y+sway-effort*8+reaction*4);
+ ctx.scale((scale||1)*(1+effort*.075-reaction*.045),(scale||1)*(1-effort*.055+reaction*.068));
  CreatureArt.draw(ctx,def,frame,back);
+ if(reaction>.28){
+  // Small local impact sparks at the actual creature position; no full-screen flash.
+  for(let i=0;i<5;i++){
+   const a=i*1.256+frame*.05;
+   ellipse(Math.cos(a)*43,-25+Math.sin(a)*36,2.5*reaction,2.5*reaction,'#fff0bbba');
+  }
+ }
  ctx.restore();
 }
 function drawBar(x,y,w,val,col){rounded(x,y,w,9,4,'#49616b');rounded(x+2,y+2,Math.max(0,(w-4)*clamp(val,0,1)),5,3,col)}
