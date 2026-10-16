@@ -1315,7 +1315,32 @@ if(n.kind==='storyStairs'){
 if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(frame*.07)*2,9,'#f2d2a8');ellipse(x,y-5,4,5,'#8f9fbe');for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.06;ellipse(x+Math.cos(a)*12,y-5+Math.sin(a)*12,2,2,'#f5efbd')}return}
 if(n.kind==='sign'||n.name==='高原の石碑'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
-ellipse(x,y+15,10,4,'#243b3677');pixel(x-9,y-3,18,18,n.color||'#d3a98f');pixel(x-6,y-13,12,12,'#f0c9a8');pixel(x-7,y-16,14,5,n.kind==='boss'?'#e4d59b':'#4a5b65');pixel(x-6,y+14,5,5,'#354452');pixel(x+2,y+14,5,5,'#354452');
+const breath=Math.sin(frame*.037+n.x*2+n.y)*.7,gesture=Math.sin(frame*.023+n.y)*2;
+const coat=n.color||'#d3a98f',isTrainer=n.kind==='trainer'||n.kind==='boss';
+const special=n.kind==='prof'||n.kind==='storyMom'||n.kind==='storyScholar'||n.kind==='storyGuide';
+const hair=n.kind==='prof'?'#d5dbcf':n.kind==='storyMom'?'#896a60':
+ n.kind==='storyScholar'?'#4c6d67':n.kind==='storyGuide'?'#7a5f4f':isTrainer?'#494b55':'#555e64';
+ellipse(x,y+15,10,4,'#243b3677');
+pixel(x-10,y-5+breath,20,18,coat);
+pixel(x-8,y+11,6,8,'#3f4b5e');pixel(x+2,y+11,6,8,'#3f4b5e');
+pixel(x-12,y-4+breath+gesture*.3,4,13,'#e8bda0');
+pixel(x+8,y-4+breath-gesture*.3,4,13,'#e8bda0');
+pixel(x-7,y-15+breath,14,14,'#f0c9a8');
+pixel(x-9,y-19+breath,18,6,hair);
+pixel(x-8,y-17+breath,4,9,hair);
+pixel(x+4,y-17+breath,4,9,hair);
+if(n.facing==='up')pixel(x-7,y-12+breath,14,8,hair);
+else if(n.facing==='left')pixel(x-6,y-12+breath,2,2,'#253f48');
+else if(n.facing==='right')pixel(x+4,y-12+breath,2,2,'#253f48');
+else if(Math.sin(frame*.017+n.x)>.025){
+ pixel(x-4,y-12+breath,2,2,'#263d46');pixel(x+3,y-12+breath,2,2,'#263d46');
+}
+if(isTrainer){pixel(x-10,y-22+breath,20,7,n.kind==='boss'?'#e4d59b':'#ab5364');pixel(x-11,y-17+breath,22,3,'#e8ba9f')}
+if(special){
+ pixel(x-6,y-1+breath,12,4,n.kind==='prof'?'#e5ede1':'#d5d8c5');
+ if(n.kind==='prof'){pixel(x-9,y+1+breath,5,15,'#edf1eb');pixel(x+4,y+1+breath,5,15,'#edf1eb')}
+ if(n.kind==='storyGuide')pixel(x-4,y-23+breath,8,6,'#ddae83');
+}
 if(n.kind==='storyInspector'){pixel(x-10,y-21,20,6,'#3b526d');pixel(x-7,y-27,14,9,'#52759a');txt('?',x,y-33,12,'#fff0bf','center')}
 if(n.kind==='trainer'||n.kind==='boss')txt('!',x,y-25,13,'#ffeabb','center');
 if((n.kind==='storyGuide'||n.kind==='storyScholar'||n.kind==='prof')&&storyStage()<12){
