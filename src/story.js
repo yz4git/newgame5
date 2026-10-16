@@ -28,7 +28,7 @@ function normalize(input){if(!input||typeof input!=='object')return {...fresh(),
  return {...fresh(),...input,stage:Math.max(0,Math.min(FREE_STAGE,Math.floor(Number(input.stage)||0)))}
 }
 function chapter(story){return CHAPTERS[Math.max(0,Math.min(FREE_STAGE,story?.stage??FREE_STAGE))]}
-function advance(story,next){const before=story.stage;if(Number(next)!==before+1)return false;story.stage=next;return true}
+function advance(story,next){const before=story.stage;if(!Number.isInteger(next)||next>FREE_STAGE||next!==before+1)return false;story.stage=next;return true}
 function canWarp(story,origin,target){
  const stage=story?.stage??FREE_STAGE;
  if(origin==='bedroom'&&target==='home')return {allowed:true};
