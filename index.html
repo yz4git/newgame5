@@ -184,6 +184,9 @@ footer{display:none}
 #console[data-view="dex"] .options button:disabled{opacity:.55}
 
 #screenShell[data-preview="true"] #hud{display:none}
+.name-entry{display:flex;gap:6px;padding:7px;border:2px solid #8db1af;background:#dbece5;border-radius:9px}
+.name-entry input{font-size:16px;min-width:0;flex:1;border:2px solid #a0bab8;background:#fffef4;color:#243e48;border-radius:7px;padding:8px 5px;user-select:text;-webkit-user-select:text}
+.name-entry button{border:2px solid #73a1a6;border-radius:7px;padding:8px;background:#fbf9df;color:#326873;font-weight:800;font-size:12px}
 </style>
 </head>
 <body>
@@ -548,6 +551,13 @@ function beginIntro(){
   {text:'アキ',on:()=>startBedroom('アキ')},
   {text:'ユウ',on:()=>startBedroom('ユウ')}
  ]);
+ const box=document.createElement('div');box.className='name-entry';
+ const field=document.createElement('input');field.type='text';field.maxLength=8;field.placeholder='好きな名前（最大8文字）';
+ field.setAttribute('aria-label','冒険者の名前');
+ const confirm=document.createElement('button');confirm.textContent='決定';
+ confirm.addEventListener('click',()=>{const value=(field.value||'').trim().slice(0,8);if(value)startBedroom(value);else toast('名前を入力してね')});
+ field.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();confirm.click()}});
+ box.append(field,confirm);consoleEl.appendChild(box);
 }
 function startBedroom(name){
  state.story.playerName=name;
@@ -618,7 +628,7 @@ function beginRivalEncounter(){
 }
 function storyStarter(n){
  if(storyStage()!==3){dialog(n.name,'3つの端末が、静かに光っている。');return}
- const mon=byId[n.species];
+ const mon=byId[n.species];state.previewStarter=n.species;
  dialog('相棒を選ぶ',mon.name+' / '+mon.type+'タイプ\n最初の相棒として、この子を選ぶ？',[
   {text:'✦ '+mon.name+' に決める',on:()=>pick(mon.id)},
   {text:'↶ ほかの子も見る',on:()=>world()}
@@ -730,7 +740,7 @@ function pick(id){
  follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok');
 }
 function world(msg){
- screen('world');save();
+ state.previewStarter=null;screen('world');save();
  const options=[];
  if(state.party.length)options.push({text:'✦ パーティ',on:()=>openPage('party')});
  options.push({text:'▣ バッグ',on:()=>openPage('bag')});
@@ -1354,6 +1364,17 @@ if(stages(playerStages))txt(stages(playerStages),228,258,9,'#e0edc7');
 if(b.enemies.length>1){for(let i=0;i<b.enemies.length;i++){ellipse(110+i*15,101,5,5,i<b.index?'#586b68':'#f2dfaf');ellipse(110+i*15,99,4,3,i<b.index?'#808f84':'#e9a175')}}
 b.shake=Math.max(0,b.shake-1);
 }
+function drawStarterPreview(){
+ const spec=byId[state.previewStarter];if(!spec){drawWorld();return}
+ const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#285c69');bg.addColorStop(1,'#8dc1ae');
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ for(let j=0;j<18;j++)ellipse(rand(j,123)*W,rand(j,145)*H,3,3,'#d9f2e6ad');
+ ellipse(W/2,267,116,25,'#709d94');ellipse(W/2,265,91,17,'#c8e3d4');
+ drawMonster({id:spec.id},W/2,258,1.65,false);
+ rounded(22,14,W-44,51,8,'#fff5df');
+ txt('✦ はじめての相棒',W/2,36,17,'#285367','center');
+ txt(spec.name+' / '+spec.type+'タイプ',W/2,57,14,'#315b5c','center');
+}
 function drawPartyPreview(){
 const mon=state.party[state.partyFocus];if(!mon){drawWorld();return}
 const spec=byId[mon.id],g=ctx.createLinearGradient(0,0,W,H);
@@ -1399,6 +1420,7 @@ function draw(){
 frame++;
 if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:145)){walk(holdDir);lastStep=performance.now()}
 if(state.scene==='battle')drawBattle();
+else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
 else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();
 else if(state.scene==='menu'&&state.menuPage==='dex'&&state.dexFocus)drawDexPreview();
 else if(state.scene==='menu'&&state.menuPage==='party'&&Number.isInteger(state.partyFocus))drawPartyPreview();
