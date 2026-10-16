@@ -12,6 +12,7 @@ function createNode(id){
  const el={id,style:{},className:'',textContent:'',disabled:false,hidden:false,dataset:{},children:[],listeners:{},scrollTop:0,
   classList:{add:noop,remove:noop},
   addEventListener(k,fn){this.listeners[k]=fn},
+  setAttribute(key,value){this[key]=value},
   append(...elements){this.children.push(...elements)},
   appendChild(child){this.children.push(child)},
   click(){this.listeners.click?.()},
