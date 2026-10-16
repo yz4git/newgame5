@@ -42,6 +42,7 @@ jobs:
           node tests/story.cjs
           node tests/music.cjs
           node tests/creature-art.cjs
+          node tests/battle-backdrops.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -55,6 +56,7 @@ jobs:
           cp src/story.js _site/src/
           cp src/music.js _site/src/
           cp src/creature-art.js _site/src/
+          cp src/battle-backdrops.js _site/src/
           sed -i "s/__BUILD_ID__/$BUILD_ID/g" _site/index.html
           if grep -q "__BUILD_ID__" _site/index.html; then exit 1; fi
           touch _site/.nojekyll
