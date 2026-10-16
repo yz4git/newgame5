@@ -83,8 +83,12 @@ function expect(stage,map){
 function stand(x,y,d='up'){g.get().x=x;g.get().y=y;g.get().dir=d;g.world()}
 assert.equal(g.get().scene,'title');
 select(0);assert.equal(g.get().scene,'starter','New game opens prologue, not starter selection');
-select(0);finishDialog();expect(0,'bedroom');
-assert.equal(g.get().story.playerName,'ハル');
+const nameEntry=node('console').children.find(n=>n.className==='name-entry');
+assert(nameEntry&&nameEntry.children.length===2,'Custom name input is available');
+nameEntry.children[0].value='サクラ';
+nameEntry.children[1].click();
+finishDialog();expect(0,'bedroom');
+assert.equal(g.get().story.playerName,'サクラ','Custom player name persists');
 assert(storage['astra-tales-v1'],'Story saves before a starter joins');
 g.walk('down');g.walk('down');finishDialog();expect(1,'home');
 stand(7,5);g.interact();finishDialog();expect(2,'home');
