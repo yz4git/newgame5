@@ -20,6 +20,13 @@ for(const zone of Backdrops.ZONES){
 assert.equal(new Set(scenes.map(z=>z.signature)).size,12,'Battle environments must be structurally different');
 ops.length=0;assert.equal(Backdrops.draw(c,'unknown',25),'route','Unknown regions fall back safely');
 assert.equal(Backdrops.draw(null,'lake',0),false);
+ops.length=0;Backdrops.draw(c,'village',16,0);const day=ops.join('|');
+ops.length=0;Backdrops.draw(c,'village',16,1);const dusk=ops.join('|');
+ops.length=0;Backdrops.draw(c,'village',16,2);const night=ops.join('|');
+assert.notEqual(day,dusk,'Twilight changes battle environment lighting');
+assert.notEqual(day,night,'Night adds darkened sky and stars');
+assert.notEqual(dusk,night,'Dusk and night remain visually different');
+
 ops.length=0;Backdrops.draw(c,'forest',0);const original=ops.join('|');
 ops.length=0;Backdrops.draw(c,'forest',20);assert.notEqual(ops.join('|'),original,'Forest background has subtle ambient motion');
 console.log('PASS: 12 distinct battle environments, layered scenery, perspective platforms, ambient motion and fallbacks');
