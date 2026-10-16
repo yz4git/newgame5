@@ -38,6 +38,8 @@ const context={document:doc,window:{addEventListener:noop},Math:deterministicMat
   requestAnimationFrame:noop,setTimeout:callback=>{timers.push(callback);return timers.length},clearTimeout:noop};
 context.globalThis=context;
 vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:5000,filename:'rpg-engine.js'});
+vm.runInNewContext(fs.readFileSync('src/story.js','utf8'),context,{timeout:5000,filename:'story.js'});
+assert(context.AstraStory,'Story engine was initialized');
 assert(context.AstraEngine,'RPG engine was initialized');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
