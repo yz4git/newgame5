@@ -205,13 +205,14 @@ footer{display:none}
 <script src="./src/story.js?v=__BUILD_ID__"></script>
 <script src="./src/music.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
+<script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt;
-if(!Engine||!Story||!CreatureArt)throw Error('RPG engine, story, or creature renderer failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks;
+if(!Engine||!Story||!CreatureArt||!Battlebacks)throw Error('RPG engine, story, creature art, or battle background failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -1695,31 +1696,8 @@ function drawMonster(m,x,y,scale=1,back=false){
 function drawBar(x,y,w,val,col){rounded(x,y,w,9,4,'#49616b');rounded(x+2,y+2,Math.max(0,(w-4)*clamp(val,0,1)),5,3,col)}
 function drawBattle(){
 const b=state.battle;if(!b){drawWorld();return}
-const m=foe(),mine=current(),theme=mapMeta[state.map].theme,forest=theme==='forest',shrine=theme==='shrine';
-const back=ctx.createLinearGradient(0,0,0,H);
-back.addColorStop(0,shrine?'#333d61':forest?'#8bb5a5':'#96c7dc');
-back.addColorStop(.56,shrine?'#8b8ca6':forest?'#d5d8ac':'#ebedc6');
-back.addColorStop(1,shrine?'#707b96':'#7cac80');
-ctx.fillStyle=back;ctx.fillRect(0,0,W,H);
-// Distant clouds and forest silhouette; separate camera depths for a layered RPG battleback.
-for(let i=0;i<6;i++){
-const xx=i*92-35+(Math.sin(frame*.009+i)*4),yy=48+(i%3)*16;
-ellipse(xx,yy,36,10,'#f3f5df66');ellipse(xx+25,yy-4,23,9,'#fcf9e488');
-}
-for(let i=0;i<14;i++){
- const xx=i*38-10,y=136+(i%4)*7;
- if(shrine){pixel(xx,y-28,9,74,'#7f8795');pixel(xx-5,y-31,19,9,'#b4a9a3')}
- else{ellipse(xx,y-21,26,35,forest?'#699282':'#83b48a');ellipse(xx-10,y-36,20,22,forest?'#638d81':'#80a783');pixel(xx-4,y,8,24,'#5e8576')}
-}
-pixel(0,146,W,H-146,shrine?'#a5a79f':'#97bd85');
-for(let i=0;i<9;i++)ellipse(i*60-10,161+(i%3)*14,65,14,shrine?'#8b958e':'#89ae7f');
-// Field platforms are offset in depth to emphasize two distinct battle positions.
-ellipse(307,196,131,29,shrine?'#c0b9a4':'#c2c99f');
-ellipse(307,199,109,20,shrine?'#899a96':'#8fae84');
-ellipse(103,340,161,39,shrine?'#b5b1ad':'#aec39d');
-ellipse(103,342,133,29,shrine?'#8b9794':'#81aa87');
-for(let i=0;i<12;i++){const x=(i*47+19)%W,y=189+(i%5)*31;pixel(x,y,3,2,shrine?'#dad6b6':'#dce5a5')}
-if(shrine){for(let i=0;i<16;i++){const x=rand(i,47)*W,y=rand(i,17)*210;ellipse(x,y,2,2,'#f1e9bc88')}}
+const m=foe(),mine=current();
+Battlebacks.draw(ctx,state.map,frame);
 if(b.weather==='rain')for(let i=0;i<34;i++){
  const x=(rand(i,413)*W+frame*1.05)%W,y=(rand(i,63)*H+frame*4.8+i*13)%H;
  line(x,y,x-4,y+10,'#e0f8ff77',1);
