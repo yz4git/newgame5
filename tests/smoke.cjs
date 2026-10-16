@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawBattle};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -192,4 +192,24 @@ assert.equal(g.get().battle.weather,'rain','Rain move changes battle weather');
 assert.ok(g.get().battle.weatherTurns<=5&&g.get().battle.weatherTurns>=4,'Weather countdown is handled');
 const savedStages=battleHero.stages;
 assert(savedStages&&savedStages.atk>=1);
-console.log('PASS: responsive dual-screen UI, touchscreen scene modes, party, gear, dex preview, battle command/move layout, battle and saves');
+// Visual replay tests exercise the actual Canvas paths with deterministic virtual time.
+const battle=g.get().battle;
+assert(battle,'Battle must remain active for visual animation checks');
+for(const move of ['ひっかく','ひのこ','みずてっぽう','でんきショック','かぜおこし','いわおとし','ほしのひかり']){
+ battle.action={who:'you',name:move,started:39500};
+ g.drawBattle();
+}
+battle.faintAt=39760;battle.faintSide='enemy';g.drawBattle();
+battle.faintSide='you';g.drawBattle();
+battle.action=null;
+g.world();
+for(const id of ['village','route','forest','lake','shrine','highland','home','lab','bedroom','observatory']){
+ g.switchMap({id,x:5,y:5,dir:'down'});
+ g.drawScenery(0,0,0,Math.min(8,g.maps[id][0].length),0,Math.min(8,g.maps[id].length));
+ g.draw();
+}
+for(const dir of ['up','down','left','right'])g.drawHero(180,185,dir);
+assert.match(html,/src\/music\.js/,'The independent procedural music engine is bundled');
+assert.match(html,/function drawScenery/,'Biome-specific terrain adornment is present');
+assert.match(html,/function drawHero/,'Directional hero rendering is present');
+console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
