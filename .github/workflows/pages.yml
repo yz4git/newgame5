@@ -39,7 +39,9 @@ jobs:
       - name: Game regression smoke tests
         run: |
           node tests/engine.cjs
+          node tests/story.cjs
           node tests/smoke.cjs
+          node tests/intro.cjs
       - name: Prepare versioned static site
         env:
           BUILD_ID: ${{ github.sha }}
@@ -48,6 +50,7 @@ jobs:
           mkdir -p _site/src
           cp index.html manifest.json icon.svg _site/
           cp src/rpg-engine.js _site/src/
+          cp src/story.js _site/src/
           sed -i "s/__BUILD_ID__/$BUILD_ID/g" _site/index.html
           if grep -q "__BUILD_ID__" _site/index.html; then exit 1; fi
           touch _site/.nojekyll
