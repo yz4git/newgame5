@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const srcHTML=fs.readFileSync('index.html','utf8');
 const match=srcHTML.match(/<script>([\s\S]*?)<\/script>/);
 assert(match,'Main script exists');
-const exposed='globalThis.__introTest={get:()=>state,walk,interact,world,load,save,startBattle,defeatEnemy,beginIntro,npc,foe};soundOn=false;init();})();';
+const exposed='globalThis.__introTest={get:()=>state,walk,interact,world,load,save,startBattle,defeatEnemy,beginIntro,npc,foe,maps,NPCS};soundOn=false;init();})();';
 const script=match[1].replace(/init\(\);\s*\}\)\(\);\s*$/,exposed);
 assert(script.includes('__introTest'),'Test runtime was injected');
 const noop=()=>{};
@@ -41,6 +41,26 @@ context.globalThis=context;
 for(const file of ['src/rpg-engine.js','src/story.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{timeout:6000,filename:file});
 vm.runInNewContext(script,context,{timeout:6000,filename:'game.js'});
 const g=context.__introTest;assert(g);
+// Movement reachability protects the actual chapter route from impassable tiles.
+function hasPath(map,from,to){
+ const tiles=g.maps[map],w=tiles[0].length,h=tiles.length,blocked=new Set([3,4,5,8,9,11]);
+ const npcs=g.NPCS[map]||[], occupied=new Set(npcs.map(n=>n.x+','+n.y));
+ let queue=[from],head=0;const visited=new Set([from.join(',')]);
+ while(head<queue.length){
+  const [x,y]=queue[head++];
+  if(x===to[0]&&y===to[1])return true;
+  for(const [dx,dy] of [[0,1],[0,-1],[1,0],[-1,0]]){
+   const px=x+dx,py=y+dy,key=px+','+py;
+   if(px<0||py<0||px>=w||py>=h||visited.has(key)||blocked.has(tiles[py][px])||occupied.has(key))continue;
+   visited.add(key);queue.push([px,py]);
+  }
+ }
+ return false;
+}
+assert(hasPath('lake',[1,12],[19,19]),'Lake route must reach observatory entrance');
+assert(hasPath('village',[20,18],[9,18]),'House connects to laboratory through village path');
+assert(hasPath('lab',[8,11],[8,6]),'Lab exit connects to professor desk');
+
 function select(index=0){
  const options=node('console').children.find(x=>x.className==='options');
  const buttons=options?.children||[];
