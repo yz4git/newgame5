@@ -318,7 +318,9 @@ rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
 rect(9,4,15,13,3);rect(7,6,3,9,3);rect(2,10,28,4,1);rect(10,10,15,3,10);
 rect(0,10,5,4,1);rect(m.w-4,10,4,4,1);
 rect(4,17,9,2,1);rect(11,18,10,2,1);
- rect(17,15,5,3,5);rect(19,18,2,4,1);a[18][19]=6;
+// A walkable timber boardwalk connects the southern research cottage to the road.
+rect(5,13,3,7,10);rect(5,18,15,2,10);
+rect(17,15,5,3,5);rect(19,18,2,4,10);a[18][19]=6;
 for(let i=0;i<20;i++){let x=11+Math.floor(rand(i,91)*12),y=5+Math.floor(rand(i,57)*5);a[y][x]=3}
 }else if(id==='highland'){
 road(11,0,m.h-1,4);rect(3,6,19,3,1);rect(7,18,15,3,1);
