@@ -1529,15 +1529,77 @@ const ourOffset=(hit&&!bFrom?shake:0);
 drawMonster(mine,oursX+ourOffset,326,1.36,true);
 if(attacking){
  const move=MOVES[b.action.name]||{type:'無'};
- const cols={火:['#f8d17a','#e66a4a'],水:['#c6f2ec','#539fc9'],草:['#d0eba2','#569d61'],雷:['#fff2a5','#e1b73e'],風:['#e5f6e7','#98bdc9'],岩:['#e0d2b4','#95816a'],影:['#ccb0e9','#725891'],光:['#fff7d5','#d9bb85'],無:['#e1e7d7','#9bb5b6']};
- const cc=cols[move.type||byId[(bFrom?mine:m).id].type]||cols['無'];
- const sx=bFrom?oursX+17:foeX-12,sy=bFrom?256:165;
- const ex=bFrom?foeX-20:oursX+18,ey=bFrom?159:270;
- for(let i=0;i<11;i++){const p=clamp(t*1.5-i*.075,0,1);if(p<=0||p>=1)continue;
- const xx=sx+(ex-sx)*p,yy=sy+(ey-sy)*p+Math.sin(p*18+i)*12,rr=(1-p)*7+2;
- ellipse(xx,yy,rr,rr,cc[i%2]);
+ const cols={火:['#ffd18a','#ed6842'],水:['#c6f2ec','#539fc9'],草:['#d0eba2','#569d61'],雷:['#fff3a0','#e8bc41'],風:['#e9f6e7','#8fbdc9'],岩:['#e1d1b1','#897f6b'],影:['#ceb4ed','#735294'],光:['#fffce0','#edbd79'],無:['#e2e9dd','#8ca6af']};
+ const type=move.type||byId[(bFrom?mine:m).id].type;
+ const cc=cols[type]||cols['無'];
+ const sx=bFrom?oursX+20:foeX-15,sy=bFrom?256:155;
+ const ex=bFrom?foeX-18:oursX+17,ey=bFrom?155:270;
+ const isPhysical=move.category==='physical'||(type==='岩'&&move.p);
+ const isSelf=move.effect&&['stage','weather','focus','heal','guard'].includes(move.effect);
+ const ox=isSelf?sx:ex,oy=isSelf?sy:ey;
+ if(isPhysical){
+  // Three chained arcs rather than generic travelling balls.
+  for(let k=0;k<3;k++){
+   const phase=clamp((t-.14-k*.12)*2.5,0,1);
+   if(!phase||phase===1)continue;
+   const cx=sx+(ex-sx)*phase,cy=sy+(ey-sy)*phase;
+   const radius=13+k*6;
+   line(cx-radius,cy+radius*.6,cx+radius,cy-radius*.7,cc[k%2],3.6);
+   line(cx-radius+6,cy+radius,cx+radius+6,cy-radius*.4,'#fef8dc',1.7);
+  }
+ }else if(type==='雷'){
+  const p=clamp(t*1.2,0,1),tx=sx+(ox-sx)*p,ty=sy+(oy-sy)*p;
+  for(let k=0;k<3;k++){
+   const shift=(k-1)*13;
+   for(let part=0;part<7;part++){
+    const y1=ty-40+part*13;
+    const x1=tx+shift+(part%2?12:-12);
+    const x2=tx+shift+((part+1)%2?12:-12);
+    line(x1,y1,x2,y1+13,k===1?'#fff9dc':cc[1],k===1?3.6:2);
+   }
+  }
+ }else if(type==='水'){
+  for(let k=0;k<16;k++){
+   const p=clamp(t*1.45-k*.048,0,1);if(p<=0||p>=1)continue;
+   const x=sx+(ox-sx)*p+Math.sin(k*2.5+p*8)*12;
+   const y=sy+(oy-sy)*p-17*Math.sin(Math.PI*p)+Math.cos(k*.6)*5;
+   ellipse(x,y,2.4+(k%3),4+(k%4),cc[k%2]);
+   if(k%4===0)ellipse(x-1,y-2,1.2,1.9,'#f4ffff');
+  }
+ }else if(type==='火'){
+  for(let k=0;k<20;k++){
+   const p=clamp(t*1.5-k*.035,0,1);if(p<=0||p>=1)continue;
+   const x=sx+(ox-sx)*p+Math.sin(k*2.2+p*20)*10;
+   const y=sy+(oy-sy)*p-8*Math.cos(p*Math.PI)+Math.sin(k*3)*12;
+   ellipse(x,y,2+(k%4),4+(k%3),cc[k%2]);
+   if(k%5===0)ellipse(x,y-7,1.5,3,'#fff1b1');
+  }
+ }else if(type==='草'){
+  for(let k=0;k<13;k++){
+   const p=clamp(t*1.5-k*.05,0,1);if(p<=0||p>=1)continue;
+   const x=sx+(ox-sx)*p+Math.sin(k*2.1)*11,y=sy+(oy-sy)*p+Math.sin(p*20+k)*16;
+   ellipse(x,y,5,2.3,cc[k%2]);line(x-4,y+1,x+4,y-1,'#f6edc3',1);
+  }
+ }else{
+  for(let k=0;k<14;k++){
+   const p=clamp(t*1.45-k*.052,0,1);if(p<=0||p>=1)continue;
+   const x=sx+(ox-sx)*p+Math.sin(k*3.2+p*12)*12,y=sy+(oy-sy)*p+Math.cos(k*4+p*8)*11;
+   if(type==='風'){line(x-12,y,x+7,y-4,cc[k%2],2)}
+   else if(type==='岩'){pixel(x-3,y-3,6+(k%3)*2,5,cc[k%2])}
+   else {ellipse(x,y,4+(k%3),2+(k%4),cc[k%2]);ellipse(x,y,1.2,1.2,'#f8f2d2')}
+  }
  }
- if(t>.42&&t<.82){for(let k=0;k<7;k++){const a=frame*.24+k*6.28/7,r=15+(t-.42)*58;line(ex+Math.cos(a)*r,ey+Math.sin(a)*r,ex+Math.cos(a)*(r+10),ey+Math.sin(a)*(r+10),cc[k%2],3)}}
+ const burst=clamp((t-.40)/.37,0,1);
+ if(burst>0&&burst<1){
+  // Local impact ring and falling chips, with bounded opacity and radius.
+  const radius=6+burst*37;
+  for(let k=0;k<9;k++){
+   const a=k*Math.PI*2/9+frame*.007;
+   const x=ox+Math.cos(a)*radius,y=oy+Math.sin(a)*radius*.64;
+   ellipse(x,y,3.2*(1-burst)+.6,3.2*(1-burst)+.6,cc[k%2]);
+  }
+  ellipse(ox,oy,7*(1-burst)+1,6*(1-burst)+1,'#fff4d3b3');
+ }
 }
 if(cap!==null){
  const p=cap,fromX=170,toX=307,orbX=fromX+(toX-fromX)*clamp(p/.42,0,1);
