@@ -704,15 +704,17 @@ function storyScholar(){
 function storyGuide(){
  const stage=storyStage();
  if(stage===11){
-  storyStep(12);state.bag.orb+=5;save();
+  if(!state.story.practiceItems){state.story.practiceItems=true;state.bag.orb+=5;save()}
   dialogSequence('旅の友 ナギ',[
-   '「待ってたよ！ 野生の星霊を仲間にするコツを教えるね」',
-   '「まず相手のHPを減らそう。弱らせた方が星玉に収まりやすいんだ」',
-   '「まひやねむりの状態にできると、もっと捕まえやすくなるよ」',
-   '「バッグから星玉を選んで投げてみて。練習用に5個あげるね！」',
-   '星玉を5個もらった！\nこれからは野生の星霊を捕まえられる。',
-   '「図鑑をいっぱいにして、北の森のその先にも行ってみよう！」'
-  ],()=>world());return;
+   '「本当の冒険の前に、捕獲を試してみよう！」',
+   '「相手のHPが低いほど捕まえやすい。状態異常も役に立つよ」',
+   '「この子はすでに弱っているみたい。バッグから星玉を選んで投げてごらん」'
+  ],()=>{
+   const target=makeMonster('chiro',2);
+   target.hp=Math.max(1,Math.floor(target.maxHp*.25));
+   startBattle([target],{trainer:false,tutorial:true});
+  });
+  return;
  }
  dialog('旅の友 ナギ',stage<11?'湖の観測小屋への用事、うまくいくといいね！':'いろんな星霊と出会うのが旅の醍醐味だよ！');
 }
@@ -837,7 +839,7 @@ function startBattle(enemies,options){
  state.party.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp});
  enemies.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp;state.seen[m.id]=1});
  const weather=Engine.weatherFor(state.map);
- state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,
+ state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,tutorial:!!options.tutorial,
  action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};
  const firstMessage=Engine.battleEnter(current(),foe(),weather);
  const foeMessage=Engine.battleEnter(foe(),current(),weather);
@@ -847,7 +849,7 @@ function startBattle(enemies,options){
  sfx('bad');
 }
 function foe(){return state.battle.enemies[state.battle.index]}
-function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy=false;ui('BATTLE / '+byId[foe().id].name+(b.weather!=='clear'?' / '+Engine.weatherInfo(b.weather).name:''),message,[
+function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy=false;if(b.tutorial)message='【捕獲の練習】バッグから星玉を投げてみよう。\n'+message;ui('BATTLE / '+byId[foe().id].name+(b.weather!=='clear'?' / '+Engine.weatherInfo(b.weather).name:''),message,[
 {text:'⚔ たたかう',on:chooseMove},{text:'◉ バッグ',on:()=>battleBag()},
 {text:'✦ こうたい',on:()=>battleParty()},{text:'↗ にげる',on:runAway}]);setHud()}
 function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;let done=false;const finish=()=>{if(done||state.battle!==b)return;done=true;callback()};b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:finish}]);if(delay>0)setTimeout(finish,delay)}
@@ -873,7 +875,7 @@ const faster=Engine.speedFor(user,byId,b.weather)>=Engine.speedFor(enemy,byId,b.
 const userFirst=priority>enemyPriority||(priority===enemyPriority&&faster);
 const sequence=userFirst?[['you',move],['enemy',opponentMove]]:[['enemy',opponentMove],['you',move]];
 takeTurns(sequence,0)}
-function enemyMove(m){const choices=(m.moves||byId[m.id].moves).filter(x=>(m.pp?.[x]??1)>0);
+function enemyMove(m){if(state.battle?.tutorial)return 'しっぽをふる';const choices=(m.moves||byId[m.id].moves).filter(x=>(m.pp?.[x]??1)>0);
 if(!choices.length)return 'わるあがき';
 if(m.hp/m.maxHp<.3&&choices.includes('こうごうせい')&&Math.random()<.65)return 'こうごうせい';
 const type=byId[current()?.id]?.type;
@@ -914,6 +916,7 @@ else if(actor.hp<=0){if(mine)knockout();else defeatEnemy()}
 else takeTurns(sequence,i+1)},950)}
 function defeatEnemy(){
 const b=state.battle;if(!b)return;
+if(b.tutorial){resetBattleStats();state.battle=null;save();dialog('捕獲の練習','星霊を倒してしまった！\nナギにもう一度話しかければ、また練習できるよ。');return}
 const baseReward=(foe().level+3)*17,eligible=b.participants.filter(i=>state.party[i]?.hp>0),indices=eligible.length?eligible:[b.active],news=[];
 for(const i of indices){const mon=state.party[i];Engine.gainEffort(mon,foe(),byId);const result=Engine.gainXP(mon,Math.max(1,Math.floor(baseReward/indices.length)),byId,MOVES);
 for(const lv of result.levels)news.push(byId[mon.id].name+' Lv.'+lv);
@@ -943,9 +946,10 @@ function knockout(){
  battleMessage(byId[current().id].name+' が飛び出した！'+(entry?' '+entry:''),()=>showBattle('戦闘を続けよう！'),900);
 }
 function healAndReturn(){if(storyStage()===9){storyStep(10);state.events.storyRivalResolved=true}state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};resetBattleStats();state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
-function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){resetBattleStats();state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
+function runAway(){const b=state.battle;if(b.tutorial){showBattle('練習中だよ！ バッグから星玉を選んでね。');return}if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){resetBattleStats();state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){
  const b=state.battle;if(!b)return;
+ if(b.tutorial){showBattle('大丈夫、ゆっくり星玉を選んでね。');return}
  b.turn++;
  const m=foe(),target=current(),name=enemyMove(m),skip=Engine.skipStatus(m);
  if(skip){battleMessage(byId[m.id].name+(skip==='ねむり'?' は眠っている…':' はまひで動けなかった！'),()=>takeTurns([],0),700);return}
@@ -959,26 +963,30 @@ function enemyFreeTurn(){
  },750);
 }
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
-{text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer||storyStage()<12,on:throwOrb},
+{text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer||(storyStage()<12&&!state.battle.tutorial),on:throwOrb},
 {text:'✚ キズぐすり ×'+p.potion,disabled:p.potion<=0,on:()=>{state.bag.potion--;current().hp=Math.min(current().maxHp,current().hp+25);battleMessage(byId[current().id].name+' のHPを25回復！',enemyFreeTurn,800)}},
 {text:'☘ げんき草 ×'+p.herb,disabled:p.herb<=0,on:()=>{state.bag.herb--;current().hp=Math.min(current().maxHp,current().hp+50);battleMessage('HPを大きく回復した！',enemyFreeTurn,800)}},
 {text:'◆ PP回復 ×'+p.ether,disabled:p.ether<=0,on:()=>{state.bag.ether--;const m=current();m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]));battleMessage('技のPPが回復した！',enemyFreeTurn,800)}},
 {text:'↶ もどる',on:()=>showBattle('どうする？')}])}
 function throwOrb(){const b=state.battle;if(!b)return;
-if(storyStage()<12){showBattle('まだ星玉の扱いを教わっていない！');return}
+if(storyStage()<12&&!b.tutorial){showBattle('まだ星玉の扱いを教わっていない！');return}
 if(b.trainer){showBattle('トレーナーの星霊は捕まえられない！');return}
 if(state.party.length>=6&&!state.boxes.some(b=>b.members.length<30)){showBattle('パーティとボックスがいっぱいだ！');return}
 if(state.bag.orb<=0){battleBag();return}
 state.bag.orb--;const m=foe(),health=1-m.hp/m.maxHp;
 const chance=Engine.catchProbability(m,byId);
-b.capture={started:performance.now(),success:Math.random()<chance};sfx('catch');
+b.capture={started:performance.now(),success:b.tutorial||Math.random()<chance};sfx('catch');
 battleMessage('星玉を投げた！ '+byId[m.id].name+' を捕まえられるかな…',()=>{
 const caught=b.capture?.success;b.capture=null;
 if(caught){
 const boxName=state.party.length<6?null:Engine.putInStorage(state.boxes,m);
 if(!boxName)state.party.push(m);
-state.caught[m.id]=(state.caught[m.id]||0)+1;resetBattleStats();state.battle=null;save();sfx('catch');
-dialog('CAPTURE','カチッ！ '+byId[m.id].name+' をゲット！'+(boxName?'\nパーティがいっぱいなので '+boxName+' に預けた。':''),[{text:'▶ 冒険へ',on:()=>world()}]);}
+state.caught[m.id]=(state.caught[m.id]||0)+1;
+ const tutorialComplete=b.tutorial&&storyStage()===11;
+ if(tutorialComplete){storyStep(12);state.events.captureTutorialComplete=true}
+ resetBattleStats();state.battle=null;save();sfx('catch');
+ dialog('CAPTURE','カチッ！ '+byId[m.id].name+' をゲット！'+(boxName?'\nパーティがいっぱいなので '+boxName+' に預けた。':'')+
+ (tutorialComplete?'\n\nナギ「やったね！ これで自分の力で仲間を増やせるよ！」':''),[{text:'▶ 冒険へ',on:()=>world()}]);}
 else battleMessage('ああっ！ 星玉から飛び出した！',enemyFreeTurn,850);
 },1850);}
 function battleParty(){ui('BATTLE / PARTY','交代する仲間を選ぼう。',state.party.map((p,i)=>({text:byId[p.id].name+' '+p.hp+'/'+p.maxHp,disabled:p.hp===0||i===state.battle.active,on:()=>{const outgoing=current();
