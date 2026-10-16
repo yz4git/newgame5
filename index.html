@@ -166,6 +166,21 @@ footer{display:none}
  #touchQuick{flex-basis:25px}
 }
 
+
+/* Touch party boxes and dex navigation, tailored to the lower LCD. */
+#console[data-view="party"] .options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#console[data-view="party"] .options button.party-card{position:relative;display:grid;grid-template-columns:29px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:center;justify-items:stretch;gap:1px 5px;min-height:64px;text-align:left;padding:5px 7px;border-radius:10px}
+.party-emblem{display:grid;place-items:center;grid-column:1;grid-row:1/4;width:27px;height:28px;color:white;text-shadow:0 1px #18263280;border-radius:50%;box-shadow:inset 0 2px #ffffff70,0 2px #345b5c55;font-size:16px}
+.party-label{font-size:11px;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.party-metadata{font-size:10px;color:#567276;font-weight:800}
+.party-hp-track{height:6px;width:100%;background:#b2c2c4;border-radius:4px;overflow:hidden}
+.party-hp-fill{display:block;height:100%;background:linear-gradient(#a5d975,#56a966);border-radius:4px}
+#console[data-view="party"] .options button.party-back{grid-column:1/-1;min-height:35px}
+#console[data-view="dex"]{background:linear-gradient(#cce9e2,#b7d5d5)}
+#console[data-view="dex"] .options{grid-template-columns:repeat(2,minmax(0,1fr))}
+#console[data-view="dex"] .options button{justify-content:flex-start;text-align:left;min-height:37px;font-size:10px}
+#console[data-view="dex"] .options button:disabled{opacity:.55}
+
 </style>
 </head>
 <body>
@@ -439,8 +454,10 @@ const battle=state.scene==='battle';
 const commands=battle&&options.some(o=>o.text.includes('たたかう'))&&options.some(o=>o.text.includes('にげる'));
 const moves=battle&&label.startsWith('ATTACK /');
 const talk=state.scene==='dialog'||(battle&&label==='BATTLE');
+const party=label==='PARTY / 仲間'||label==='BATTLE / PARTY';
+const dex=label.startsWith('STAR DEX /')||label.startsWith('DEX ENTRY /');
 const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home');
-const view=commands?'battleCommands':moves?'moves':talk?'dialog':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
+const view=commands?'battleCommands':moves?'moves':talk?'dialog':party?'party':dex?'dex':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
 consoleEl.dataset.mode=battle?'battle':'normal';
 consoleEl.dataset.view=view;
 const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
@@ -464,6 +481,20 @@ options.forEach((o,i)=>{
   const move=knownMoves.find(name=>o.text.startsWith(name+' '));
   button.dataset.type=move?(MOVES[move]?.type||'無'):'無';
  }
+ if(party&&i<state.party.length){
+  const mon=state.party[i],definition=byId[mon.id],ratio=mon.hp/mon.maxHp;
+  button.textContent='';button.className='party-card';
+  const badge=document.createElement('span');badge.className='party-emblem';badge.textContent='✦';
+  const typeColors={火:'#d87b61',水:'#69a6c6',草:'#6ba47f',岩:'#8f8b77',風:'#86a1c4',雷:'#d4bd5f',影:'#8d7eaf',光:'#c7af73',無:'#859fa2'};
+  badge.style.background=typeColors[definition.type]||'#81a1a5';
+  const nm=document.createElement('span');nm.className='party-label';nm.textContent=definition.name;
+  const meta=document.createElement('span');meta.className='party-metadata';meta.textContent='Lv.'+mon.level+' HP '+mon.hp+'/'+mon.maxHp+(mon.status?' '+mon.status:'');
+  const gauge=document.createElement('span');gauge.className='party-hp-track';
+  const fill=document.createElement('span');fill.className='party-hp-fill';fill.style.width=Math.round(Math.max(0,Math.min(1,ratio))*100)+'%';
+  if(ratio<.25)fill.style.background='#d76566';else if(ratio<.5)fill.style.background='#d2ad58';
+  gauge.appendChild(fill);
+  button.append(badge,nm,meta,gauge);
+ }else if(party)button.classList.add('party-back');
  button.disabled=!!o.disabled;
  button.addEventListener('click',()=>{beep(600,.045);o.on()});
  ops.appendChild(button);
@@ -760,12 +791,38 @@ else if(p==='bag'){ui('BAG / バッグ','道具を選んで使おう。',[
 {text:'◆ PP回復 ×'+state.bag.ether,disabled:!state.bag.ether,on:()=>itemTarget('ether')},
 {text:'♢ お守り各種',on:()=>openPage('party')},
 {text:'↶ メニュー',on:()=>openPage('home')}])}
-else if(p==='dex'){let seen=Object.keys(state.seen).length,caught=Object.keys(state.caught).length;
-const entries=SPECIES.map((s,i)=> (state.seen[s.id]?'#'+String(i+1).padStart(2,'0')+' '+s.name+' '+s.type:'????')).join('  /  ');
-ui('STAR DEX / 星霊図鑑','発見 '+seen+'/'+SPECIES.length+'　仲間にした種類 '+caught+'/'+SPECIES.length+'\n'+entries,[{text:'↶ メニュー',on:()=>openPage('home')}])}
-else if(p==='record'){ui('JOURNAL / 旅のきろく','目的：'+questText()+'\n勝利したトレーナー '+Object.keys(state.defeated).length+'人\n冒険時間 約'+Math.floor(state.time/60)+'分 / '+state.steps+'歩',[
+else if(p==='dex'){dexList();}
+ else if(p==='record'){ui('JOURNAL / 旅のきろく','目的：'+questText()+'\n勝利したトレーナー '+Object.keys(state.defeated).length+'人\n冒険時間 約'+Math.floor(state.time/60)+'分 / '+state.steps+'歩',[
 {text:'最初からやり直す',on:()=>{screen('confirm');ui('RESET','セーブデータを消して最初から始めますか？',[{text:'いいえ',on:()=>openPage('record')},{text:'はい・消去する',on:()=>{localStorage.removeItem(STORE);state=fresh();title()}}])}},
 {text:'↶ メニュー',on:()=>openPage('home')}])}}
+function dexList(page=0){
+ state.dexFocus=null;
+ const count=8,maximum=Math.max(0,Math.ceil(SPECIES.length/count)-1),p=Math.max(0,Math.min(maximum,page));
+ const seen=Object.keys(state.seen).length,caught=Object.keys(state.caught).length;
+ const entries=SPECIES.slice(p*count,(p+1)*count).map((mon,i)=>({
+  text:'#'+String(p*count+i+1).padStart(3,'0')+' '+(state.seen[mon.id]?mon.name:'？？？？？')+(state.caught[mon.id]?' ●':''),
+  disabled:!state.seen[mon.id],
+  on:()=>dexDetail(mon.id,p)
+ }));
+ ui('STAR DEX / 星霊図鑑','発見 '+seen+'/'+SPECIES.length+'　捕獲 '+caught+'/'+SPECIES.length+'\n● 仲間にした星霊  /  名前を押すと詳細を表示',entries.concat([
+  {text:'◀ 前へ',disabled:p===0,on:()=>dexList(p-1)},
+  {text:'次へ ▶',disabled:p===maximum,on:()=>dexList(p+1)},
+  {text:'↶ メニュー',on:()=>openPage('home')}
+ ]));
+}
+function dexDetail(id,page){
+ const mon=byId[id];if(!mon||!state.seen[id]){dexList(page);return}
+ state.dexFocus=id;
+ const number=SPECIES.findIndex(s=>s.id===id)+1;
+ ui('DEX ENTRY / '+mon.name,
+ '#'+String(number).padStart(3,'0')+'  '+mon.name+'\nタイプ：'+mon.type+
+ '\nHP '+mon.hp+'　攻 '+mon.atk+'　防 '+mon.def+'\n特攻 '+mon.spAtk+'　特防 '+mon.spDef+'　速さ '+mon.spd+
+ '\n捕獲：'+(state.caught[id]?'仲間にした':'未捕獲')+
+ '\n特性：'+(Engine.ABILITIES[id]||'なし'),[
+  {text:'◀ 図鑑一覧へ',on:()=>dexList(page)},
+  {text:'✦ パーティ',on:()=>openPage('party')}
+ ]);
+}
 const CHARM_NAMES={powerCharm:'力のお守り',guardCharm:'守りのお守り',speedCharm:'速さのお守り'};
 function equipCharm(i,item){
  const mon=state.party[i];if(!mon)return;
@@ -831,7 +888,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu')world();else if(state.scene==='dialog'){if(!forcedTrainer)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -1060,6 +1117,24 @@ if(stages(playerStages))txt(stages(playerStages),228,258,9,'#e0edc7');
 if(b.enemies.length>1){for(let i=0;i<b.enemies.length;i++){ellipse(110+i*15,101,5,5,i<b.index?'#586b68':'#f2dfaf');ellipse(110+i*15,99,4,3,i<b.index?'#808f84':'#e9a175')}}
 b.shake=Math.max(0,b.shake-1);
 }
+function drawDexPreview(){
+const entry=byId[state.dexFocus];
+if(!entry){drawWorld();return}
+const gradient=ctx.createLinearGradient(0,0,W,H);
+gradient.addColorStop(0,'#3e8690');gradient.addColorStop(1,'#95c9ba');
+ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
+for(let i=0;i<9;i++){
+  const x=rand(i,9)*W,y=rand(i,14)*H;
+  ellipse(x,y,16+rand(i,5)*16,16+rand(i,2)*16,'#d8ede28c');
+}
+ellipse(W/2,270,120,24,'#628e84');
+ellipse(W/2,265,96,16,'#b5ded1');
+drawMonster({id:entry.id},W/2,266,1.7,false);
+rounded(24,17,W-48,43,9,'#f0f6e7');
+txt('#'+String(SPECIES.findIndex(q=>q.id===entry.id)+1).padStart(3,'0')+'  '+entry.name,W/2,45,21,'#225867','center');
+rounded(40,H-40,W-80,28,8,'#e1eee8');
+txt(entry.type+' TYPE  /  '+(state.caught[entry.id]?'REGISTERED':'SEEN'),W/2,H-21,12,'#316b78','center');
+}
 function drawTitle(){
 const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#152d43');gr.addColorStop(1,'#567a74');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
 for(let i=0;i<42;i++){const x=rand(i,2,4)*W,y=rand(i,3,4)*H*.72;ellipse(x,y,rand(i,1)*2+1,rand(i,1)*2+1,'#f0e7bc')}
@@ -1072,7 +1147,10 @@ txt('− STARBOUND ADVENTURE −',208,322,11,'#e7f1e4','center');
 function draw(){
 frame++;
 if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:145)){walk(holdDir);lastStep=performance.now()}
-if(state.scene==='battle')drawBattle();else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();else drawWorld();
+if(state.scene==='battle')drawBattle();
+else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();
+else if(state.scene==='menu'&&state.menuPage==='dex'&&state.dexFocus)drawDexPreview();
+else drawWorld();
 if(state.scene!=='title'&&state.scene!=='starter')state.time+=1/60;
 requestAnimationFrame(draw)}
 function init(){title();requestAnimationFrame(draw);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});window.addEventListener('pagehide',save)}
