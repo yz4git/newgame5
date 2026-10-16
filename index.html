@@ -306,7 +306,7 @@ if(id==='village'){
 rect(9,0,5,20,1);rect(4,9,17,4,1);rect(5,5,5,4,1);rect(14,5,5,4,1);
 rect(4,5,4,3,5);rect(15,5,4,3,5);rect(7,14,5,3,5);
 rect(2,15,4,3,3);rect(17,14,4,2,2);rect(11,0,2,4,1);
- rect(18,14,5,5,1);rect(18,14,5,3,5);a[17][20]=6;
+ rect(18,14,5,5,1);rect(18,14,5,3,5);rect(9,17,13,2,1);a[17][20]=6;
 }else if(id==='route'){
 road(10,0,m.h-1,4);rect(3,8,17,3,1);rect(4,18,17,2,1);rect(2,4,5,4,2);rect(17,14,4,4,3);
 rect(10,0,4,3,1);rect(10,m.h-3,4,3,1);
@@ -318,7 +318,7 @@ rect(12,0,4,3,1);rect(12,m.h-3,4,3,1);
 rect(9,4,15,13,3);rect(7,6,3,9,3);rect(2,10,28,4,1);rect(10,10,15,3,10);
 rect(0,10,5,4,1);rect(m.w-4,10,4,4,1);
 rect(4,17,9,2,1);rect(11,18,10,2,1);
- rect(17,15,5,3,5);a[18][19]=6;rect(19,18,2,4,1);
+ rect(17,15,5,3,5);rect(19,18,2,4,1);a[18][19]=6;
 for(let i=0;i<20;i++){let x=11+Math.floor(rand(i,91)*12),y=5+Math.floor(rand(i,57)*5);a[y][x]=3}
 }else if(id==='highland'){
 road(11,0,m.h-1,4);rect(3,6,19,3,1);rect(7,18,15,3,1);
@@ -339,14 +339,14 @@ const DOORS={
   center:{'7,10':{id:'village',x:6,y:9,dir:'down'}},
   mart:{'7,10':{id:'village',x:17,y:9,dir:'down'}},
   lab:{'8,12':{id:'village',x:10,y:17,dir:'down'}},
-home:{'7,10':{id:'village',x:20,y:18,dir:'down'},'7,7':{id:'bedroom',x:7,y:8,dir:'up'}},
+home:{'7,10':{id:'village',x:20,y:18,dir:'down'},'6,6':{id:'bedroom',x:7,y:8,dir:'up'}},
 bedroom:{'7,10':{id:'home',x:7,y:8,dir:'down'}},
 lake:{'19,18':{id:'observatory',x:7,y:9,dir:'up'}},
 observatory:{'7,10':{id:'lake',x:19,y:19,dir:'down'}}
 };
 const NPCS={
 village:[
-{x:10,y:12,name:'アオイ博士',kind:'prof',icon:'P',color:'#d9d1a9',say:'星霊たちと心を通わせる旅に出よう。草むらでは野生の星霊が現れるよ。'},
+{x:10,y:12,name:'研究所の案内板',kind:'sign',icon:'P',color:'#d9d1a9',say:'アオイ研究所はこちら。建物の入口から入れます。'},
 {x:14,y:13,name:'旅の友 ナギ',kind:'storyGuide',color:'#a4c6d9'},
 {x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
 {x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
@@ -723,6 +723,7 @@ function pick(id){
  }
  // Direct starter selection remains available to old tests, debug paths and migrated saves.
  state.story.stage=Story.FREE_STAGE;state.story.starterId=id;
+ state.bag={...state.bag,orb:7,potion:4,herb:2,ether:1};
  state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;
  follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok');
 }
@@ -946,12 +947,13 @@ function enemyFreeTurn(){
  },750);
 }
 function battleBag(){const p=state.bag;ui('BATTLE / BAG','使う道具を選んでね。',[
-{text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer,on:throwOrb},
+{text:'◉ 星玉 ×'+p.orb,disabled:p.orb<=0||state.battle.trainer||storyStage()<12,on:throwOrb},
 {text:'✚ キズぐすり ×'+p.potion,disabled:p.potion<=0,on:()=>{state.bag.potion--;current().hp=Math.min(current().maxHp,current().hp+25);battleMessage(byId[current().id].name+' のHPを25回復！',enemyFreeTurn,800)}},
 {text:'☘ げんき草 ×'+p.herb,disabled:p.herb<=0,on:()=>{state.bag.herb--;current().hp=Math.min(current().maxHp,current().hp+50);battleMessage('HPを大きく回復した！',enemyFreeTurn,800)}},
 {text:'◆ PP回復 ×'+p.ether,disabled:p.ether<=0,on:()=>{state.bag.ether--;const m=current();m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]));battleMessage('技のPPが回復した！',enemyFreeTurn,800)}},
 {text:'↶ もどる',on:()=>showBattle('どうする？')}])}
 function throwOrb(){const b=state.battle;if(!b)return;
+if(storyStage()<12){showBattle('まだ星玉の扱いを教わっていない！');return}
 if(b.trainer){showBattle('トレーナーの星霊は捕まえられない！');return}
 if(state.party.length>=6&&!state.boxes.some(b=>b.members.length<30)){showBattle('パーティとボックスがいっぱいだ！');return}
 if(state.bag.orb<=0){battleBag();return}
