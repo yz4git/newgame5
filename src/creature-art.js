@@ -29,7 +29,11 @@ function draw(c,s,frame=0,back=false){
  if(!s||!SHAPES.includes(s.shape))return false;
  const id=s.id,advanced=['flaro','leafaro','aquaron'].includes(id);
  const B=s.color,A=s.accent;
- const t=frame*.055,breath=Math.sin(t)*1.55,wing=Math.sin(t*2.5)*9,tail=Math.sin(t*1.8)*6;
+ // Eight authored key poses, interpolated with smooth secondary movement.
+ const poseSteps=[0,1,2,1,0,-1,-2,-1];
+ const key=poseSteps[Math.floor(Math.max(0,frame)/7)%poseSteps.length];
+ const t=frame*.055,breath=Math.sin(t)*1.25+key*.65;
+ const wing=Math.sin(t*2.5)*7+key*1.8,tail=Math.sin(t*1.8)*5+key*.9;
  const blink=(Math.floor(frame/110)+(id.length*7))%7===0&&frame%110<8;
  E(c,0,6,54,10,'#1b354255');
  // Distinct silhouettes: appendages are layered behind the main torso.
