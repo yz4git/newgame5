@@ -1178,7 +1178,8 @@ document.querySelectorAll('#touchQuick button[data-page]').forEach(button=>{
 });
 document.querySelectorAll('.dkey').forEach(el=>{const d=el.dataset.dir;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);resetHold();holdDir=d;el.classList.add('pressed');walk(d);lastStep=performance.now()});
 el.addEventListener('pointerup',()=>resetHold());el.addEventListener('pointercancel',()=>resetHold());el.addEventListener('lostpointercapture',()=>resetHold())});
-document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','Backspace','w','a','s','d','z','x','m'].includes(e.key))e.preventDefault();
+document.addEventListener('keydown',e=>{if(e.target&&['INPUT','TEXTAREA'].includes(e.target.tagName))return;
+if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','Backspace','w','a','s','d','z','x','m'].includes(e.key))e.preventDefault();
 const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];if(dir&&!e.repeat){holdDir=dir;walk(dir);lastStep=performance.now()}
 if(e.repeat)return;if(e.key==='z'||e.key==='Enter'||e.key===' ')buttonA();if(e.key==='x'||e.key==='Escape'||e.key==='Backspace')buttonB();if(e.key==='m')buttonMenu()});
 document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key))resetHold()});
