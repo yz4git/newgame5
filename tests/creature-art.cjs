@@ -32,6 +32,13 @@ for(const mon of species){
  }
  assert.notEqual(versions[0],versions[3],mon.id+' draws distinct front/back geometry');
  assert.notEqual(versions[0],versions[1],mon.id+' has genuine animation between frames');
+ const keys=new Set();
+ for(let key=0;key<8;key++){
+  operations=[];Art.draw(ctx,mon,key*7,false);
+  keys.add(operations.join('|'));
+ }
+ assert(keys.size>=4,mon.id+' has distinct key-frame silhouettes');
+
  shapes.push({name:mon.id,ops:versions[0].split('|').length});
 }
 assert.equal(Art.draw(ctx,{id:'unknown',shape:'missing',color:'#fff',accent:'#ccc'},0,false),false);
