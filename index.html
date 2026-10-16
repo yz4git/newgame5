@@ -199,17 +199,18 @@ footer{display:none}
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
+<script src="./src/story.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine;
-if(!Engine)throw Error('RPG engine failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory;
+if(!Engine||!Story)throw Error('RPG engine or story engine failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
 let follower={map:'',x:0,y:0};
-let movement=null,companionMove=null,forcedTrainer=false;
+let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -460,14 +461,15 @@ function runNpcScript(name,script){
 function moveMaxPP(name){return Engine.maxPP(name,MOVES)}
 function makeMonster(id,level){return Engine.makeCreature(id,level,byId,MOVES)}
 function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
-function fresh(){return {scene:'title',map:'village',x:12,y:17,dir:'up',party:[],bag:{orb:7,potion:4,herb:2,ether:1,powerCharm:0,guardCharm:0,speedCharm:0},money:400,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},visited:{village:true},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
+function fresh(){return {scene:'title',map:'bedroom',x:7,y:8,dir:'down',party:[],bag:{orb:0,potion:1,herb:0,ether:0,powerCharm:0,guardCharm:0,speedCharm:0},money:300,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},story:Story.fresh(),visited:{bedroom:true},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
 let state=fresh();
-function save(){try{if(state.party.length){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&x.party?.length&&maps[x.map]){
+function save(){try{if(state.party.length||state.story?.playerName){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&maps[x.map]&&(x.party?.length||x.story?.playerName)){
  const migrated=Engine.migrateSave(x,byId,MOVES);
  state={...fresh(),...migrated,scene:'world',battle:null};
  state.bag={...fresh().bag,...(x.bag||{})};
- state.visited={village:true,...(x.visited||{}),[state.map]:true};
+ state.story=Story.normalize(x.story);
+ state.visited={...fresh().visited,...(x.visited||{}),[state.map]:true};
  follower={map:state.map,x:state.x,y:state.y+1};
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
@@ -533,19 +535,35 @@ function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hu
 function title(){
 screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE';
 const hasSave=!!localStorage.getItem(STORE);
-ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else starter()}}]:[]),{text:'✦ はじめから',on:()=>{state=fresh();starter()}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
+ui('ASTRA TALES / 星霊譚','星のかけらを集める、ちいさな冒険。\n仲間と出会い、町を出て、聖域を目指そう。',[...(hasSave?[{text:'▶ つづきから',on:()=>{if(load()){world();toast('冒険を再開しました')}else beginIntro()}}]:[]),{text:'✦ はじめから',on:()=>{state=fresh();beginIntro()}},{text:'あそびかた',on:()=>{screen('help');ui('HOW TO PLAY','方向キーで移動。Aで会話・調べる。\n草むらを歩くと星霊に遭遇。戦って育てたり、星玉で捕まえたりできるよ。',[{text:'もどる',on:title}])}}]);
 }
 function starter(){
 screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲間を選んでね。どの子も、きっと頼りになるよ！」',[
 {text:'🔥 ヒノコロ / 火',on:()=>pick('flamio')},{text:'🌿 モコリーフ / 草',on:()=>pick('leafin')},
 {text:'💧 アワルン / 水',on:()=>pick('aquill')},{text:'◀ タイトル',on:title}]);
 }
-function pick(id){const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok')}
+function pick(id){
+ const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';
+ if(state.story?.stage===3){
+  state.story.starterId=id;Story.advance(state.story,4);
+  state.x=8;state.y=9;state.dir='up';follower={map:'lab',x:8,y:10};
+  world();save();toast(byId[id].name+' が相棒になった！');sfx('ok');
+  dialogSequence('アオイ博士',[
+   byId[id].name+' を選んだんだね。きっと良い相棒になるよ。',
+   'この子と一緒に、湖のそばの観測小屋へ向かってほしい。',
+   '研究助手から道具を受け取って、家族にも旅立ちを伝えておいで。'
+  ],()=>world());return;
+ }
+ // Direct starter selection remains available to old tests, debug paths and migrated saves.
+ state.story.stage=Story.FREE_STAGE;state.story.starterId=id;
+ state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;
+ follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok');
+}
 function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
 {text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
 }
-function questText(){return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];if(door){switchMap(door);return}
@@ -918,7 +936,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
