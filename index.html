@@ -726,15 +726,26 @@ function pick(id){
  state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;
  follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok');
 }
-function world(msg){screen('world');save();ui('FIELD / '+mapMeta[state.map].name,msg||questText(),[
-{text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
-{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'☰ メニュー',on:()=>openPage('home')}]);
+function world(msg){
+ screen('world');save();
+ const options=[];
+ if(state.party.length)options.push({text:'✦ パーティ',on:()=>openPage('party')});
+ options.push({text:'▣ バッグ',on:()=>openPage('bag')});
+ if(storyStage()>=8)options.push({text:'◈ 星霊図鑑',on:()=>openPage('dex')});
+ options.push({text:'☰ メニュー',on:()=>openPage('home')});
+ ui('FIELD / '+mapMeta[state.map].name,msg||questText(),options);
 }
 function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
-const door=DOORS[state.map]?.[nx+','+ny];if(door){switchMap(door);return}
-const exit=isExit(state.map,nx,ny);if(exit){switchMap(exit);return}
+const door=DOORS[state.map]?.[nx+','+ny];
+if(door){if(!storyWarpAllowed(door))return;const previous=state.map;switchMap(door);afterStoryWarp(previous,door);return}
+const exit=isExit(state.map,nx,ny);
+if(exit){
+ if(!storyWarpAllowed(exit))return;
+ if(Story.mustRivalBattle(state.story,state.map,exit.id,nx,ny)){beginRivalEncounter();return}
+ const previous=state.map;switchMap(exit);afterStoryWarp(previous,exit);return;
+}
 if(nx<0||ny<0||nx>=m.w||ny>=m.h)return;
 if([3,4,5,8,9,11].includes(maps[state.map][ny][nx])){if(rand(nx,ny,3)>.75)beep(115,.045);return}
 if(NPCS[state.map].some(n=>n.x===nx&&n.y===ny&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name])))return;
@@ -752,7 +763,7 @@ if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
 function checkTrainerVision(){
-if(state.scene!=='world')return false;
+if(state.scene!=='world'||!Story.earlyTrainerEnabled(state.story))return false;
 const npcs=NPCS[state.map]||[];
 for(const n of npcs){
  if(!['trainer','boss'].includes(n.kind)||!n.vision||state.defeated[state.map+'/'+n.name])continue;
@@ -786,17 +797,19 @@ if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
 function npc(n,automatic=false){
-if(n.kind==='script'){runNpcScript(n.name,EVENT_SCRIPTS[n.script]||[{op:'message',text:n.say||'何もない。'}]);return}
-if(n.kind==='prof'){
-const messages=Engine.applyEvent([
-{op:'message',text:n.say},
-{op:'item',id:'orb',count:3,unless:'prof_gift',text:'研究を手伝うお礼に星玉を3個もらった！'},
-{op:'flag',key:'prof_gift'}
-],state);save();dialog(n.name,messages.join('\n'));return}
+if(n.kind==='storyMom'){storyMother();return}
+if(n.kind==='storyStairs'){dialog(n.name,'2階には自分の部屋がある。');return}
+if(n.kind==='storyDiary'){dialog(n.name,'まだ何も書かれていない。\nこの旅の思い出で、いつかいっぱいになるだろう。');return}
+if(n.kind==='storyScholar'){storyScholar();return}
+if(n.kind==='storyGuide'){storyGuide();return}
+if(n.kind==='starter'){storyStarter(n);return}
+if(n.kind==='script'){if(storyStage()<12){dialog(n.name,'町のことは今度ゆっくり聞かせてね。');return}runNpcScript(n.name,EVENT_SCRIPTS[n.script]||[{op:'message',text:n.say||'何もない。'}]);return}
+if(n.kind==='prof'){storyProfessor(n);return}
 if(n.kind==='item'){const key=state.map+'/'+n.name;if(state.collected[key])return;state.collected[key]=true;state.bag[n.item]=(state.bag[n.item]||0)+(n.amount||1);save();sfx('catch');dialog('ITEM GET',n.name+' を見つけた！ '+(n.amount||1)+'個 手に入れた！');return}
 if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});save();sfx('catch');dialog(n.name,'仲間たちはすっかり元気になった！');return}
 if(n.kind==='shop'){screen('shop');shop();return}
 if(n.kind==='trainer'||n.kind==='boss'){
+if(storyStage()<12){dialog(n.name,'旅の準備ができたら、また勝負しよう！');return}
 const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
 const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
 forcedTrainer=automatic;
@@ -905,7 +918,9 @@ if(news.length)battleMessage('経験値獲得！ '+news.join(' / '),next,1200);e
 function resetBattleStats(){for(const m of state.party){m.stages=null;m.focus=false;m.guard=false}}
 function victory(){const b=state.battle;if(!b)return;
 let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利！ 仲間に経験値が入った！';
-if(b.trainer){state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
+if(b.trainer){
+ if(b.npc?.kind==='rival'&&storyStage()===9){storyStep(10);state.events.storyRivalResolved=true}
+ state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 resetBattleStats();state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){
  const idx=firstAlive();if(idx<0){healAndReturn();return}
@@ -914,7 +929,7 @@ function knockout(){
  const entry=Engine.battleEnter(current(),foe(),state.battle.weather);
  battleMessage(byId[current().id].name+' が飛び出した！'+(entry?' '+entry:''),()=>showBattle('戦闘を続けよう！'),900);
 }
-function healAndReturn(){state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};resetBattleStats();state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
+function healAndReturn(){if(storyStage()===9){storyStep(10);state.events.storyRivalResolved=true}state.map='village';state.x=12;state.y=17;state.party.forEach(m=>{m.hp=m.maxHp;m.status='';m.statusTurns=0;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,moveMaxPP(n)]))});movement=null;companionMove=null;follower={map:'village',x:12,y:18};resetBattleStats();state.battle=null;save();dialog('帰還','仲間は力尽きたけれど、町で目を覚ました。みんな元気になった！',[{text:'▶ 冒険を続ける',on:()=>world()}]);sfx('bad')}
 function runAway(){const b=state.battle;if(b.trainer){showBattle('トレーナー戦では逃げられない！');return}if(Math.random()<.87){resetBattleStats();state.battle=null;world('うまく逃げきれた！');return}battleMessage('逃げられなかった！',()=>enemyFreeTurn(),700)}
 function enemyFreeTurn(){
  const b=state.battle;if(!b)return;
@@ -974,6 +989,7 @@ state.partyFocus=null;
 screen('menu');menu()}
 function menu(){const p=state.menuPage;
 if(p==='gear'){
+ if(storyStage()<6){ui('ASTRA GEAR','まだアストラギアを持っていない。',[{text:'もどる',on:()=>openPage('home')}]);return}
  const loc=mapMeta[state.map]?.name||'不明',time=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
  const seen=Object.keys(state.visited||{}).length;
  ui('ASTRA GEAR / たびのツール','◷ '+time+'\n現在地：'+loc+'\n訪れた場所：'+seen+' / '+Object.keys(mapMeta).length+
@@ -1111,6 +1127,7 @@ $('#menuBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonMenu()
 document.querySelectorAll('#touchQuick button[data-page]').forEach(button=>{
  button.addEventListener('click',()=>{
   if(state.scene!=='world')return;
+  if(button.dataset.page==='gear'&&storyStage()<6){toast('ギアは家族から受け取ろう！');return}
   openPage(button.dataset.page);
  });
 });
