@@ -70,7 +70,7 @@ stand(7,5);g.interact();finishDialog();expect(2,'home');
 stand(7,9,'down');g.walk('down');expect(2,'village');
 stand(9,18);g.walk('up');expect(2,'lab');
 stand(8,6);g.interact();finishDialog();expect(3,'lab');
-stand(8,8,'right');g.interact();
+stand(6,8,'left');g.interact();
 assert.equal(g.get().scene,'dialog','Starter terminal asks for confirmation');
 select(0);finishDialog();expect(4,'lab');
 assert.equal(g.get().party.length,1);
