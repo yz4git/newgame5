@@ -203,6 +203,7 @@ footer{display:none}
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
 <script src="./src/story.js?v=__BUILD_ID__"></script>
+<script src="./src/music.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
@@ -211,7 +212,7 @@ const consoleEl=document.getElementById('console'),areaEl=document.getElementByI
 const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory;
 if(!Engine||!Story)throw Error('RPG engine or story engine failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
-let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0;
+let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
 let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
@@ -480,6 +481,20 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
 function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
+function soundtrack(){
+ if(!soundOn||!globalThis.AstraMusic)return;
+ const ac=beep.ac;
+ if(!ac||ac.state==='suspended')return;
+ if(!music)try{music=globalThis.AstraMusic.create(ac)}catch(e){return}
+ const b=state.battle;
+ const map=state.map;
+ const theme=b?(b.npc?.kind==='boss'?'boss':b.npc?.kind==='rival'?'rival':'battle'):
+ (state.scene==='title'||state.scene==='starter'?'title':
+ (map==='bedroom'||map==='home'?'home':
+ ['center','mart','village'].includes(map)?'village':
+ map==='lab'?'lab':map==='observatory'?'lake':map));
+ music.setTrack(theme);music.tick();
+}
 function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
 function ui(label,text,options){
@@ -1190,7 +1205,7 @@ if(e.repeat)return;if(e.key==='z'||e.key==='Enter'||e.key===' ')buttonA();if(e.k
 document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key))resetHold()});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
-$('#audioBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';if(soundOn)sfx('ok')});
+$('#audioBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';if(music)music.setMuted(!soundOn);if(soundOn)sfx('ok')});
 let pointerStart=null;
 C.addEventListener('pointerdown',e=>{if(state.scene!=='world')return;pointerStart={x:e.clientX,y:e.clientY}});
 C.addEventListener('pointerup',e=>{if(!pointerStart||state.scene!=='world')return;const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;if(Math.abs(dx)+Math.abs(dy)<14)interact();else {const d=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');walk(d)}});
@@ -1535,6 +1550,7 @@ txt('− STARBOUND ADVENTURE −',208,322,11,'#e7f1e4','center');
 }
 function draw(){
 frame++;
+if(frame%3===0)soundtrack();
 if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:145)){walk(holdDir);lastStep=performance.now()}
 if(state.scene==='battle')drawBattle();
 else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
