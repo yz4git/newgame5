@@ -234,13 +234,20 @@ function interior(c,zone,frame){
   l(c,[[208,54],[234,21]],'#dae2da',6);
  }
 }
-function draw(c,zone,frame=0){
+function draw(c,zone,frame=0,phase=0){
  if(!c||typeof c.fillRect!=='function')return false;
  const id=ZONES.includes(zone)?zone:'route';
  c.save();
  if(['village','route','forest','lake','shrine','highland'].includes(id)){
   ({village,route,forest,lake,shrine,highland})[id](c,frame);
  }else interior(c,id,frame);
+ if(phase===2&&!['home','bedroom','lab','center','mart','observatory'].includes(id)){
+  r(c,0,0,W,H,'#16294c59');
+  for(let i=0;i<21;i++){
+   const x=(i*67+29)%W,y=(i*37+14)%134;
+   e(c,x,y,1.1+(i%3)*.4,1.3+(i%3)*.4,'#fff7d3a3');
+  }
+ }else if(phase===1)r(c,0,0,W,H,'#ecb37924');
  platform(c,id);
  c.restore();
  return id;
