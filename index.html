@@ -212,7 +212,8 @@ const consoleEl=document.getElementById('console'),areaEl=document.getElementByI
 const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory;
 if(!Engine||!Story)throw Error('RPG engine or story engine failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
-let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=true,toastTimeout=0,music=null;
+let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
+let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
 let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
@@ -1228,7 +1229,11 @@ if(e.repeat)return;if(e.key==='z'||e.key==='Enter'||e.key===' ')buttonA();if(e.k
 document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key))resetHold()});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
-$('#audioBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';if(music)music.setMuted(!soundOn);if(soundOn)sfx('ok')});
+$('#audioBtn').addEventListener('click',()=>{
+ soundOn=!soundOn;$('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';
+ try{localStorage.setItem('astra-audio-enabled',soundOn?'1':'0')}catch(e){}
+ if(music)music.setMuted(!soundOn);if(soundOn)sfx('ok');
+});
 let pointerStart=null;
 C.addEventListener('pointerdown',e=>{if(state.scene!=='world')return;pointerStart={x:e.clientX,y:e.clientY}});
 C.addEventListener('pointerup',e=>{if(!pointerStart||state.scene!=='world')return;const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;if(Math.abs(dx)+Math.abs(dy)<14)interact();else {const d=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');walk(d)}});
@@ -1832,7 +1837,15 @@ else if(state.scene==='menu'&&state.menuPage==='party'&&Number.isInteger(state.p
 else drawWorld();
 if(state.scene!=='title'&&state.scene!=='starter')state.time+=1/60;
 requestAnimationFrame(draw)}
-function init(){title();requestAnimationFrame(draw);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});window.addEventListener('pagehide',save)}
+function init(){
+ $('#audioBtn').textContent=soundOn?'♫ ON':'♫ OFF';
+ title();requestAnimationFrame(draw);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){save();if(music)music.setMuted(true)}
+  else if(music)music.setMuted(!soundOn);
+ });
+ window.addEventListener('pagehide',()=>{save();if(music)music.setMuted(true)});
+}
 init();
 })();
 </script>
