@@ -1300,15 +1300,46 @@ if((n.kind==='storyGuide'||n.kind==='storyScholar'||n.kind==='prof')&&storyStage
  txt('!',x,y-25,14,'#405f5a','center');
 }
 }
-function drawHero(x,y,dir){const bob=Math.sin(frame*.12)*1.2;
-ellipse(x,y+12,11,4,'#294c4877');
-pixel(x-7,y-10+bob,14,19,'#496b90');pixel(x-7,y+7+bob,5,7,'#373947');pixel(x+2,y+7+bob,5,7,'#373947');
-pixel(x-7,y-20+bob,14,13,'#e7bc96');pixel(x-10,y-23+bob,20,7,'#df6260');pixel(x-7,y-27+bob,14,6,'#a3424b');
-if(dir==='down'){pixel(x-4,y-13+bob,3,3,'#263e46');pixel(x+2,y-13+bob,3,3,'#263e46')}
-if(dir==='up')pixel(x-6,y-17+bob,12,9,'#414955');
-if(dir==='left')pixel(x-7,y-14+bob,3,3,'#263e46');
-if(dir==='right')pixel(x+4,y-14+bob,3,3,'#263e46');
-pixel(x-12,y-6+bob,5,10,'#b58e6e');}
+function drawHero(x,y,dir){
+ // Separate idle, moving, and sprint cycles. Pixel shapes remain readable at 32px scale.
+ const tween=posTween(movement),active=!!tween&&tween.t<.995,phase=active?tween.t*Math.PI*4:0;
+ const stride=active?Math.sin(phase)*(state.running?5:3.5):0;
+ const bounce=active?Math.abs(Math.sin(phase))*(state.running?2.8:1.6):Math.sin(frame*.045)*.55;
+ const sway=active?Math.sin(phase)*1.2:0;
+ const x0=Math.round(x+sway*.25),y0=Math.round(y-bounce);
+ ellipse(x,y+13,11-active?11:9,4,'#253b3c73');
+ // Two alternating leg silhouettes including visible knee lift.
+ pixel(x0-7+stride*.25,y0+6,5,10+Math.max(0,stride)*.18,'#3b435c');
+ pixel(x0+2-stride*.25,y0+6,5,10+Math.max(0,-stride)*.18,'#3b435c');
+ pixel(x0-8+stride*.45,y0+14,7,3,'#323640');
+ pixel(x0+1-stride*.45,y0+14,7,3,'#323640');
+ // Backpack, moving arms and torso.
+ pixel(x0-10,y0-12,20,19,dir==='up'?'#59788d':'#466c98');
+ pixel(x0-12,y0-10-stride*.42,5,12,'#c49173');
+ pixel(x0+7,y0-10+stride*.42,5,12,'#c49173');
+ pixel(x0-7,y0-8,14,13,dir==='down'?'#4e79a7':'#49749b');
+ pixel(x0-4,y0+1,8,3,'#dcba7e');
+ // Distinct silhouettes in all four directions.
+ pixel(x0-7,y0-23,14,14,dir==='up'?'#484957':'#edc8a4');
+ if(dir==='up'){
+  pixel(x0-7,y0-24,14,9,'#555c69');pixel(x0-4,y0-17,8,6,'#4b5667');
+  pixel(x0-5,y0-8,10,8,'#c28b59');
+ }else if(dir==='down'){
+  pixel(x0-7,y0-24,14,6,'#523e48');
+  pixel(x0-4,y0-16,2,2,'#273f4f');pixel(x0+3,y0-16,2,2,'#273f4f');
+  pixel(x0-2,y0-11,4,2,'#b77670');
+ }else{
+  pixel(x0-8,y0-24,16,6,'#523e48');
+  pixel(x0+(dir==='left'?-7:5),y0-16,2,3,'#273f4f');
+  pixel(x0+(dir==='left'?-12:9),y0-7,4,10,'#bb936a');
+ }
+ // Cap top and rim are the recognizable character accent.
+ pixel(x0-8,y0-27,16,7,'#b64e54');
+ pixel(x0-10+(dir==='left'?-3:dir==='right'?3:0),y0-23,20,3,'#db6d64');
+ if(active&&state.running){
+  pixel(x-15,y+10,3,2,'#e6e0c299');pixel(x+12,y+11,3,2,'#e6e0c299');
+ }
+}
 function posTween(step){
 if(!step)return null;const t=clamp((performance.now()-step.start)/(step.duration||142),0,1),ease=t*t*(3-2*t);
 return {x:step.fromX+(step.toX-step.fromX)*ease,y:step.fromY+(step.toY-step.fromY)*ease,t};
@@ -1346,12 +1377,66 @@ function drawDialoguePortrait(){
  rounded(x+5,y+120,95,21,4,'#335964');
  txt(name.length>7?name.slice(0,7)+'…':name,x+52,y+135,11,'#f5f0cf','center');
 }
+function drawScenery(camX,camY,x0,x1,y0,y1){
+ const name=state.map,meta=mapMeta[name],indoor=meta.theme==='interior';
+ for(let ty=y0;ty<y1;ty++)for(let tx=x0;tx<x1;tx++){
+  const tile=maps[name][ty]?.[tx];
+  if(tile===undefined)continue;
+  const sx=tx*T-camX,sy=ty*T-camY;
+  const seed=rand(tx,ty,125),variant=rand(tx,ty,188);
+  if(indoor){
+   if(tile===1&&seed>.955){
+    pixel(sx+2,sy+21,28,3,'#866d5a56');pixel(sx+7,sy+8,18,13,variant>.5?'#d4a894':'#8db0ad');
+    pixel(sx+9,sy+10,14,9,'#f5dec48e');
+   }
+   continue;
+  }
+  if(tile===0||tile===7){
+   if(seed<.25){
+    // Short, clustered grass tufts with three differentiated blades.
+    const bend=Math.sin(frame*.025+tx+ty)*1.1;
+    line(sx+7,sy+27,sx+5+bend,sy+19,'#4b9263',1.6);
+    line(sx+7,sy+27,sx+9+bend,sy+18,'#a5ce84',1.6);
+    line(sx+7,sy+27,sx+12+bend,sy+24,'#407e60',1.5);
+   }else if(seed<.38){
+    const col=variant<.3?'#e9b2ca':variant<.68?'#ffe4a6':'#dae8ef';
+    for(let i=0;i<5;i++){const theta=i*Math.PI*2/5;ellipse(sx+13+Math.cos(theta)*4,sy+21+Math.sin(theta)*4,2.6,2.6,col)}
+    ellipse(sx+13,sy+21,2,2,'#efc45c');
+   }else if(seed<.47&&name==='forest'){
+    pixel(sx+10,sy+22,4,6,'#e6cda7');
+    ellipse(sx+12,sy+22,8,4,variant>.5?'#bd7471':'#d2b37d');
+    pixel(sx+9,sy+21,2,1,'#fff1c5');
+   }else if(seed>.92&&(name==='highland'||name==='shrine')){
+    const shimmer=(Math.sin(frame*.052+tx*2+ty)+1)/2;
+    line(sx+15,sy+23,sx+16,sy+9,'#b3d4d6',2);
+    line(sx+16,sy+9,sx+21,sy+16,'#d8e6ca',2);
+    ellipse(sx+15,sy+12,2+shimmer,3+shimmer,'#f5e7b4ab');
+   }
+   if(name==='village'&&seed>.89){
+    pixel(sx+4,sy+23,24,4,'#b8ae8766');
+    pixel(sx+6,sy+11,3,16,'#88694c');
+    pixel(sx+23,sy+11,3,16,'#88694c');
+    line(sx+6,sy+14,sx+26,sy+14,'#d0b88c',3);
+   }
+  }else if(tile===1&&meta.theme!=='interior'&&seed>.92){
+   // Pebble accents stay flat and never conceal passable paths.
+   ellipse(sx+11,sy+23,3.5,2,'#927e68');
+   ellipse(sx+23,sy+7,2,1.2,'#f7e2bd');
+  }else if(tile===3&&name==='lake'&&seed>.65){
+   const ripple=Math.sin(frame*.05+tx+ty)*2;
+   line(sx+5,sy+13+ripple,sx+17,sy+13+ripple,'#bee5d5a8',1.6);
+   line(sx+14,sy+17+ripple,sx+26,sy+17+ripple,'#a7d0d6a9',1.4);
+   if(seed>.87){line(sx+25,sy+27,sx+23,sy+12,'#85aa75',2);ellipse(sx+23,sy+12,2.5,5,'#b6c999')}
+  }
+ }
+}
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
 const camX=clamp(px*T+16-W/2,0,m.w*T-W),camY=clamp(py*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme,state.map);
+drawScenery(camX,camY,x0,x1,y0,y1);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'home',camX,camY);
 if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
