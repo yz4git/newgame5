@@ -434,8 +434,44 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
 function beep(f=440,t=.09,type='sine'){if(!soundOn)return;try{const ac=beep.ac||(beep.ac=new (window.AudioContext||window.webkitAudioContext)());if(ac.state==='suspended')ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(.055,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+t+.01)}catch(e){}}
 function sfx(name){if(name==='ok'){beep(570,.08);setTimeout(()=>beep(780,.12),75)}else if(name==='bad')beep(170,.23,'square');else if(name==='walk')beep(195,.035,'triangle');else if(name==='catch'){beep(650,.22);setTimeout(()=>beep(900,.2),220)}else beep(330,.07)}
 function toast(message){toastEl.textContent=message;toastEl.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toastEl.classList.remove('show'),1850)}
-function ui(label,text,options){consoleEl.dataset.mode=state.scene==='battle'?'battle':'normal';consoleEl.innerHTML='';const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;const say=document.createElement('div');say.className='say';say.textContent=text;const ops=document.createElement('div');ops.className='options';options.forEach((o,i)=>{const b=document.createElement('button');b.textContent=o.text;b.className=i===0?'primary':'';b.disabled=!!o.disabled;b.addEventListener('click',()=>{beep(600,.045);o.on()});ops.appendChild(b)});consoleEl.append(sub,say,ops);consoleEl.scrollTop=0}
-function screen(scene){state.scene=scene;setHud()}
+function ui(label,text,options){
+const battle=state.scene==='battle';
+const commands=battle&&options.some(o=>o.text.includes('たたかう'))&&options.some(o=>o.text.includes('にげる'));
+const moves=battle&&label.startsWith('ATTACK /');
+const talk=state.scene==='dialog'||(battle&&label==='BATTLE');
+const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home');
+const view=commands?'battleCommands':moves?'moves':talk?'dialog':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
+consoleEl.dataset.mode=battle?'battle':'normal';
+consoleEl.dataset.view=view;
+const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
+const upper=document.getElementById('upperMessage');
+const header=view==='battleCommands'?'⚔ たたかい':view==='moves'?'⚔ わざをえらぶ':state.scene==='world'?'✦ タッチメニュー':state.scene==='menu'?'☰ ぼうけんメニュー':talk?'▤ メッセージ':label;
+title.textContent=header;
+counter.textContent=battle?(state.battle?'TURN '+state.battle.turn:'BATTLE'):state.scene==='world'?'✦ '+state.party.length+'/6':state.scene==='menu'?state.money+' G':'ASTRA';
+upper.hidden=!talk;upper.textContent=talk?text:'';
+consoleEl.innerHTML='';
+const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;
+const say=document.createElement('div');say.className='say';say.textContent=text;
+const ops=document.createElement('div');ops.className='options';
+const knownMoves=battle&&state.battle?(current()?.moves||[]):[];
+options.forEach((o,i)=>{
+ const button=document.createElement('button');
+ button.textContent=o.text;
+ button.className=i===0?'primary':'';
+ if(commands)button.className='battle-command';
+ if(moves){
+  button.className='move-button';
+  const move=knownMoves.find(name=>o.text.startsWith(name+' '));
+  button.dataset.type=move?(MOVES[move]?.type||'無'):'無';
+ }
+ button.disabled=!!o.disabled;
+ button.addEventListener('click',()=>{beep(600,.045);o.on()});
+ ops.appendChild(button);
+});
+consoleEl.append(sub,say,ops);
+consoleEl.scrollTop=0;
+}
+function screen(scene){state.scene=scene;document.getElementById('app').dataset.scene=scene;setHud()}
 function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':(state.running?'⚡ RUN · ':'')+(state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅'))}
 function title(){
 screen('title');areaEl.textContent='ASTRA TALES';hudR.textContent='NEW ADVENTURE';
@@ -692,9 +728,27 @@ function shop(){screen('shop');ui('MINAMORI SHOP','いらっしゃい！ 所持�
 function buy(id,cost){if(state.money<cost){toast('お金が足りない！');sfx('bad');return}state.money-=cost;state.bag[id]++;save();sfx('ok');shop();toast('購入しました！')}
 function openPage(page){state.prevScene=state.scene==='world'?'world':state.prevScene;state.menuPage=page;screen('menu');menu()}
 function menu(){const p=state.menuPage;
+if(p==='gear'){
+ const loc=mapMeta[state.map]?.name||'不明',time=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+ const seen=Object.keys(state.visited||{}).length;
+ ui('ASTRA GEAR / たびのツール','◷ '+time+'\n現在地：'+loc+'\n訪れた場所：'+seen+' / '+Object.keys(mapMeta).length+
+ '\n\n  【地域マップ】\n'+[
+ 'ミナモリの町 → そよかぜの小道',
+ '　　　　　　　　　↓',
+ '　青凪の湖畔 ← 月影の森',
+ '　　　　　　　　　↓',
+ '　　　　　　 星降りの聖域',
+ '　　　　　　　　　↓',
+ '　　　　　　　星見の高原'
+ ].join('\n'),[
+ {text:'✦ 現在地',on:()=>{toast(loc+' / '+state.steps+'歩')} },
+ {text:'◈ 星霊図鑑',on:()=>openPage('dex')},
+ {text:'↶ もどる',on:()=>openPage('home')}
+ ]);return;
+}
 if(p==='home'){ui('ADVENTURE MENU','おこづかい '+state.money+'G / 歩数 '+state.steps+' / '+(state.badge?'✦ 星のしるし所持':'聖域を目指そう'),[
 {text:'✦ パーティ',on:()=>openPage('party')},{text:'▣ バッグ',on:()=>openPage('bag')},
-{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'▤ 預かりボックス',on:()=>openPage('storage')},
+{text:'◈ 星霊図鑑',on:()=>openPage('dex')},{text:'◷ アストラギア',on:()=>openPage('gear')},{text:'▤ 預かりボックス',on:()=>openPage('storage')},
 {text:'☷ 旅のきろく',on:()=>openPage('record')},
 {text:'▣ セーブ',on:()=>{save();toast('セーブしました！');menu()}},{text:'↶ もどる',on:()=>world()}]);return}
 if(p==='storage'){storageMenu();return}
@@ -782,6 +836,12 @@ function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.sc
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
 $('#menuBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonMenu()});
+document.querySelectorAll('#touchQuick button[data-page]').forEach(button=>{
+ button.addEventListener('click',()=>{
+  if(state.scene!=='world')return;
+  openPage(button.dataset.page);
+ });
+});
 document.querySelectorAll('.dkey').forEach(el=>{const d=el.dataset.dir;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);resetHold();holdDir=d;el.classList.add('pressed');walk(d);lastStep=performance.now()});
 el.addEventListener('pointerup',()=>resetHold());el.addEventListener('pointercancel',()=>resetHold());el.addEventListener('lostpointercapture',()=>resetHold())});
 document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','Backspace','w','a','s','d','z','x','m'].includes(e.key))e.preventDefault();
