@@ -1756,7 +1756,7 @@ function drawBar(x,y,w,val,col){rounded(x,y,w,9,4,'#49616b');rounded(x+2,y+2,Mat
 function drawBattle(){
 const b=state.battle;if(!b){drawWorld();return}
 const m=foe(),mine=current();
-Battlebacks.draw(ctx,state.map,frame);
+Battlebacks.draw(ctx,state.map,frame,worldPhase());
 if(b.weather==='rain')for(let i=0;i<34;i++){
  const x=(rand(i,413)*W+frame*1.05)%W,y=(rand(i,63)*H+frame*4.8+i*13)%H;
  line(x,y,x-4,y+10,'#e0f8ff77',1);
