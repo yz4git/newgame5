@@ -61,6 +61,14 @@ function hasPath(map,from,to){
 assert(hasPath('lake',[1,12],[19,19]),'Lake route must reach observatory entrance');
 assert(hasPath('village',[20,18],[9,18]),'House connects to laboratory through village path');
 assert(hasPath('lab',[8,11],[8,6]),'Lab exit connects to professor desk');
+assert(hasPath('route',[11,24],[11,1]),'Winding route connects village and forest');
+assert(hasPath('route',[11,24],[22,12]),'Eastern fork still connects to lakeside');
+assert(hasPath('forest',[13,26],[13,1]),'Winding woodland paths connect both exits');
+assert(hasPath('forest',[13,26],[19,17]),'Forest northern and eastern branch remains navigable');
+assert(hasPath('highland',[12,27],[12,1]),'Alpine terraces connect shrine and summit');
+assert(hasPath('highland',[12,27],[18,20]),'Highland trial region is reachable');
+assert(g.maps.highland.some(row=>row.includes(13)),'Alpine trail contains actual traversable stairs');
+
 
 function select(index=0){
  const options=node('console').children.find(x=>x.className==='options');
