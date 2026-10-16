@@ -903,7 +903,7 @@ function startBattle(enemies,options){
  state.party.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp});
  enemies.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp;state.seen[m.id]=1});
  const weather=Engine.weatherFor(state.map);
- state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,tutorial:!!options.tutorial,
+ state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,tutorial:!!options.tutorial,opened:performance.now(),faintAt:null,faintSide:null,
  action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};
  const firstMessage=Engine.battleEnter(current(),foe(),weather);
  const foeMessage=Engine.battleEnter(foe(),current(),weather);
@@ -972,7 +972,9 @@ if(actor.hp<=0){takeTurns(sequence,i+1);return}
 const stop=Engine.skipStatus(actor);if(stop){battleMessage(byId[actor.id].name+(stop==='ねむり'?' は眠っている…':' は体がしびれて動けない！'),()=>takeTurns(sequence,i+1),650);return}
 if(!mine&&name!=='わるあがき'&&actor.pp&&actor.pp[name]>0)actor.pp[name]=Math.max(0,actor.pp[name]-(Engine.abilityFor(target)==='プレッシャー'?2:1));
 b.action={who,name,started:performance.now()};
-const res=combatDamage(actor,target,name);b.shake=res.damage>0?14:0;b.flash=11;sfx('attack',MOVES[name]?.type);
+const res=combatDamage(actor,target,name);b.shake=res.damage>0?14:0;b.flash=11;
+if(target.hp<=0){b.faintAt=performance.now();b.faintSide=mine?'enemy':'you'}
+sfx('attack',MOVES[name]?.type);
 const extra=target.hp===0?(mine?' '+byId[target.id].name+' を倒した！':' '+byId[target.id].name+' は倒れてしまった！'):'';
 battleMessage(res.text+extra,()=>{
 if(target.hp<=0){if(mine)defeatEnemy();else knockout()}
@@ -1544,10 +1546,12 @@ const shake=hit&&b.shake>0?Math.sin(t*82)*5:0;
 const cap=b.capture?clamp((performance.now()-b.capture.started)/1850,0,1):null;
 if(cap===null||cap<.44){
  const targetOffset=(hit&&bFrom?shake:0);
- drawMonster(m,foeX+targetOffset,190,1.01,false);
+ const fade=b.faintSide==='enemy'&&b.faintAt?clamp(1-(performance.now()-b.faintAt)/720,0,1):1;
+ if(fade>0){ctx.save();ctx.globalAlpha=fade;drawMonster(m,foeX+targetOffset,190+(1-fade)*24,1.01*fade,false);ctx.restore()}
 }
 const ourOffset=(hit&&!bFrom?shake:0);
-drawMonster(mine,oursX+ourOffset,326,1.36,true);
+const ourFade=b.faintSide==='you'&&b.faintAt?clamp(1-(performance.now()-b.faintAt)/720,0,1):1;
+if(ourFade>0){ctx.save();ctx.globalAlpha=ourFade;drawMonster(mine,oursX+ourOffset,326+(1-ourFade)*27,1.36*ourFade,true);ctx.restore()}
 if(attacking){
  const move=MOVES[b.action.name]||{type:'無'};
  const cols={火:['#ffd18a','#ed6842'],水:['#c6f2ec','#539fc9'],草:['#d0eba2','#569d61'],雷:['#fff3a0','#e8bc41'],風:['#e9f6e7','#8fbdc9'],岩:['#e1d1b1','#897f6b'],影:['#ceb4ed','#735294'],光:['#fffce0','#edbd79'],無:['#e2e9dd','#8ca6af']};
@@ -1662,6 +1666,16 @@ const stages=stats=>Object.entries(stats).filter(([k,v])=>v).map(([k,v])=>k.slic
 if(stages(enemyStages))txt(stages(enemyStages),21,119,9,'#e0edc7');
 if(stages(playerStages))txt(stages(playerStages),228,258,9,'#e0edc7');
 if(b.enemies.length>1){for(let i=0;i<b.enemies.length;i++){ellipse(110+i*15,101,5,5,i<b.index?'#586b68':'#f2dfaf');ellipse(110+i*15,99,4,3,i<b.index?'#808f84':'#e9a175')}}
+const intro=clamp((performance.now()-(b.opened||0))/750,0,1);
+if(intro<1){
+ const h=(1-intro)*H*.56,shift=intro*W;
+ pixel(-shift,0,W-shift,h,'#1b3746df');
+ pixel(shift,h,W-shift,H-h,'#254a54cf');
+ for(let j=0;j<16;j++){
+  const py=j*24+intro*37,x=(j*101+frame*3)%W;
+  ellipse(x,py,2.7*(1-intro)+.5,2.7*(1-intro)+.5,'#e7f6d7cf');
+ }
+}
 b.shake=Math.max(0,b.shake-1);
 }
 function drawStarterPreview(){
