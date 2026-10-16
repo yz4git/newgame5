@@ -1745,7 +1745,7 @@ function drawMonster(m,x,y,scale=1,back=false){
  const attacking=active&&((back&&active.who==='you')||(!back&&active.who==='enemy'));
  const phase=active?clamp((performance.now()-active.started)/760,0,1):1;
  const effort=attacking&&phase<1?Math.sin(phase*Math.PI):0;
- const hit=!attacking&&active&&phase>.37&&phase<.73;
+ const hit=!attacking&&active&&(MOVES[active.name]?.p||0)>0&&phase>.37&&phase<.73;
  const reaction=hit?Math.sin((phase-.37)/.36*Math.PI):0;
  const sway=Math.sin(frame*.049+m.id.length*1.8)*1.8;
  ctx.save();
