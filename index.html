@@ -1693,6 +1693,112 @@ function drawLandmarks(camX,camY){
  }
 }
 
+/* Rooms are composed as perspective-aware furniture sets, not repeated tile decals.
+ * Coordinates are world tile coordinates so panning the scene keeps art aligned. */
+function drawInteriorSet(camX,camY){
+ const room=state.map;
+ if(mapMeta[room].theme!=='interior')return;
+ const X=(x)=>x*T-camX,Y=(y)=>y*T-camY;
+ const wall={bedroom:'#688b91',home:'#739687',lab:'#678f9c',center:'#718c9d',mart:'#a58e69',observatory:'#627d94'}[room]||'#668b91';
+ const x1=X(1),x2=X(mapMeta[room].w-1);
+ // Wainscoting and layered wall shadow; room-specific color, not a flat backdrop.
+ pixel(x1,Y(1)-8,x2-x1,16,'#233e4e44');
+ pixel(x1,Y(2)-1,x2-x1,9,wall);
+ pixel(x1,Y(3)-8,x2-x1,8,'#e8e0bb55');
+ for(let col=2;col<mapMeta[room].w-2;col+=3){
+  const px=X(col),py=Y(1);
+  rounded(px,py-5,54,53,6,'#495d6875');
+  rounded(px+4,py-1,46,44,4,room==='observatory'?'#365a75':'#b8d5cd');
+  pixel(px+9,py+7,36,28,room==='observatory'?'#517b93':'#8dbfc5');
+  line(px+27,py+7,px+27,py+35,'#e1e8d6',2);
+  line(px+9,py+22,px+45,py+22,'#e1e8d6',2);
+  if(room==='observatory'){
+   for(let star=0;star<4;star++)ellipse(px+14+star*8,py+12+(star%3)*7,1.4,1.4,'#fff4ca');
+  }else{
+   ellipse(px+17,py+12,14,5,'#eff8e457');
+  }
+ }
+ // Rugs are flat with subtle directional hatching; never block interaction.
+ const rug=room==='lab'?'#9eb6bb':room==='center'?'#d9b7b2':room==='mart'?'#be987c':
+ room==='bedroom'?'#c89983':room==='home'?'#c8a277':'#97aabb';
+ const rx=room==='lab'?X(5):room==='observatory'?X(4):X(5),ry=Y(6);
+ rounded(rx,ry,room==='lab'?185:158,room==='lab'?70:95,14,'#3c53555b');
+ rounded(rx+4,ry+4,room==='lab'?177:150,room==='lab'?62:87,11,rug);
+ rounded(rx+11,ry+10,room==='lab'?163:136,room==='lab'?49:74,8,'#f7eadb36');
+ for(let lineIndex=0;lineIndex<6;lineIndex++){
+  line(rx+13,ry+15+lineIndex*8,rx+(room==='lab'?160:133),ry+15+lineIndex*8,'#f1e6d030',1);
+ }
+ if(room==='bedroom'){
+  // Real side-view bed mattress, pillows and blanket on the room's blocked furniture.
+  const bx=X(9)-1,by=Y(3);
+  rounded(bx-7,by-12,107,64,8,'#6b6258');
+  rounded(bx-3,by-14,99,54,7,'#d9e3d7');
+  rounded(bx+5,by-8,83,14,6,'#fff0dc');
+  rounded(bx+5,by+12,83,25,5,'#91b0c5');
+  line(bx+8,by+30,bx+84,by+30,'#d4e5e5',2);
+  const dx=X(2),dy=Y(3);
+  pixel(dx-6,dy-13,101,17,'#876e53');
+  pixel(dx,dy-18,90,7,'#b18b62');
+  pixel(dx+10,dy-28,24,16,'#d0c0a5');
+  pixel(dx+42,dy-29,24,17,'#6a8e9d');
+  pixel(dx+46,dy-27,15,10,'#a9d6d7');
+ }else if(room==='home'){
+  const x=X(3),y=Y(3);
+  rounded(x-10,y-16,104,54,9,'#936e5c');
+  rounded(x-4,y-19,93,45,8,'#c9a580');
+  ellipse(x+20,y+2,13,6,'#f2e4c4');ellipse(x+57,y+6,12,7,'#f2e4c4');
+  ellipse(x+20,y+1,6,4,'#c07b61');ellipse(x+57,y+5,7,4,'#75a481');
+  const kx=X(9),ky=Y(3);
+  pixel(kx-7,ky-19,99,52,'#769b94');
+  for(let i=0;i<3;i++){pixel(kx+i*28,ky-14,24,43,'#b0c1b0');pixel(kx+i*28+4,ky-10,16,13,'#7599ab')}
+  pixel(kx+18,ky+20,54,4,'#d8d6bc');
+ }else if(room==='lab'){
+  for(let col=2;col<14;col+=4){
+   const x=X(col),y=Y(col===2?6:col===6?4:6);
+   rounded(x-9,y-23,102,52,7,'#506b7b');
+   rounded(x-5,y-20,94,37,5,'#b6d5d9');
+   rounded(x,y-17,84,27,3,'#426c80');
+   for(let i=0;i<7;i++){
+    const h=4+(i*7%14);
+    pixel(x+5+i*11,y+5-h,7,h,'#b1dccf');
+   }
+   pixel(x+12,y+19,67,4,'#d1e6df');
+  }
+  for(let i=0;i<5;i++)ellipse(X(4+i*2),Y(9),5,6,i%2?'#f2e3be':'#7dc6c2');
+ }else if(room==='observatory'){
+  const cx=X(7),cy=Y(3);
+  rounded(cx-15,cy-13,65,41,7,'#6d8294');
+  rounded(cx-10,cy-10,55,31,5,'#264960');
+  for(let j=0;j<14;j++){
+   const angle=j*2.4,px=cx+18+Math.cos(angle)*20,py=cy+4+Math.sin(angle)*11;
+   ellipse(px,py,1.5+(j%3)*.4,1.5,'#faf0bd');
+  }
+  ellipse(cx+18,cy+4,6,6,'#dbe7dc');
+  pixel(X(10)-11,Y(6)-13,54,43,'#738e98');
+  line(X(10),Y(6)+17,X(11),Y(6)-12,'#e3e3cc',6);
+  ellipse(X(11),Y(6)-12,12,7,'#afced1');
+ }else if(room==='center'){
+  const hx=X(4),hy=Y(3);
+  rounded(hx-10,hy-19,210,51,8,'#6e95a0');
+  rounded(hx-5,hy-14,200,25,6,'#d9f0e7');
+  for(let i=0;i<6;i++){
+   const x=hx+i*35+7;pixel(x,hy-10,15,18,i%2?'#85beaf':'#c5a4a2');
+   ellipse(x+7,hy-5,5,5,'#f2e8c3');
+  }
+ }else if(room==='mart'){
+  for(let col of [2,10]){
+   const x=X(col),y=Y(4);
+   pixel(x-9,y-17,83,61,'#8c7055');
+   for(let k=0;k<3;k++){
+    pixel(x-4,y-12+k*18,72,4,'#d0aa79');
+    for(let j=0;j<5;j++){
+     rounded(x+j*13,y-8+k*18,9,12,2,['#deb687','#d17d79','#acc597','#a4bdce'][(j+k)%4]);
+    }
+   }
+  }
+ }
+}
+
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -1703,7 +1809,7 @@ drawScenery(camX,camY,x0,x1,y0,y1);
 drawLandmarks(camX,camY);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
-if(m.theme==='interior'){for(let i=1;i<m.w-1;i+=3){const ix=i*T-camX;pixel(ix,17-camY,27,28,'#466b75');pixel(ix+3,20-camY,21,20,'#80b6bc')}txt(m.name,W/2,27,13,'#e5eddd','center')}
+if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY)}
 if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
