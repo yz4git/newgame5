@@ -45,6 +45,8 @@ vm.runInNewContext(fs.readFileSync('src/creature-art.js','utf8'),context,{timeou
 assert(context.AstraCreatureArt,'Species-specific creature art was loaded');
 vm.runInNewContext(fs.readFileSync('src/battle-backdrops.js','utf8'),context,{timeout:5000,filename:'battle-backdrops.js'});
 assert(context.AstraBattlebacks,'Battle backgrounds loaded');
+vm.runInNewContext(fs.readFileSync('src/field-sprites.js','utf8'),context,{timeout:5000,filename:'field-sprites.js'});
+assert(context.AstraFieldSprites,'Field character art loaded');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
 assert(g);
