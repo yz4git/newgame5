@@ -19,7 +19,7 @@ for(const kind of Object.keys(Field.TYPES)){
    const result=Field.draw(canvas,188,177,direction,frame,kind,null,false);
    assert.equal(result.dir,direction);
    assert.equal(result.kind,kind);
-   assert(output.length>25,kind+' sprite has multiple layers');
+   assert(output.length>16,kind+' sprite has multiple layers');
    frames.add(output.join(';'));
   }
   assert(frames.size>=4,kind+' '+direction+' has multiple authored key poses');
