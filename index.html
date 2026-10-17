@@ -884,6 +884,33 @@ sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
+function ambientNpcStep(force=false){
+ // Only incidental background walkers move; story actors, trainers and service NPCs stay fixed.
+ if(state.scene!=='world'||storyStage()<12||(!force&&frame%96!==0))return 0;
+ const team=NPCS[state.map]||[],m=mapMeta[state.map],tiles=maps[state.map];
+ const blocked=new Set([3,4,5,8,9,11]);
+ let moved=0;
+ for(let idx=0;idx<team.length;idx++){
+  const n=team[idx];
+  if(n.kind!=='talk'||n.name==='古い望遠鏡')continue;
+  if(!n.roamOrigin)n.roamOrigin={x:n.x,y:n.y};
+  if((n.pauseUntil||0)>performance.now())continue;
+  const directions=['up','right','down','left'];
+  const offset=((Math.floor(frame/96)+idx*3)%4+4)%4;
+  for(let attempt=0;attempt<4;attempt++){
+   const dir=directions[(attempt+offset)%4];
+   const delta=dirDelta[dir],x=n.x+delta[0],y=n.y+delta[1];
+   if(Math.abs(x-n.roamOrigin.x)>2||Math.abs(y-n.roamOrigin.y)>2)continue;
+   if(x<=0||y<=0||x>=m.w-1||y>=m.h-1||blocked.has(tiles[y][x]))continue;
+   if(x===state.x&&y===state.y)continue;
+   if(team.some(other=>other!==n&&isNpcVisible(other)&&other.x===x&&other.y===y))continue;
+   if(DOORS[state.map]?.[x+','+y])continue;
+   n.motion={fromX:n.x,fromY:n.y,toX:x,toY:y,start:performance.now(),duration:290};
+   n.x=x;n.y=y;n.facing=dir;moved++;break;
+  }
+ }
+ return moved;
+}
 function checkTrainerVision(){
 if(state.scene!=='world'||!Story.earlyTrainerEnabled(state.story))return false;
 const npcs=NPCS[state.map]||[];
@@ -914,7 +941,12 @@ if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'
 return null}
 function switchMap(e){state.map=e.id;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
-const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){npc(n);return}
+const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){
+ if(!['sign','item','storyDiary','storyStairs','starter','spring'].includes(n.kind)){
+  const opposite={up:'down',down:'up',left:'right',right:'left'};
+  n.facing=opposite[state.dir];n.pauseUntil=performance.now()+2500;
+ }
+ npc(n);return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
@@ -1921,6 +1953,7 @@ txt('− STARBOUND ADVENTURE −',208,322,11,'#e7f1e4','center');
 function draw(){
 frame++;
 if(frame%3===0)soundtrack();
+ambientNpcStep();
 if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:145)){walk(holdDir);lastStep=performance.now()}
 if(state.scene==='battle')drawBattle();
 else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
