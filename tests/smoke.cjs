@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -213,9 +213,26 @@ for(const id of ['village','route','forest','lake','shrine','highland','home','l
  g.switchMap({id,x:5,y:5,dir:'down'});
  g.drawScenery(0,0,0,Math.min(8,g.maps[id][0].length),0,Math.min(8,g.maps[id].length));
  g.drawLandmarks(0,0);
+ if(['home','lab','bedroom','observatory','center','mart'].includes(id))g.drawInteriorSet(0,0);
  g.draw();
 }
 for(const dir of ['up','down','left','right'])g.drawHero(180,185,dir);
+g.switchMap({id:'village',x:12,y:17,dir:'down'});
+const wander=g.NPCS.village.find(n=>n.name==='花の世話人');
+assert(wander&&wander.kind==='talk','A roaming town resident is available');
+const oldX=wander.x,oldY=wander.y;
+assert(g.ambientNpcStep(true)>0,'Town residents walk when the field is active');
+assert(Math.abs(wander.x-oldX)+Math.abs(wander.y-oldY)<=1,'Residents walk one tile per turn');
+g.get().x=wander.x;g.get().y=wander.y+1;g.get().dir='up';g.world();
+g.interact();assert.equal(g.get().scene,'dialog','Walking residents respond to interaction');
+assert.equal(wander.facing,'down','Resident turns to face player when spoken to');
+g.world();
+const stage=g.get().story.stage;g.get().story.stage=10;
+assert.equal(g.ambientNpcStep(true),0,'Ambient wandering is suspended for intro chapters');
+g.get().story.stage=stage;
+assert.match(html,/src\/field-sprites\.js/,'Field characters use independent eight-pose sprite module');
+assert.match(html,/function drawInteriorSet/,'Each interior has specialized furnishing geometry');
+
 assert.match(html,/src\/music\.js/,'The independent procedural music engine is bundled');
 assert.match(html,/function drawScenery/,'Biome-specific terrain adornment is present');
 assert.match(html,/const LANDMARKS=/,'Every region has handcrafted landmarks');
