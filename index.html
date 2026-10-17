@@ -400,7 +400,8 @@ village:[
 {x:14,y:13,name:'旅の友 ナギ',kind:'storyGuide',color:'#a4c6d9'},
 {x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
 {x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
-{x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。'},
+{x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。',sayByPhase:['朝になると、森へ向かう旅人が増えるんだ。','夕陽の町は、懐かしい匂いがするね。','夜の森に光る星霊がいるんだって！']},
+{x:21,y:12,name:'花の世話人',kind:'talk',color:'#afba7b',say:'噴水のそばの花は毎日少しずつ違う色に咲くんだよ。',sayByPhase:['朝露の間に花を見回るのが日課なの。','夕方は花を閉じる子が多いね。','夜でも星の光で咲く花があるのよ。']},
 {x:15,y:14,name:'図鑑調査員 ユズ',kind:'script',script:'dexResearch',color:'#a9c8c8'},
 {x:6,y:12,name:'看板',kind:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
 ],
@@ -413,7 +414,8 @@ forest:[
 {x:13,y:12,facing:'down',vision:4,name:'森番 レン',kind:'trainer',party:[['puddlo',7],['lumin',7]],reward:380,color:'#b8cba0',say:'この先の聖域へ行くなら、私と勝負だ！'},
 {x:19,y:18,facing:'left',vision:4,name:'探検家 ユイ',kind:'trainer',party:[['crag',8],['shade',8]],reward:420,color:'#dbba9e',say:'夜の森の秘密、知ってる？'},
 {x:9,y:7,name:'石碑',kind:'sign',color:'#95979e',say:'「星の光は、仲間を信じる心に応える」'},
-{x:13,y:22,name:'精霊の泉',kind:'spring',color:'#7bc6c4',say:'澄んだ光が体に満ちていく…'}
+{x:13,y:22,name:'精霊の泉',kind:'spring',color:'#7bc6c4',say:'澄んだ光が体に満ちていく…'},
+{x:8,y:16,name:'森の薬草師',kind:'talk',color:'#91ac82',say:'森の草むらには、よく効く薬草が混じっていることがあるよ。',sayByPhase:['日差しが届く場所に新芽があるよ。','夕方の森は迷いやすい。目印を忘れずにね。','夜のキノコは光るけど、食べられないから気をつけて。']}
 ],
 shrine:[
 {x:9,y:6,facing:'down',vision:3,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
@@ -424,13 +426,15 @@ lake:[
 {x:25,y:15,name:'野鳥観察家 ナツ',kind:'trainer',facing:'up',vision:3,color:'#b8cf9d',party:[['fugale',7],['sparkit',6]],reward:390,say:'空を飛ぶ子の動きに見とれないでね！'},
 {x:5,y:18,name:'湖畔の立て札',kind:'sign',color:'#d1b585',say:'青凪の湖畔　水面が星空を映す静かな場所。'},
 {x:8,y:20,name:'湖の生態学者 ハル',kind:'script',script:'lakeSurvey',color:'#9bd0c0'},
+{x:9,y:20,name:'湖の散歩人',kind:'talk',color:'#a8c6bc',say:'この湖は水辺の星霊と小鳥の宝庫なんだ。',sayByPhase:['朝は水面が鏡みたいに静かだね。','夕暮れの湖は、いつまでも眺めていられるよ。','夜の星が湖に映って、空が二つあるみたいだ。']},
 {x:18,y:19,name:'拾える星玉',kind:'item',item:'orb',amount:3,color:'#f3d5a2'}],
 highland:[
 {x:12,y:18,name:'山登り ツバサ',kind:'trainer',facing:'down',vision:4,color:'#d6a97e',party:[['crag',11],['sparkit',12]],reward:640,say:'高いところから見る星は格別だぜ！'},
 {x:7,y:8,name:'星読み サヨ',kind:'trainer',facing:'right',vision:4,color:'#cebad3',party:[['lumin',12],['shade',12],['orchid',13]],reward:730,say:'星の導きが、どちらを選ぶか見てみましょう。'},
 {x:20,y:12,name:'古びた道具箱',kind:'item',item:'potion',amount:3,color:'#f2dec1'},
 {x:12,y:5,name:'高原の石碑',kind:'script',script:'starPillar',color:'#bcbcc6'},
-{x:18,y:19,name:'星の試練官 マコト',kind:'script',script:'astralTrial',color:'#e1c29b'}],
+{x:18,y:19,name:'星の試練官 マコト',kind:'script',script:'astralTrial',color:'#e1c29b'},
+{x:20,y:23,name:'山の旅人',kind:'talk',color:'#b7b4a3',say:'この高原は遠回りしても、景色の良い道を選びたい。',sayByPhase:['朝の高原の空気は澄み切っているよ。','夕方は結晶が夕陽を反射してきれいだよ。','夜の高原は冷えるから、早めに休んでね。']}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'},
@@ -969,7 +973,7 @@ const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='b
 const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
 forcedTrainer=automatic;
 dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
-dialog(n.name,n.say||'いい旅になりますように！')}
+dialog(n.name,(n.kind==='talk'&&n.sayByPhase?.[worldPhase()])||n.say||'いい旅になりますように！')}
 function dialog(name,txt,options){state.dialogSpeaker=name;screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
 function wildBattle(){const choice=Engine.chooseEncounter(mapMeta[state.map].wild,{phase:worldPhase()});if(!choice)return;state.encounterSteps=0;startBattle([makeMonster(choice.id,choice.level)],{trainer:false})}
 function firstAlive(){return state.party.findIndex(m=>m.hp>0)}
