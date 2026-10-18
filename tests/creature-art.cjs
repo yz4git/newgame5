@@ -30,6 +30,16 @@ for(const mon of species){
    versions.push(operations.join('|'));
   }
  }
+ // Six combat phases alter actual ears, wings, limbs and shells (not only transforms).
+ const attackFrames=new Set();
+ for(let k=0;k<6;k++){
+  operations=[];
+  Art.draw(ctx,mon,42,false,(k+.4)/6);
+  attackFrames.add(operations.join('|'));
+ }
+ assert(attackFrames.size>=5,mon.id+' has multiple authored attack articulation frames');
+ operations=[];Art.draw(ctx,mon,42,true,.57);
+ assert(operations.length>20,mon.id+' can attack from its back-facing pose');
  assert.notEqual(versions[0],versions[3],mon.id+' draws distinct front/back geometry');
  assert.notEqual(versions[0],versions[1],mon.id+' has genuine animation between frames');
  const keys=new Set();
