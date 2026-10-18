@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -232,6 +232,25 @@ g.world();
 const stage=g.get().story.stage;g.get().story.stage=10;
 assert.equal(g.ambientNpcStep(true),0,'Ambient wandering is suspended for intro chapters');
 g.get().story.stage=stage;
+// Validate schedule waypoint tiles against the actual playable, collision-checked maps.
+for(const [id,people] of Object.entries(context.AstraSchedules.SCHEDULES)){
+ for(const [name,entries] of Object.entries(people)){
+  const npc=g.NPCS[id].find(n=>n.name===name);
+  assert(npc,id+' schedule actor '+name+' exists');
+  for(const entry of entries){
+   assert(context.AstraSchedules.isPassable(g.maps[id],entry.x,entry.y),id+' '+name+' has a walkable '+entry.label+' waypoint');
+  }
+ }
+}
+g.startStoryEffect('call',null,1800);
+g.drawStoryEffect();
+g.switchMap({id:'home',x:7,y:9,dir:'down'});
+assert(g.getTransition().indoor,'Entering home triggers the indoor doorway wipe');
+g.drawMapTransition();
+g.draw();
+assert.match(html,/function drawStoryPose/,'Story participants have dedicated cutscene gesture drawing');
+assert.match(html,/function drawMapTransition/,'Doorway and route transitions render on canvas');
+assert.match(html,/src\/npc-schedules\.js/,'Daily NPC schedule module is bundled');
 assert.match(html,/src\/field-sprites\.js/,'Field characters use independent eight-pose sprite module');
 assert.match(html,/function drawInteriorSet/,'Each interior has specialized furnishing geometry');
 
