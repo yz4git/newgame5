@@ -337,4 +337,57 @@ const firstBloom=g.get().bag.ether;
 g.npc(flower,false,1);assert.equal(g.get().bag.ether,firstBloom+2,'Dusk flower rewards two PP restores');
 g.world();g.npc(flower,false,2);assert.equal(g.get().bag.ether,firstBloom+2,'Night bloom never gives duplicate items');
 assert.match(html,/src\/forest-secrets\.js/,'The forest secrets runtime is bundled');
+// Real input-level traversal of the three new nonblocking region explorations.
+const rp=context.AstraRegionPuzzles;
+g.get().story.stage=12;
+g.switchMap({id:'lake',x:10,y:13,dir:'down'});
+assert.equal(g.maps.lake[9][14],3,'Island path starts below deep water');
+g.interact();g.world();
+assert(g.get().events.regionPuzzles.lake.lowered,'Lakeside sluice is operated through A/interaction');
+assert.equal(g.maps.lake[9][14],13,'Lower water exposes solid stepping stones');
+g.switchMap({id:'lake',x:14,y:10,dir:'up'});
+g.walk('up');g.walk('up');g.walk('up');
+assert.equal(g.get().y,7,'Can walk over the revealed lake path');
+const orbBefore=g.get().bag.orb;
+g.interact();
+assert.equal(g.get().bag.orb,orbBefore+4,'Island cache grants four orbs');
+g.world();
+g.switchMap({id:'shrine',x:5,y:8,dir:'up'});
+g.interact();g.world();
+g.switchMap({id:'shrine',x:14,y:13,dir:'up'});
+g.interact();g.world();
+g.switchMap({id:'shrine',x:14,y:8,dir:'up'});
+g.interact();g.world();
+assert(g.get().events.regionPuzzles.shrine.open,'Ordered moon-wind-star pillars unlock shrine room');
+assert.equal(g.maps.shrine[rp.SHRINE.gate.y][rp.SHRINE.gate.x],13);
+g.switchMap({id:'shrine',x:14,y:8,dir:'right'});
+g.walk('right');g.walk('right');g.walk('up');
+assert.equal(g.get().x,16,'The shrine door really permits passage');
+assert.equal(g.get().y,7,'Inner shrine path reaches the altar');
+const etherBeforeRelic=g.get().bag.ether;
+g.get().dir='right';g.interact();
+assert.equal(g.get().bag.ether,etherBeforeRelic+3,'Ancient altar grants three PP restoratives');
+g.world();
+g.switchMap({id:'highland',x:9,y:10,dir:'down'});
+g.interact();g.world();
+const beforeCharm=g.get().bag.speedCharm;
+for(const [x,y,dir,turns] of [[8,13,'up',2],[14,13,'up',2],[14,8,'up',2]]){
+ g.switchMap({id:'highland',x,y,dir});
+ for(let k=0;k<turns;k++){g.interact();g.world()}
+}
+assert(g.get().events.regionPuzzles.highland.solved,'All three mirrors align to complete a constellation');
+assert.equal(g.get().bag.speedCharm,beforeCharm+1,'Alignment grants one speed charm');
+for(const id of ['lake','shrine','highland']){
+ g.switchMap({id,x:id==='lake'?12:10,y:12,dir:'up'});
+ g.drawRegionPuzzles(0,0);
+}
+const regionalBag={orb:g.get().bag.orb,ether:g.get().bag.ether,speedCharm:g.get().bag.speedCharm};
+assert.equal(g.load(),true,'Save/reload works after all regional puzzles');
+assert(g.get().events.regionPuzzles.lake.cacheTaken);
+assert(g.get().events.regionPuzzles.shrine.cacheTaken);
+assert(g.get().events.regionPuzzles.highland.solved);
+assert.equal(g.maps.lake[9][14],13,'Lake remains lowered after reload');
+assert.equal(g.maps.shrine[rp.SHRINE.gate.y][rp.SHRINE.gate.x],13,'Shrine remains unlocked after reload');
+for(const [key,value] of Object.entries(regionalBag))assert.equal(g.get().bag[key],value,'No duplication across reload: '+key);
+assert.match(html,/src\/region-puzzles\.js/,'Regional exploration engine is deployed');
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
