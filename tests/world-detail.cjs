@@ -32,4 +32,14 @@ const n=D.draw(ctx,'forest',tiles,0,0,{x0:0,x1:3,y0:0,y1:3},24);
 assert(n<=9,'Mobile viewport culling prevents drawing whole map');
 assert.equal(D.draw(ctx,'lab',tiles,0,0,range,24),0,'Other locations retain their existing tailored art');
 assert.equal(D.draw(null,'forest',tiles,0,0,range,24),0);
+// Plaza and glades remain distinct, cullable background layers.
+out.length=0;
+assert(D.districtFeatures(ctx,'village',0,0,60)>0);
+const district=out.join('|');
+assert(out.length>20,'Town square and gardens add visible authored floor art');
+out.length=0;
+assert(D.districtFeatures(ctx,'forest',0,0,60)>0);
+assert.notEqual(out.join('|'),district,'Forest clearings use different geometry');
+assert.equal(D.districtFeatures(ctx,'lab',0,0,60),0);
+assert.equal(D.districtFeatures(null,'village',0,0,60),0);
 console.log('PASS: deterministic dense village paving, gardens, forest mushrooms, roots and culling');
