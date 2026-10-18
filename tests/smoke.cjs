@@ -337,6 +337,14 @@ const firstBloom=g.get().bag.ether;
 g.npc(flower,false,1);assert.equal(g.get().bag.ether,firstBloom+2,'Dusk flower rewards two PP restores');
 g.world();g.npc(flower,false,2);assert.equal(g.get().bag.ether,firstBloom+2,'Night bloom never gives duplicate items');
 assert.match(html,/src\/forest-secrets\.js/,'The forest secrets runtime is bundled');
+// Confirm optional puzzles never interrupt the original main traversal before solving.
+for(const [id,from,to] of [
+ ['lake',{x:1,y:12},{x:28,y:12}],
+ ['shrine',{x:9,y:1},{x:9,y:17}],
+ ['highland',{x:12,y:1},{x:12,y:27}]
+]){
+ assert(context.AstraMapLayout.reachable(g.maps[id],from,to),id+' original entry-to-exit crossing remains open');
+}
 // Real input-level traversal of the three new nonblocking region explorations.
 const rp=context.AstraRegionPuzzles;
 g.get().story.stage=12;
