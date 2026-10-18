@@ -1,0 +1,33 @@
+'use strict';
+const assert=require('node:assert/strict');
+const C=require('../src/cinematics.js');
+const cue=C.make({map:'route',name:'謎の旅人',start:{x:4,y:9},end:{x:4,y:7},focus:{x:4,y:8},duration:1000,hold:true,costume:'trainer'},100);
+assert.equal(cue.map,'route');
+const initial=C.sample(cue,100,'route',true);
+assert.equal(initial.x,4);assert.equal(initial.y,9);
+assert.equal(initial.cameraWeight,0);
+assert.equal(C.sample(cue,400,'lab',true),null,'Never render actor on the wrong map');
+const walking=C.sample(cue,430,'route',true);
+assert(walking.y<9&&walking.y>7,'Character walks between two story points');
+assert(walking.step>=1&&walking.step<=7,'Character uses animated gait');
+assert(walking.cameraWeight>.45,'Camera smoothly follows approaching actors');
+const stationary=C.sample(cue,820,'route',true);
+assert.equal(stationary.y,7);
+assert.equal(stationary.moving,false);
+const hold=C.sample(cue,1500,'route',true);
+assert.equal(hold.x,4);assert.equal(hold.y,7);
+assert.equal(hold.hold,true,'Reached actor remains visible during uninterrupted dialogue');
+assert.equal(hold.cameraWeight,0,'Camera returns to hero when walk-in ends');
+assert.equal(C.sample(cue,1500,'route',false),null,'Actors never linger after the cutscene returns to world');
+const mid=C.camera({x:8,y:8},walking);
+assert(mid.x<8&&mid.x>4,'Camera interpolation is bounded and smooth');
+assert.equal(C.camera({x:8,y:8},null).x,8);
+const noHold=C.make({map:'home',name:'家族',start:{x:1,y:2},end:{x:2,y:2},hold:false,duration:250},0);
+assert.equal(C.sample(noHold,999,'home',true),null);
+assert.throws(()=>C.make({map:'lake',name:'actor',start:{x:NaN,y:1},end:{x:0,y:0}}),/finite/);
+for(let i=0;i<200;i++){
+ const item=C.sample(cue,100+i*8,'route',true);
+ assert(Number.isFinite(item.x)&&Number.isFinite(item.y));
+ assert(item.cameraWeight>=0&&item.cameraWeight<=1);
+}
+console.log('PASS: visual NPC walk-ins, reusable camera interpolation, dialogue hold, map changes and nonblocking finish');
