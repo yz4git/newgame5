@@ -2147,12 +2147,11 @@ function drawRegionPuzzles(camX,camY){
    ellipse(p.x,p.y-13+Math.sin(frame*.03+i)*3,16,6,'#f3e6c83f');
   }
  }else if(map==='highland'){
-  const stars=RegionPuzzles.HIGHLAND.stars,angles=phase.highland?.angles||[0,0,0];
+  const stars=RegionPuzzles.HIGHLAND.stars,angles=phase.highland?.angles||[3,2,1];
   for(let i=0;i<stars.length;i++){
    if(angles[i]!==RegionPuzzles.HIGHLAND.orientations[i])continue;
    const a=pos(stars[i].x,stars[i].y);
-   const dest=i<2?pos(stars[i+1].x,stars[i+1].y):
-     pos(RegionPuzzles.HIGHLAND.chart.x,RegionPuzzles.HIGHLAND.chart.y);
+   const dest=i<2?pos(stars[i+1].x,stars[i+1].y):pos(9,7);
    line(a.x,a.y-11,dest.x,dest.y-11,'#a3d8e888',3);
    line(a.x,a.y-11,dest.x,dest.y-11,'#e6f0cc',1);
   }
