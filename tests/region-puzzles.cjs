@@ -33,7 +33,7 @@ assert.equal(cache.kind,'reward');assert.equal(cache.reward.count,4);
 assert.equal(R.interact(cache.progress,'lake','lakeCache').reward,null);
 const shrine=blank(20,19);
 R.prepare('shrine',shrine,initial);
-assert.equal(shrine[7][15],5);
+assert.equal(shrine[R.SHRINE.gate.y][R.SHRINE.gate.x],5);
 assert.equal(reachable(shrine,{x:10,y:7},R.SHRINE.cache),false,'Stone door blocks optional relic room');
 assert.equal(R.interact(initial,'shrine','wind').progress.shrine.progress,0);
 assert.match(R.interact(initial,'shrine','tablet').text,/月.*風.*星/);
@@ -44,7 +44,7 @@ for(const [index,id] of ['moon','wind','star'].entries()){
 }
 assert(q.shrine.open);
 R.prepare('shrine',shrine,q);
-assert.equal(shrine[7][15],13);
+assert.equal(shrine[R.SHRINE.gate.y][R.SHRINE.gate.x],13);
 assert(reachable(shrine,{x:10,y:7},R.SHRINE.cache),'Pillar puzzle opens actual chamber');
 let relic=R.interact(q,'shrine','shrineCache');
 assert.equal(relic.reward.item,'ether');assert.equal(relic.reward.count,3);
@@ -63,6 +63,6 @@ assert.equal(R.interact(h,'highland','mirror1').reward,null,'No duplicate star r
 const restored=R.normalize(JSON.parse(JSON.stringify({lake:cache.progress.lake,shrine:relic.progress.shrine,highland:h.highland})));
 assert(restored.lake.cacheTaken&&restored.shrine.cacheTaken&&restored.highland.solved);
 assert(R.prepare('lake',lake,restored));assert(R.prepare('shrine',shrine,restored));
-assert.equal(lake[7][14],13);assert.equal(shrine[7][15],13);
+assert.equal(lake[7][14],13);assert.equal(shrine[R.SHRINE.gate.y][R.SHRINE.gate.x],13);
 assert.equal(R.prepare('forest',high,initial),false,'Unrelated areas unaffected');
 console.log('PASS: tide island crossing, shrine 3-symbol sequence, 3-mirror constellation, rewards and persistent regional tiles');
