@@ -239,6 +239,10 @@ for(const [id,people] of Object.entries(context.AstraSchedules.SCHEDULES)){
   assert(npc,id+' schedule actor '+name+' exists');
   for(const entry of entries){
    assert(context.AstraSchedules.isPassable(g.maps[id],entry.x,entry.y),id+' '+name+' has a walkable '+entry.label+' waypoint');
+   if(npc.x!==entry.x||npc.y!==entry.y){
+    const hop=context.AstraSchedules.nextStep(g.maps[id],{x:npc.x,y:npc.y},entry);
+    assert(hop,id+' '+name+' can find a path to '+entry.label);
+   }
   }
  }
 }
