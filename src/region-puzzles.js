@@ -9,7 +9,7 @@ const SHRINE={
  pillars:[{x:5,y:7,id:'moon',name:'月の石柱',symbol:'☾',color:'#c9c6f0'},
  {x:14,y:12,id:'wind',name:'風の石柱',symbol:'風',color:'#a6d9bd'},
  {x:14,y:7,id:'star',name:'星の石柱',symbol:'✧',color:'#f5d49b'}],
- gate:{x:15,y:7},cache:{x:17,y:7},order:['moon','wind','star']
+ gate:{x:15,y:8},cache:{x:17,y:7},order:['moon','wind','star']
 };
 const HIGHLAND={
  stars:[{x:8,y:12,name:'西の星鏡',symbol:'Ⅰ'},
@@ -90,7 +90,7 @@ function prepare(map,grid,raw){
  if(map==='shrine'){
   // Small north-eastern sealed recess: the normal central shrine trail stays open.
   rect(grid,15,5,4,5,5);
-  paint(grid,16,7,1);paint(grid,17,7,1);
+  paint(grid,16,7,1);paint(grid,17,7,1);paint(grid,16,8,1);
   paint(grid,SHRINE.gate.x,SHRINE.gate.y,v.shrine.open?13:5);
   // Approaches to switches are side branches, not changes to the boss's main trail.
   rect(grid,12,6,3,3,1);
