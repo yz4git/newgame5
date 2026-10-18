@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -224,6 +224,21 @@ for(const id of ['village','route','forest','lake','shrine','highland','home','l
  if(['home','lab','bedroom','observatory','center','mart'].includes(id))g.drawInteriorSet(0,0);
  g.draw();
 }
+for(const dir of ['up','down','left','right'])g.drawHero(180,185,dir);
+// Exercise every original species as an attacker and defender through the real battle renderer.
+const battleTypes=Object.keys(context.AstraCreatureMotion.STYLES);
+for(const shape of battleTypes){
+ const mon=Object.values(g.byId).find(spec=>spec.shape===shape);
+ assert(mon,shape+' has a concrete game species');
+ const model=g.makeMonster(mon.id,8);
+ g.drawMonster(model,180,245,.83,false);
+ g.drawMonster(model,205,251,1.15,true);
+ const before=context.AstraCreatureMotion.pose(mon,70,null,false);
+ const strike=context.AstraCreatureMotion.pose(mon,70,.5,false);
+ assert.notDeepEqual(before,strike,shape+' combat pose differs from idle');
+}
+assert.match(html,/src\/creature-motion\.js/,'Independent creature choreography is linked');
+assert.match(html,/src\/world-detail\.js/,'Dense tile-aware region art is linked');
 for(const dir of ['up','down','left','right'])g.drawHero(180,185,dir);
 g.switchMap({id:'village',x:12,y:17,dir:'down'});
 const wander=g.NPCS.village.find(n=>n.name==='花の世話人');
