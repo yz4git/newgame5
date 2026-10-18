@@ -25,7 +25,7 @@ function normalize(raw){
   lake:{lowered:!!a.lake?.lowered,cacheTaken:!!a.lake?.cacheTaken},
   shrine:{progress:Number.isInteger(a.shrine?.progress)?Math.min(3,Math.max(0,a.shrine.progress)):0,
    open:!!a.shrine?.open,cacheTaken:!!a.shrine?.cacheTaken},
-  highland:{angles:Array.from({length:3},(_,i)=>Number.isInteger(a.highland?.angles?.[i])?(a.highland.angles[i]%4+4)%4:0),
+  highland:{angles:Array.from({length:3},(_,i)=>Number.isInteger(a.highland?.angles?.[i])?(a.highland.angles[i]%4+4)%4:[3,2,1][i]),
    solved:!!a.highland?.solved}
  };
 }
