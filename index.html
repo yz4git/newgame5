@@ -1996,6 +1996,7 @@ const camX=clamp(look.x*T+16-W/2,0,m.w*T-W),camY=clamp(look.y*T+16-H/2,0,m.h*T-H
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme,state.map);
 WorldDetail.draw(ctx,state.map,maps[state.map],camX,camY,{x0,x1,y0,y1},frame,T);
+WorldDetail.districtFeatures(ctx,state.map,camX,camY,frame,T);
 drawScenery(camX,camY,x0,x1,y0,y1);
 drawLandmarks(camX,camY);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
