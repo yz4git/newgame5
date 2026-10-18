@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -49,6 +49,8 @@ vm.runInNewContext(fs.readFileSync('src/field-sprites.js','utf8'),context,{timeo
 assert(context.AstraFieldSprites,'Field character art loaded');
 vm.runInNewContext(fs.readFileSync('src/npc-schedules.js','utf8'),context,{timeout:5000,filename:'npc-schedules.js'});
 assert(context.AstraSchedules,'NPC schedules loaded');
+vm.runInNewContext(fs.readFileSync('src/cinematics.js','utf8'),context,{timeout:5000,filename:'cinematics.js'});
+assert(context.AstraCinematics,'Cinematic staging module loaded');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
 assert(g);
