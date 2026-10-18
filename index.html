@@ -208,18 +208,19 @@ footer{display:none}
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
+<script src="./src/cinematics.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules;
-if(!Engine||!Story||!CreatureArt||!Battlebacks||!FieldSprites||!Schedules)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
-let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null;
+let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -698,6 +699,7 @@ function afterStoryWarp(previous,destination){
   storyStep(1);
   dialogSequence('自宅','一階から家族の声が聞こえる。\n「おはよう！ 話しておきたいことがあるの」',()=>world());
  }else if(previous==='lab'&&destination.id==='village'&&stage===4){
+  beginCharacterBeat('研究助手',{entry:true,duration:1750,costume:'script',offsetX:-1,offsetY:1,startY:2,emote:'wave'});
   storyStep(5);
   state.bag.potion+=3;save();
   dialogSequence('研究助手とナギ',[
@@ -717,6 +719,7 @@ function afterStoryWarp(previous,destination){
 function beginRivalEncounter(){
  if(storyStage()!==8)return false;
  startStoryEffect('rival',null,1600);
+ beginCharacterBeat('謎の旅人',{entry:true,duration:2400,offsetX:1,offsetY:-1,startY:-3,costume:'trainer',emote:'rival'});
  storyStep(9);
  const rivalId=Story.rivalFor(state.story.starterId);
  dialogSequence('謎の旅人',[
@@ -1469,7 +1472,7 @@ function isNpcVisible(n){
  if(n.kind==='storyInspector')return storyStage()===10;
  return true;
 }
-function drawNpc(n,camX,camY){const nTween=posTween(n.motion);const nPoint=nTween&&nTween.t<1?nTween:n;const x=nPoint.x*T-camX+16,y=nPoint.y*T-camY+15;
+function drawNpc(n,camX,camY,beat=null){const nTween=posTween(n.motion);const nPoint=beat&&beat.name===n.name?beat:nTween&&nTween.t<1?nTween:n;const x=nPoint.x*T-camX+16,y=nPoint.y*T-camY+15;
 if(!isNpcVisible(n)||x<-35||x>W+35||y<-45||y>H+45)return;
 if(n.kind==='starter'){
  const p=Math.sin(frame*.067+n.x)*2;
@@ -1503,10 +1506,10 @@ if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(fr
 if(n.kind==='sign'||n.name==='高原の石碑'){pixel(x-12,y-6,24,14,'#886d53');pixel(x-10,y-4,20,10,'#c2ab78');pixel(x-2,y+8,4,10,'#725a46');return}
 if(n.kind==='spring'){ellipse(x,y+8,16,12,'#6eb1b3');ellipse(x,y+6,10,7,'#a6e5d7');return}
 const tween=posTween(n.motion);
-const point=tween&&tween.t<1?tween:{x:n.x,y:n.y,t:1};
+const point=beat&&beat.name===n.name?beat:tween&&tween.t<1?tween:{x:n.x,y:n.y,t:1};
 const xx=point.x*T-camX+16,yy=point.y*T-camY+15;
-const moving=!!tween&&tween.t<1;
-const phase=moving?Math.floor(tween.t*8):0;
+const moving=!!(beat&&beat.name===n.name&&beat.moving)||!!tween&&tween.t<1;
+const phase=beat&&beat.name===n.name?beat.step:moving?Math.floor(tween.t*8):0;
 FieldSprites.draw(ctx,xx,yy,n.facing||'down',phase,n.kind,n.color,false);
 drawNpcActivity(n,xx,yy);drawStoryPose(n,xx,yy);
 if(n.kind==='storyInspector'){pixel(x-10,y-21,20,6,'#3b526d');pixel(x-7,y-27,14,9,'#52759a');txt('?',x,y-33,12,'#fff0bf','center')}
@@ -1823,9 +1826,39 @@ function drawInteriorSet(camX,camY){
  }
 }
 
+function beginCharacterBeat(name,opts={}){
+ const actor=(NPCS[state.map]||[]).find(n=>n.name===name&&isNpcVisible(n));
+ const entry=!!opts.entry;
+ const end=actor?{x:actor.x,y:actor.y}:
+    {x:state.x+(opts.offsetX??1),y:state.y+(opts.offsetY??-1)};
+ let start=actor?{...end}:
+    {x:end.x+(opts.startX??0),y:end.y+(opts.startY??-2)};
+ if(actor){
+  const tiles=maps[state.map],dx=Math.sign(actor.x-state.x),dy=Math.sign(actor.y-state.y);
+  const candidates=[
+   {x:actor.x+dx,y:actor.y+dy},{x:actor.x-dy,y:actor.y+dx},
+   {x:actor.x+dy,y:actor.y-dx},{x:actor.x+1,y:actor.y},{x:actor.x-1,y:actor.y}
+  ];
+  const found=candidates.find(p=>!(p.x===state.x&&p.y===state.y)&&
+    Schedules.isPassable(tiles,p.x,p.y)&&
+    !(NPCS[state.map]||[]).some(n=>n!==actor&&isNpcVisible(n)&&n.x===p.x&&n.y===p.y));
+  if(found)start=found;
+ }
+ characterBeat=Cinematics.make({map:state.map,name,start,end,focus:entry?end:{x:(end.x+state.x)/2,y:(end.y+state.y)/2},
+   duration:opts.duration||1800,hold:true,emote:opts.emote||'surprise',
+   costume:actor?.kind||opts.costume||'trainer',
+   facing:entry?'up':actor?.facing||'down'},performance.now());
+ return characterBeat;
+}
+function cinematicFrame(){
+ return Cinematics.sample(characterBeat,performance.now(),state.map,state.scene==='dialog');
+}
 function startStoryEffect(kind,actorName=null,duration=1250){
  storyEffect={kind,actorName,started:performance.now(),duration};
- if(actorName)storyPose={name:actorName,kind,started:performance.now(),duration};
+ if(actorName){
+  storyPose={name:actorName,kind,started:performance.now(),duration};
+  if((NPCS[state.map]||[]).some(n=>n.name===actorName))beginCharacterBeat(actorName,{duration:duration+450,emote:kind});
+ }
 }
 function drawNpcActivity(n,x,y){
  if(n.kind!=='talk'||storyStage()<12)return;
@@ -1920,7 +1953,8 @@ function drawStoryEffect(){
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
-const camX=clamp(px*T+16-W/2,0,m.w*T-W),camY=clamp(py*T+16-H/2,0,m.h*T-H);
+const beat=cinematicFrame(),look=Cinematics.camera({x:px,y:py},beat);
+const camX=clamp(look.x*T+16-W/2,0,m.w*T-W),camY=clamp(look.y*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme,state.map);
 drawScenery(camX,camY,x0,x1,y0,y1);
@@ -1929,7 +1963,15 @@ if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
-for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY)}
+for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY,beat)}
+if(beat&&!(NPCS[state.map]||[]).some(n=>n.name===beat.name)){
+ const actorX=beat.x*T-camX+16,actorY=beat.y*T-camY+15;
+ FieldSprites.draw(ctx,actorX,actorY,beat.facing,beat.step,beat.costume,null,false);
+ if(beat.emote==='rival'||beat.emote==='surprise'){
+  ellipse(actorX,actorY-39,9,9,'#f7dca9');
+  txt('!',actorX,actorY-33,13,'#425b69','center');
+ }
+}
 if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
 drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,state.dir==='up')}
 drawHero(px*T-camX+16,py*T-camY+19,state.dir);
