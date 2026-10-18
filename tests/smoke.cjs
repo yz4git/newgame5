@@ -305,4 +305,23 @@ g.interact();
 assert.equal(g.get().bag.orb,beforeOrbs+3,'The eastern forest loop rewards three orbs');
 assert(g.get().collected['forest/東の森の星玉の小箱'],'Hidden item collection is persisted');
 assert(context.AstraMapLayout.reachable(g.maps.forest,{x:13,y:1},{x:23,y:20}),'Eastern cache remains reachable');
+// Explore the actual optional forest puzzle using the production interaction handler.
+g.get().story.stage=12;
+g.get().events.forestSecrets={sequence:0,gateOpen:false,bloomClaimed:false};
+context.AstraForestSecrets.prepare(g.maps.forest,g.get().events.forestSecrets);
+assert.equal(g.maps.forest[11][5],4,'Overgrown secret passage starts sealed');
+for(const [x,y,dir] of [[7,17,'up'],[10,9,'up'],[7,17,'up'],[20,21,'up']]){
+ g.switchMap({id:'forest',x,y,dir});
+ g.interact();
+ g.world();
+}
+assert.equal(g.get().events.forestSecrets.sequence,3,'Three stones activate in leaf/dew/star sequence');
+assert.equal(g.get().events.forestSecrets.gateOpen,true,'Vines retract when all stones are lit');
+assert.equal(g.maps.forest[11][5],1,'Hidden route is physically open');
+const etherBefore=g.get().bag.ether||0;
+g.switchMap({id:'forest',x:3,y:12,dir:'up'});g.interact();
+assert.equal(g.get().bag.ether,etherBefore+2,'Hidden alcove grants its own collected item');
+assert(g.get().collected['forest/蔦の奥の忘れ物'],'Hidden item persists in collected flags');
+assert(context.AstraMapLayout.reachable(g.maps.forest,{x:13,y:26},{x:3,y:11}),'Secret alcove connected to forest after puzzle');
+assert.match(html,/src\/forest-secrets\.js/,'The forest secrets runtime is bundled');
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
