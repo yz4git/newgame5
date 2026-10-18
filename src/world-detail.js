@@ -150,5 +150,73 @@ function draw(ctx,zone,tiles,camX,camY,range,frame=0,T=32){
  }
  return count;
 }
-return Object.freeze({draw,hash});
+function districtFeatures(ctx,zone,camX,camY,frame=0,T=32){
+ if(!ctx||!['village','forest'].includes(zone))return 0;
+ const features=zone==='village'?[
+  {x:13,y:11,type:'square',radius:46},
+  {x:3,y:14,type:'flowerBeds',radius:29},
+  {x:19,y:11,type:'marketPath',radius:24}
+ ]:[
+  {x:13,y:14,type:'mossCircle',radius:42},
+  {x:13,y:22,type:'springStones',radius:37},
+  {x:19,y:10,type:'groveLights',radius:36}
+ ];
+ let count=0;
+ for(const item of features){
+  const x=(item.x+.5)*T-camX,y=(item.y+.5)*T-camY;
+  if(x<-item.radius-10||y<-item.radius-10||x>416+item.radius+10||y>352+item.radius+10)continue;
+  if(item.type==='square'){
+   // Floor-level sunburst mosaic makes the civic plaza legible without collision.
+   e(ctx,x,y,45,30,'#e8dfbb61');e(ctx,x,y,39,25,'#b0ad9066');
+   e(ctx,x,y,29,20,'#e7d9b29e');e(ctx,x,y,13,10,'#b8bc9c');
+   for(let i=0;i<16;i++){
+    const a=i*Math.PI*2/16;
+    l(ctx,x+Math.cos(a)*16,y+Math.sin(a)*13,x+Math.cos(a)*32,y+Math.sin(a)*21,
+       i%2?'#ecdfb2':'#b2ad81',2.2);
+   }
+  }else if(item.type==='flowerBeds'){
+   e(ctx,x,y,28,13,'#56785486');
+   for(let i=0;i<13;i++){
+    const a=i*2.399,r=6+Math.sqrt(i)*6.4;
+    flower(ctx,x+Math.cos(a)*r,y+Math.sin(a)*r*.43,i%3?'#e6b6c3':'#f5dcaa');
+   }
+  }else if(item.type==='marketPath'){
+   // Pedestrian quarter has a set of fine differently-colored paving stones.
+   for(let i=0;i<4;i++)for(let j=0;j<4;j++){
+    const ax=x-34+i*17+(j%2)*6,ay=y-25+j*13;
+    r(ctx,ax,ay,13,8,(i+j)%3?'#d4c3a275':'#bca8826a');
+    l(ctx,ax+2,ay+6,ax+11,ay+6,'#e8d9b17a');
+   }
+  }else if(item.type==='mossCircle'){
+   e(ctx,x,y,43,21,'#263f3299');e(ctx,x,y,36,16,'#507e5c');
+   e(ctx,x,y,29,12,'#668d6777');
+   for(let i=0;i<13;i++){
+    const a=i*6.28318/13;
+    e(ctx,x+Math.cos(a)*37,y+Math.sin(a)*18,4+(i%3),2.2,'#9eb3809c');
+   }
+   for(let i=0;i<4;i++)l(ctx,x-12+i*7,y+4,x-10+i*7,y-5,'#97ae8766');
+  }else if(item.type==='springStones'){
+   e(ctx,x,y,39,21,'#496356bb');
+   for(let i=0;i<8;i++){
+    const a=i*Math.PI*2/8;
+    e(ctx,x+Math.cos(a)*30,y+Math.sin(a)*15,8,4,i%2?'#9b9f83':'#6f8e80');
+   }
+   e(ctx,x,y,24,10,'#70afb194');
+   for(let i=0;i<5;i++){
+    const a=i*1.25+frame*.013;
+    e(ctx,x+Math.cos(a)*16,y+Math.sin(a)*7,2,1.3,'#d2f3d8');
+   }
+  }else if(item.type==='groveLights'){
+   for(let i=0;i<11;i++){
+    const a=i*2.399,r=7+i*2.7;
+    const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r*.65;
+    const v=.5+.5*Math.sin(frame*.048+i*2.8);
+    e(ctx,px,py,1.2+v*.9,1.2+v*.9,i%2?'#e8efbfa8':'#bedecaaa');
+   }
+  }
+  count++;
+ }
+ return count;
+}
+return Object.freeze({draw,hash,districtFeatures});
 });
