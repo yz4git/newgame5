@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const srcHTML=fs.readFileSync('index.html','utf8');
 const match=srcHTML.match(/<script>([\s\S]*?)<\/script>/);
 assert(match,'Main script exists');
-const exposed='globalThis.__introTest={get:()=>state,walk,interact,world,load,save,startBattle,defeatEnemy,beginIntro,npc,foe,maps,NPCS,throwOrb,battleBag};soundOn=false;init();})();';
+const exposed='globalThis.__introTest={get:()=>state,walk,interact,world,load,save,startBattle,defeatEnemy,beginIntro,npc,foe,maps,NPCS,throwOrb,battleBag,cinematicFrame,getBeat:()=>characterBeat};soundOn=false;init();})();';
 const script=match[1].replace(/init\(\);\s*\}\)\(\);\s*$/,exposed);
 assert(script.includes('__introTest'),'Test runtime was injected');
 const noop=()=>{};
@@ -39,7 +39,7 @@ const storage={},timers=[];
 const context={document,window:{addEventListener:noop},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v,removeItem:k=>delete storage[k]},
  performance:{now:()=>50000},requestAnimationFrame:noop,clearTimeout:noop,setTimeout:fn=>{timers.push(fn);return timers.length}};
 context.globalThis=context;
-for(const file of ['src/rpg-engine.js','src/story.js','src/creature-art.js','src/battle-backdrops.js','src/field-sprites.js','src/npc-schedules.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{timeout:6000,filename:file});
+for(const file of ['src/rpg-engine.js','src/story.js','src/creature-art.js','src/battle-backdrops.js','src/field-sprites.js','src/npc-schedules.js','src/cinematics.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{timeout:6000,filename:file});
 vm.runInNewContext(script,context,{timeout:6000,filename:'game.js'});
 const g=context.__introTest;assert(g);
 // Movement reachability protects the actual chapter route from impassable tiles.
