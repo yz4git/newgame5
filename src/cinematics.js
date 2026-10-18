@@ -23,7 +23,7 @@ function sample(scene,now,map,dialog=false){
  const walking=t<.68,progress=clamp(t/.68);
  const weight=t<.22?smooth(t/.22)*.65:t<.68?.65:(1-smooth((t-.68)/.32))*.65;
  if(t>=1&&(!scene.hold||!dialog))return null;
- return {name:scene.name,x:walk.x,y:walk.y,moving,step:walking?Math.min(7,Math.floor(progress*8)):0,
+ return {name:scene.name,x:walk.x,y:walk.y,moving:walking,step:walking?Math.min(7,Math.floor(progress*8)):0,
   focusX:scene.focus.x,focusY:scene.focus.y,cameraWeight:weight,
   emote:scene.emote,facing:scene.facing,costume:scene.costume,
   hold:scene.hold&&t>=1,t};
