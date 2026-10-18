@@ -996,10 +996,10 @@ const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind===
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
-function npc(n,automatic=false){
+function npc(n,automatic=false,phaseOverride=null){
 if(n.kind==='secretRune'||n.kind==='nightBloom'){
  if(storyStage()<12){dialog(n.name,'星の光は、旅立ちのあとで目覚めるという。');return}
- const action=ForestSecrets.next(state.events.forestSecrets,n.kind==='nightBloom'?'bloom':n.runeId,worldPhase());
+ const action=ForestSecrets.next(state.events.forestSecrets,n.kind==='nightBloom'?'bloom':n.runeId,phaseOverride===null?worldPhase():phaseOverride);
  state.events.forestSecrets=action.progress;
  if(action.kind==='unlocked'){syncForestSecrets();startStoryEffect('star',null,1400);sfx('catch')}
  else if(action.kind==='bloom')sfx('catch');
