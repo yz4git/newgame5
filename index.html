@@ -207,13 +207,14 @@ footer{display:none}
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
+<script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
 <script>
 'use strict';
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites;
-if(!Engine||!Story||!CreatureArt||!Battlebacks||!FieldSprites)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules;
+if(!Engine||!Story||!CreatureArt||!Battlebacks||!FieldSprites||!Schedules)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -888,24 +889,38 @@ sfx('walk');if(state.steps%5===0)save();
 if(checkTrainerVision())return;
 if(maps[state.map][ny][nx]===2&&state.encounterSteps>3&&Math.random()<.14)wildBattle();
 }
-function ambientNpcStep(force=false){
- // Only incidental background walkers move; story actors, trainers and service NPCs stay fixed.
+function ambientNpcStep(force=false,phaseOverride=null){
+ // Story characters and trainers are never subject to time schedules.
  if(state.scene!=='world'||storyStage()<12||(!force&&frame%96!==0))return 0;
  const team=NPCS[state.map]||[],m=mapMeta[state.map],tiles=maps[state.map];
- const blocked=new Set([3,4,5,8,9,11]);
+ const blocked=Schedules.BLOCKED,phase=phaseOverride===null?worldPhase():phaseOverride;
  let moved=0;
  for(let idx=0;idx<team.length;idx++){
   const n=team[idx];
   if(n.kind!=='talk'||n.name==='古い望遠鏡')continue;
   if(!n.roamOrigin)n.roamOrigin={x:n.x,y:n.y};
   if((n.pauseUntil||0)>performance.now())continue;
+  const agenda=Schedules.resolve(state.map,n.name,phase);
+  if(agenda){
+   n.scheduleAction=agenda.action;n.scheduleLabel=agenda.label;
+   const occupied=new Set(team.filter(p=>p!==n&&isNpcVisible(p)).map(p=>p.x+','+p.y));
+   occupied.add(state.x+','+state.y);
+   for(const id of Object.keys(DOORS[state.map]||{}))occupied.add(id);
+   const next=Schedules.nextStep(tiles,{x:n.x,y:n.y},agenda,occupied,blocked);
+   if(next?.arrived){n.facing=agenda.dir;continue}
+   if(next){
+    n.motion={fromX:n.x,fromY:n.y,toX:next.x,toY:next.y,start:performance.now(),duration:290};
+    n.x=next.x;n.y=next.y;n.facing=next.dir;moved++;
+   }
+   continue;
+  }
+  // Unscheduled civilians retain the local wandering behavior from v0.13.
   const directions=['up','right','down','left'];
   const offset=((Math.floor(frame/96)+idx*3)%4+4)%4;
   for(let attempt=0;attempt<4;attempt++){
-   const dir=directions[(attempt+offset)%4];
-   const delta=dirDelta[dir],x=n.x+delta[0],y=n.y+delta[1];
+   const dir=directions[(attempt+offset)%4],delta=dirDelta[dir],x=n.x+delta[0],y=n.y+delta[1];
    if(Math.abs(x-n.roamOrigin.x)>2||Math.abs(y-n.roamOrigin.y)>2)continue;
-   if(x<=0||y<=0||x>=m.w-1||y>=m.h-1||blocked.has(tiles[y][x]))continue;
+   if(x<=0||y<=0||x>=m.w-1||y>=m.h-1||!Schedules.isPassable(tiles,x,y,blocked))continue;
    if(x===state.x&&y===state.y)continue;
    if(team.some(other=>other!==n&&isNpcVisible(other)&&other.x===x&&other.y===y))continue;
    if(DOORS[state.map]?.[x+','+y])continue;
