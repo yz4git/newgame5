@@ -205,6 +205,7 @@ footer{display:none}
 <script src="./src/story.js?v=__BUILD_ID__"></script>
 <script src="./src/music.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
+<script src="./src/creature-motion.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -214,8 +215,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!CreatureMotion||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -2033,18 +2034,19 @@ function drawMonster(m,x,y,scale=1,back=false){
  if(!m)return;
  const def=byId[m.id];if(!def)return;
  const active=state.battle?.action;
- const attacking=active&&((back&&active.who==='you')||(!back&&active.who==='enemy'));
+ const attacking=!!(active&&((back&&active.who==='you')||(!back&&active.who==='enemy')));
  const phase=active?clamp((performance.now()-active.started)/760,0,1):1;
- const effort=attacking&&phase<1?Math.sin(phase*Math.PI):0;
+ const attack=attacking&&phase<1?phase:null;
  const hit=!attacking&&active&&(MOVES[active.name]?.p||0)>0&&phase>.37&&phase<.73;
  const reaction=hit?Math.sin((phase-.37)/.36*Math.PI):0;
- const sway=Math.sin(frame*.049+m.id.length*1.8)*1.8;
+ const motion=CreatureMotion.pose(def,frame,attack,back);
  ctx.save();
- ctx.translate(x+effort*(back?6:-6)+reaction*(back?8:-8),y+sway-effort*8+reaction*4);
- ctx.scale((scale||1)*(1+effort*.075-reaction*.045),(scale||1)*(1-effort*.055+reaction*.068));
+ ctx.translate(x+motion.x+reaction*(back?8:-8),y+motion.y+reaction*4);
+ ctx.rotate(motion.rotation);
+ ctx.scale((scale||1)*motion.sx*(1-reaction*.045),(scale||1)*motion.sy*(1+reaction*.068));
  CreatureArt.draw(ctx,def,frame,back);
+ if(attacking)CreatureMotion.trail(ctx,def,frame,motion);
  if(reaction>.28){
-  // Small local impact sparks at the actual creature position; no full-screen flash.
   for(let i=0;i<5;i++){
    const a=i*1.256+frame*.05;
    ellipse(Math.cos(a)*43,-25+Math.sin(a)*36,2.5*reaction,2.5*reaction,'#fff0bbba');
