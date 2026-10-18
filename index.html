@@ -1563,6 +1563,41 @@ if(n.kind==='storyStairs'){
  for(let i=0;i<4;i++){const t=i*5;pixel(x-15+t/4,y-10+t,30-t/2,5,'#b99f80');pixel(x-13+t/4,y-8+t,25-t/2,1,'#f0d5af')}
  return;
 }
+if(n.kind==='regionalPuzzle'){
+ const p=RegionPuzzles.normalize(state.events?.regionPuzzles);
+ const mirror=/^mirror[012]$/.test(n.puzzleId);
+ const idx=mirror?Number(n.puzzleId.slice(-1)):-1;
+ const pillar=RegionPuzzles.SHRINE.order.indexOf(n.puzzleId);
+ const lit=state.map==='shrine'&&pillar>=0&&pillar<p.shrine.progress||
+   state.map==='lake'&&p.lake.lowered||state.map==='highland'&&p.highland.solved;
+ ellipse(x,y+13,13,5,'#203d4e8c');
+ if(mirror){
+  rounded(x-13,y-18,26,27,5,lit?'#9bc3ce':'#667f99');
+  rounded(x-9,y-15,18,18,4,'#c6d5d2');
+  const arrows=['↑','→','↓','←'];
+  txt(arrows[p.highland.angles[idx]],x,y,19,'#2e5d76','center');
+  ellipse(x,y-24,6,2,'#f5edc9');
+ }else if(n.puzzleId==='lever'){
+  pixel(x-12,y-9,24,18,'#7c98a4');
+  rounded(x-10,y-18,20,17,4,'#b0c6bf');
+  line(x,y-11,x+(p.lake.lowered?10:-8),y-27,'#6e6664',4);
+  ellipse(x+(p.lake.lowered?10:-8),y-27,5,5,'#e5c797');
+ }else if(n.puzzleId==='chart'){
+  rounded(x-13,y-15,26,23,3,'#e0d2aa');
+  for(let i=0;i<4;i++)ellipse(x-6+i*4,y-7+(i%2)*6,2,2,'#7696ad');
+  line(x-6,y-7,x+6,y-1,'#7495a5',1.5);
+ }else if(n.puzzleId==='lakeCache'||n.puzzleId==='shrineCache'){
+  rounded(x-14,y-13,28,24,4,'#ad976c');
+  pixel(x-11,y-11,22,4,'#ead29e');
+  pixel(x-2,y-7,4,12,'#d6bc87');
+ }else{
+  rounded(x-12,y-22,24,36,4,lit?'#afbfc3':'#657988');
+  rounded(x-8,y-17,16,23,3,lit?'#e4e3ce':'#bdc2b5');
+  txt(n.puzzleId==='moon'?'月':n.puzzleId==='wind'?'風':'星',x,y+1,13,lit?'#6b8d76':'#617990','center');
+  if(lit)ellipse(x,y-27+Math.sin(frame*.045)*3,5,5,n.color);
+ }
+ return;
+}
 if(n.kind==='secretRune'){
  const active=(state.events?.forestSecrets?.sequence||0)>ForestSecrets.RUNES.findIndex(r=>r.id===n.runeId);
  ellipse(x,y+11,13,5,'#213e4277');
@@ -2065,6 +2100,72 @@ function drawFieldForeground(camX,camY,x0,x1,y0,y1,heroX,heroY){
  }
 }
 
+function drawRegionPuzzles(camX,camY){
+ const phase=state.events?.regionPuzzles||RegionPuzzles.normalize(null),map=state.map;
+ const pos=(x,y)=>({x:x*T-camX+16,y:y*T-camY+16});
+ if(map==='lake'){
+  const lower=!!phase.lake?.lowered;
+  for(let i=0;i<RegionPuzzles.LAKE.bridge.length;i++){
+   const b=RegionPuzzles.LAKE.bridge[i],p=pos(b.x,b.y);
+   if(p.x<-40||p.x>W+40||p.y<-40||p.y>H+40)continue;
+   if(lower){
+    pixel(p.x-14,p.y-13,28,26,'#adb8a9bb');
+    for(let n=0;n<3;n++)line(p.x-12,p.y-7+n*8,p.x+13,p.y-7+n*8,'#e1d9b5',2.3);
+    ellipse(p.x+Math.sin(frame*.042+i)*12,p.y+10,3,1.6,'#cdeadeaa');
+   }else{
+    for(let n=0;n<3;n++){
+     const offset=(frame*.36+n*10+i*5)%32;
+     line(p.x-14+offset,p.y-6+n*8,p.x-7+offset,p.y-6+n*8,'#b2e5df79',1.5);
+    }
+   }
+  }
+  const p=pos(RegionPuzzles.LAKE.lever.x,RegionPuzzles.LAKE.lever.y);
+  if(p.x>-40&&p.x<W+40&&p.y>-40&&p.y<H+40){
+   ellipse(p.x,p.y+13,15,6,'#547d86aa');
+   line(p.x+18,p.y-3,p.x+37,p.y-36,'#d4b48e',2.3);
+   ellipse(p.x+36,p.y-38,4,4,lower?'#aed7bb':'#b5bdc5');
+  }
+ }else if(map==='shrine'){
+  const gate=RegionPuzzles.SHRINE.gate,p=pos(gate.x,gate.y),open=!!phase.shrine?.open;
+  if(p.x>-55&&p.x<W+55&&p.y>-55&&p.y<H+55){
+   if(!open){
+    rounded(p.x-15,p.y-20,30,36,4,'#647285');
+    line(p.x,p.y-14,p.x,p.y+10,'#d5c5a3',3);
+    ellipse(p.x,p.y-1,6,7,'#9f9ca7');
+   }else{
+    for(let i=0;i<8;i++){
+     const angle=i*Math.PI/4+frame*.019;
+     ellipse(p.x+Math.cos(angle)*14,p.y+Math.sin(angle)*14,2,2,'#f4dfbabb');
+    }
+   }
+  }
+  const unlocked=phase.shrine?.progress||0;
+  for(let i=0;i<RegionPuzzles.SHRINE.pillars.length;i++){
+   if(i>=unlocked)continue;
+   const item=RegionPuzzles.SHRINE.pillars[i],p=pos(item.x,item.y);
+   if(p.x<-50||p.x>W+50||p.y<-50||p.y>H+50)continue;
+   ellipse(p.x,p.y-13+Math.sin(frame*.03+i)*3,16,6,'#f3e6c83f');
+  }
+ }else if(map==='highland'){
+  const stars=RegionPuzzles.HIGHLAND.stars,angles=phase.highland?.angles||[0,0,0];
+  for(let i=0;i<stars.length;i++){
+   if(angles[i]!==RegionPuzzles.HIGHLAND.orientations[i])continue;
+   const a=pos(stars[i].x,stars[i].y);
+   const dest=i<2?pos(stars[i+1].x,stars[i+1].y):
+     pos(RegionPuzzles.HIGHLAND.chart.x,RegionPuzzles.HIGHLAND.chart.y);
+   line(a.x,a.y-11,dest.x,dest.y-11,'#a3d8e888',3);
+   line(a.x,a.y-11,dest.x,dest.y-11,'#e6f0cc',1);
+  }
+  if(phase.highland?.solved){
+   const p=pos(11,10);
+   for(let i=0;i<8;i++){
+    const a=i*.785+frame*.01;
+    ellipse(p.x+Math.cos(a)*27,p.y-22+Math.sin(a)*20,2,2,'#fff2c5c4');
+   }
+  }
+ }
+}
+
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -2075,6 +2176,7 @@ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-c
 WorldDetail.draw(ctx,state.map,maps[state.map],camX,camY,{x0,x1,y0,y1},frame,T);
 WorldDetail.districtFeatures(ctx,state.map,camX,camY,frame,T);
 drawScenery(camX,camY,x0,x1,y0,y1);
+drawRegionPuzzles(camX,camY);
 if(state.map==='forest'){
  const gate=ForestSecrets.GATE,gx=gate.x*T-camX,gy=gate.y*T-camY;
  if(!state.events?.forestSecrets?.gateOpen){
