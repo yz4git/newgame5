@@ -38,7 +38,7 @@ assert(D.districtFeatures(ctx,'village',0,0,60)>0);
 const district=out.join('|');
 assert(out.length>20,'Town square and gardens add visible authored floor art');
 out.length=0;
-assert(D.districtFeatures(ctx,'forest',0,0,60)>0);
+assert(D.districtFeatures(ctx,'forest',180,200,60)>0,'Forest clearing art renders after scrolling to the actual location');
 assert.notEqual(out.join('|'),district,'Forest clearings use different geometry');
 assert.equal(D.districtFeatures(ctx,'lab',0,0,60),0);
 assert.equal(D.districtFeatures(null,'village',0,0,60),0);
