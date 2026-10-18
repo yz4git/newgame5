@@ -47,6 +47,8 @@ vm.runInNewContext(fs.readFileSync('src/creature-motion.js','utf8'),context,{tim
 assert(context.AstraCreatureMotion,'Per-creature animation profiles loaded');
 vm.runInNewContext(fs.readFileSync('src/world-detail.js','utf8'),context,{timeout:5000,filename:'world-detail.js'});
 assert(context.AstraWorldDetail,'Tile overlay scene detailing loaded');
+vm.runInNewContext(fs.readFileSync('src/map-layout.js','utf8'),context,{timeout:5000,filename:'map-layout.js'});
+assert(context.AstraMapLayout,'Hand-authored village and forest layout module loaded');
 vm.runInNewContext(fs.readFileSync('src/battle-backdrops.js','utf8'),context,{timeout:5000,filename:'battle-backdrops.js'});
 assert(context.AstraBattlebacks,'Battle backgrounds loaded');
 vm.runInNewContext(fs.readFileSync('src/field-sprites.js','utf8'),context,{timeout:5000,filename:'field-sprites.js'});
