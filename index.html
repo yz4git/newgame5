@@ -651,6 +651,7 @@ function beginIntro(){
  box.append(field,confirm);consoleEl.appendChild(box);
 }
 function startBedroom(name){
+ startStoryEffect('star',null,1650);
  state.story.playerName=name;
  const start=Story.startAt();state.map=start.id;state.x=start.x;state.y=start.y;state.dir=start.dir;
  follower={map:start.id,x:start.x,y:start.y+1};world();save();
@@ -684,7 +685,7 @@ function storyWarpAllowed(destination){
 function afterStoryWarp(previous,destination){
  const stage=storyStage();
  if(previous==='observatory'&&destination.id==='lake'&&stage===8&&!state.events.emergencyCall){
-  state.events.emergencyCall=true;save();
+  state.events.emergencyCall=true;save();startStoryEffect('call',null,2250);
   dialogSequence('アストラギア / 着信',[
    '観測小屋を出たところで、ギアが突然鳴り始めた。',
    'ピピピ……！　博士から緊急連絡が入った。',
@@ -715,6 +716,7 @@ function afterStoryWarp(previous,destination){
 }
 function beginRivalEncounter(){
  if(storyStage()!==8)return false;
+ startStoryEffect('rival',null,1600);
  storyStep(9);
  const rivalId=Story.rivalFor(state.story.starterId);
  dialogSequence('謎の旅人',[
@@ -738,7 +740,7 @@ function storyStarter(n){
 function storyMother(){
  const stage=storyStage();
  if(stage===1){
-  storyStep(2);
+  storyStep(2);startStoryEffect('wave','家族のミドリ');
   dialogSequence('家族のミドリ',[
    '「おはよう、'+state.story.playerName+'！ アオイ博士から伝言が届いているよ」',
    '「最近、湖のそばで不思議な光が見つかったんだって。研究所へ行ってみない？」',
@@ -746,7 +748,7 @@ function storyMother(){
   ],()=>world());return;
  }
  if(stage===5){
-  storyStep(6);state.story.gear=true;save();
+  storyStep(6);state.story.gear=true;save();startStoryEffect('gift','家族のミドリ',1600);
   dialogSequence('家族のミドリ',[
    '「あら、すてきな相棒ね！ もう一緒に旅をするんだ」',
    '「これを持っておいき。地図と時計が入ったアストラギアよ」',
@@ -757,6 +759,7 @@ function storyMother(){
  dialog('家族のミドリ',stage<5?'博士は研究所で待っていると思うよ。':'いつでも帰っておいで。相棒と一緒に、よい旅を！');
 }
 function storyInspector(){
+ if(storyStage()===10)startStoryEffect('surprise','研究所の調査員');
  if(storyStage()!==10){dialog('研究所の調査員','研究所の安全を確認しているところです。');return}
  dialog('研究所の調査員','「お帰りなさい！ 研究所で見慣れない旅人が目撃されました。\n途中で似た人物に会いませんでしたか？」',[
   {text:'カイという名前だった',on:()=>identifyRival('カイ')},
@@ -775,7 +778,7 @@ function identifyRival(name){
 function storyProfessor(n){
  const stage=storyStage();
  if(stage===2){
-  storyStep(3);
+  storyStep(3);startStoryEffect('wave','アオイ博士',1500);
   dialogSequence('アオイ博士',[
    '「来てくれたんだね！ 今、とても珍しい光を調べているんだ」',
    '「青凪の湖にいる観測者から、星のかけらを見つけたと連絡があってね」',
@@ -786,7 +789,7 @@ function storyProfessor(n){
  if(stage===3){dialog('アオイ博士','端末が3つあるよ。火・草・水の中から、気になる子を選んでね。');return}
  if(stage===10){
   if(!state.events.inspectionComplete){dialog('アオイ博士','「戻ってきたんだね！ まず調査員の聞き取りに答えてくれるかな？」');return}
-  storyStep(11);state.story.parcel=false;save();
+  storyStep(11);state.story.parcel=false;save();startStoryEffect('surprise','アオイ博士',1600);
   dialogSequence('アオイ博士',[
    '「戻ったのか！ 無事でよかった。緊急連絡が届いて心配していたんだ」',
    'かばんから星のかけらを取り出した。\n博士はその輝きを注意深く調べている。',
@@ -802,7 +805,7 @@ function storyProfessor(n){
 function storyScholar(){
  const stage=storyStage();
  if(stage===7){
-  storyStep(8);state.story.parcel=true;state.story.dex=true;save();
+  storyStep(8);state.story.parcel=true;state.story.dex=true;save();startStoryEffect('gift','観測者 ユラ',1600);
   dialogSequence('観測者 ユラ',[
    '「遠いところからありがとう。君がアオイ博士の頼んだ旅人だね」',
    '「昨夜、この湖に青白い光が落ちたんだ。残されていたのは、この小さな結晶……」',
@@ -817,6 +820,7 @@ function storyGuide(){
  const stage=storyStage();
  if(stage===11){
   if(!state.story.practiceItems){state.story.practiceItems=true;state.bag.orb+=5;save()}
+  startStoryEffect('cheer','旅の友 ナギ',1500);
   dialogSequence('旅の友 ナギ',[
    '「本当の冒険の前に、捕獲を試してみよう！」',
    '「相手のHPが低いほど捕まえやすい。状態異常も役に立つよ」',
@@ -838,7 +842,7 @@ screen('starter');ui('CHOOSE YOUR PARTNER','アオイ博士「旅の最初の仲
 function pick(id){
  const m=makeMonster(id,5);state.party=[m];state.caught[id]=1;state.seen[id]=1;state.quest='route';
  if(state.story?.stage===3){
-  state.story.starterId=id;Story.advance(state.story,4);
+  state.story.starterId=id;Story.advance(state.story,4);startStoryEffect('cheer','アオイ博士',1550);
   state.x=8;state.y=9;state.dir='up';follower={map:'lab',x:8,y:10};
   world();save();toast(byId[id].name+' が相棒になった！');sfx('ok');
   dialogSequence('アオイ博士',[
@@ -1144,7 +1148,7 @@ const boxName=state.party.length<6?null:Engine.putInStorage(state.boxes,m);
 if(!boxName)state.party.push(m);
 state.caught[m.id]=(state.caught[m.id]||0)+1;
  const tutorialComplete=b.tutorial&&storyStage()===11;
- if(tutorialComplete){storyStep(12);state.events.captureTutorialComplete=true}
+ if(tutorialComplete){storyStep(12);state.events.captureTutorialComplete=true;startStoryEffect('cheer','旅の友 ナギ',1800)}
  resetBattleStats();state.battle=null;save();sfx('catch');
  dialog('CAPTURE','カチッ！ '+byId[m.id].name+' をゲット！'+(boxName?'\nパーティがいっぱいなので '+boxName+' に預けた。':'')+
  (tutorialComplete?'\n\nナギ「やったね！ これで自分の力で仲間を増やせるよ！」':''),[{text:'▶ 冒険へ',on:()=>world()}]);}
