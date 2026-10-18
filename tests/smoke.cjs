@@ -292,4 +292,15 @@ assert.match(html,/function drawScenery/,'Biome-specific terrain adornment is pr
 assert.match(html,/const LANDMARKS=/,'Every region has handcrafted landmarks');
 assert.match(html,/src\/creature-art\.js/,'Species artwork module is included in the page');
 assert.match(html,/function drawHero/,'Directional hero rendering is present');
+const beforePotions=g.get().bag.potion||0, beforeOrbs=g.get().bag.orb||0;
+g.get().story.stage=12;
+g.switchMap({id:'forest',x:5,y:15,dir:'up'});
+g.interact();
+assert.equal(g.get().bag.potion,beforePotions+2,'The western optional forest loop rewards two potions');
+g.world();
+g.switchMap({id:'forest',x:23,y:21,dir:'up'});
+g.interact();
+assert.equal(g.get().bag.orb,beforeOrbs+3,'The eastern forest loop rewards three orbs');
+assert(g.get().collected['forest/東の森の星玉の小箱'],'Hidden item collection is persisted');
+assert(context.AstraMapLayout.reachable(g.maps.forest,{x:13,y:1},{x:23,y:20}),'Eastern cache remains reachable');
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
