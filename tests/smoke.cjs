@@ -47,6 +47,8 @@ vm.runInNewContext(fs.readFileSync('src/battle-backdrops.js','utf8'),context,{ti
 assert(context.AstraBattlebacks,'Battle backgrounds loaded');
 vm.runInNewContext(fs.readFileSync('src/field-sprites.js','utf8'),context,{timeout:5000,filename:'field-sprites.js'});
 assert(context.AstraFieldSprites,'Field character art loaded');
+vm.runInNewContext(fs.readFileSync('src/npc-schedules.js','utf8'),context,{timeout:5000,filename:'npc-schedules.js'});
+assert(context.AstraSchedules,'NPC schedules loaded');
 vm.runInNewContext(src,context,{timeout:5000,filename:'game.js'});
 const g=context.__testAPI;
 assert(g);
@@ -221,7 +223,7 @@ g.switchMap({id:'village',x:12,y:17,dir:'down'});
 const wander=g.NPCS.village.find(n=>n.name==='花の世話人');
 assert(wander&&wander.kind==='talk','A roaming town resident is available');
 const oldX=wander.x,oldY=wander.y;
-assert(g.ambientNpcStep(true)>0,'Town residents walk when the field is active');
+assert(g.ambientNpcStep(true,1)>0,'Town residents follow their dusk routine');
 assert(Math.abs(wander.x-oldX)+Math.abs(wander.y-oldY)<=1,'Residents walk one tile per turn');
 g.get().x=wander.x;g.get().y=wander.y+1;g.get().dir='up';g.world();
 g.interact();assert.equal(g.get().scene,'dialog','Walking residents respond to interaction');
