@@ -25,7 +25,100 @@ function eyes(c,back,style='friendly',open=true){
  if(narrow){L(c,[[-22,-29],[-11,-24]],'#30414c',2);L(c,[[11,-24],[22,-29]],'#30414c',2)}
 }
 function fur(c,x,y,body,size=5){P(c,[[x-size,y+size],[x,y-size],[x+size,y+size]],body)}
-function draw(c,s,frame=0,back=false){
+function battleFrame(c,s,progress,back){
+ // Six genuine articulation keys: anticipate, wind up, extend, impact, recover, rest.
+ const key=Math.max(0,Math.min(5,Math.floor(Math.max(0,progress)*6)));
+ const power=[.08,.25,.72,1,.50,.12][key],spread=power*16,B=s.color,A=s.accent;
+ const side=back?-1:1;
+ switch(s.shape){
+ case 'fox':
+  for(let i=0;i<3;i++){
+   const py=-30-i*13,px=35+i*9*side+spread*side;
+   P(c,[[px-11,py+11],[px+side*(4+spread),py-15-spread],[px+side*12,py+4]],i===1?'#ffdb9a':A);
+  }
+  E(c,-23-spread*.4,7,9,4,B);E(c,23+spread*.4,7,9,4,B);break;
+ case 'deer':
+  for(const a of [-1,1]){
+   leaf(c,a*27,-61,a*(12+spread),-10-spread,A);
+   L(c,[[a*18,-46],[a*(20+power*8),-72-power*8]],'#749771',3);
+  }
+  E(c,0,-20-spread*.2,7+power*4,5+power*4,'#f6edc3');break;
+ case 'otter':
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2+key*.48;
+   E(c,Math.cos(a)*(30+spread),-14+Math.sin(a)*(30+spread),4+power*3,2+power*3,'#d7f4e9');
+  }
+  P(c,[[-33,-26],[-51-spread,-48],[-40,-16]],A);
+  P(c,[[33,-26],[51+spread,-48],[40,-16]],A);break;
+ case 'rabbit':
+  for(const side of [-1,1]){
+   P(c,[[side*10,-39],[side*(12+spread*.32),-91-spread],[side*30,-67],[side*19,-40]],B);
+   P(c,[[side*18,-62],[side*(18+power*3),-77-spread*.6],[side*22,-57]],A);
+   E(c,side*(19+spread*.3),9-spread*.3,12,6,B);
+  }
+  break;
+ case 'mouse':
+  L(c,[[18,-4],[39+spread,8],[62+spread,-15],[80+spread,-7-spread*.3]],'#d5b18f',4+power*3);
+  E(c,-25-spread*.35,8,11,5,B);E(c,25+spread*.35,8,11,5,B);break;
+ case 'bird':
+  for(const side of [-1,1]){
+   const reach=60+spread*1.2;
+   P(c,[[side*19,-30],[side*reach,-65-spread],[side*(reach+17),-25],[side*30,-8]],A);
+   for(let i=0;i<3;i++)P(c,[[side*(35+i*9),-15],[side*(45+i*10+spread),5],[side*27,-1]],B);
+  }
+  break;
+ case 'frog':
+  for(const side of [-1,1]){
+   E(c,side*(27+spread*.5),9-spread*.42,20,9,B);
+   E(c,side*(28+spread*.5),-33,11+power*3,14+power*3,A);
+  }
+  E(c,0,-2,25+spread*.5,12-power*3,A);break;
+ case 'squirrel':
+  P(c,[[23,3],[40+spread,-17],[31+spread,-41],[57+spread,-58],[42+spread,-74],[73+spread,-57],[57+spread,-39]],'#ffec92');
+  for(let i=0;i<4;i++){
+   const x=side*(35+i*9);
+   L(c,[[x,-51+i*4],[x+side*(8+power*7),-61+i*4],[x+side*14,-52+i*4]],'#fef0a6',2.8);
+  }
+  break;
+ case 'moth':
+  for(const side of [-1,1]){
+   P(c,[[side*9,-28],[side*(56+spread),-75-spread],[side*(71+spread),-11],[side*21,0]],A);
+   E(c,side*(40+spread*.45),-35,12+power*3,8+power*2,'#fce1db');
+  }
+  break;
+ case 'beetle':
+  P(c,[[-28,-32],[-18,-64-spread],[0,-49],[18,-64-spread],[28,-32]],'#c5c5c0');
+  for(let side of [-1,1]){
+   L(c,[[side*30,-9],[side*(50+spread),-30],[side*(62+spread),-11]],'#80899b',5+power);
+   E(c,side*(29+spread*.25),-12,9+power*2,6+power*2,B);
+  }
+  break;
+ case 'bat':
+  for(const side of [-1,1]){
+   const reach=62+spread;
+   P(c,[[side*12,-30],[side*reach,-80-spread],[side*(reach+8),-17],[side*41,-10],[side*14,-5]],B);
+   L(c,[[side*20,-23],[side*(39+spread),-58-spread],[side*(reach-8),-16]],A,3);
+  }
+  break;
+ case 'flower':
+  for(let i=0;i<8;i++){
+   const a=i*6.283185/8+progress*.3,r=32+spread;
+   E(c,Math.cos(a)*r,-52+Math.sin(a)*(25+spread),10+power*7,12+power*8,i%2?A:B);
+  }
+  E(c,0,-51,19+power*9,19+power*9,'#eed382');
+  for(let i=0;i<6;i++){const a=i*6.283185/6;E(c,Math.cos(a)*9,-51+Math.sin(a)*9,2,2,'#f9efc3')}
+  break;
+ case 'dragon':
+  for(const side of [-1,1]){
+   const reach=65+spread;
+   P(c,[[side*14,-28],[side*reach,-90-spread],[side*(reach+10),-34],[side*38,0]],'#a8c7bd');
+   P(c,[[side*22,-31],[side*(reach-9),-77-spread],[side*(reach-1),-34],[side*36,-7]],A);
+   P(c,[[side*17,-48],[side*24,-96-spread],[side*34,-51]],'#b5dfce');
+  }
+  E(c,0,-17,11+power*5,9+power*5,'#fff2cf80');break;
+ }
+}
+function draw(c,s,frame=0,back=false,attackProgress=null){
  if(!s||!SHAPES.includes(s.shape))return false;
  const id=s.id,advanced=['flaro','leafaro','aquaron'].includes(id);
  const B=s.color,A=s.accent;
@@ -270,6 +363,7 @@ function draw(c,s,frame=0,back=false){
   break;
  }
  }
+ if(attackProgress!==null&&Number.isFinite(attackProgress))battleFrame(c,s,attackProgress,back);
  // Crisp silhouette rim, belly depth, small specular texture, and animation phase.
  if(s.shape!=='bird'&&s.shape!=='flower'){
   for(let i=0;i<3;i++){
