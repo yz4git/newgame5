@@ -1950,6 +1950,39 @@ function drawStoryEffect(){
   }
  }
 }
+function drawFieldForeground(camX,camY,x0,x1,y0,y1,heroX,heroY){
+ // Detail that exists in front of walkers: tall-grass fringe, tree crowns, and shore reeds.
+ // Restrict overdraw to tiles near a character for mobile Canvas performance.
+ const name=state.map,tiles=maps[name],nearActors=(NPCS[name]||[]).filter(isNpcVisible);
+ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+  const type=tiles[y]?.[x],px=x*T-camX,py=y*T-camY;
+  const near=Math.abs(x-heroX)<=2&&Math.abs(y-heroY)<=2||
+   nearActors.some(actor=>Math.abs(x-actor.x)<=1&&Math.abs(y-actor.y)<=1);
+  if(!near)continue;
+  if(type===2){
+   const sway=Math.sin(frame*.07+x*.7+y)*2;
+   // Grasses cover just the ankles; hands and faces are never masked.
+   for(let j=0;j<5;j++){
+    const gx=px+3+j*6,by=py+T+2;
+    line(gx,by,gx-3+sway,by-11-(j%3)*3,'#316d4d',2.8);
+    line(gx+3,by,gx+4+sway,by-9,'#8bbd79',2.0);
+   }
+  }else if(type===4&&y>=heroY&&Math.abs(y-heroY)<2&&Math.abs(x-heroX)<2){
+   // Lower tree branches are in front of anyone walking behind the trunk.
+   ellipse(px+16,py+9,19,9,'#356c4db8');
+   ellipse(px+9,py+7,10,6,'#518a5ab0');
+   ellipse(px+24,py+9,10,7,'#7aac6b96');
+   for(let j=0;j<3;j++)pixel(px+6+j*8,py+4+(j%2)*3,2,2,'#d1e6a385');
+  }else if(type===3&&name==='lake'&&rand(x,y,37)>.86){
+   const sx=px+5+(rand(x,y,50)*23)|0,by=py+T;
+   for(let j=0;j<3;j++){
+    const w=Math.sin(frame*.04+j+x)*2;
+    line(sx+j*4,by,sx+j*4+w,by-13-j*4,'#69988a',1.6);
+   }
+  }
+ }
+}
+
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -1963,18 +1996,32 @@ if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
-for(const n of NPCS[state.map]){if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;drawNpc(n,camX,camY,beat)}
-if(beat&&!(NPCS[state.map]||[]).some(n=>n.name===beat.name)){
- const actorX=beat.x*T-camX+16,actorY=beat.y*T-camY+15;
- FieldSprites.draw(ctx,actorX,actorY,beat.facing,beat.step,beat.costume,null,false);
- if(beat.emote==='rival'||beat.emote==='surprise'){
-  ellipse(actorX,actorY-39,9,9,'#f7dca9');
-  txt('!',actorX,actorY-33,13,'#425b69','center');
- }
+// Y-order painter's algorithm: actors nearer the camera can cover those behind.
+const layers=[];
+for(const n of NPCS[state.map]){
+ if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;
+ if(!isNpcVisible(n))continue;
+ const interp=posTween(n.motion),point=beat&&beat.name===n.name?beat:interp&&interp.t<1?interp:n;
+ layers.push({y:point.y,draw:()=>drawNpc(n,camX,camY,beat)});
 }
-if(state.party.length){const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
-drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,state.dir==='up')}
-drawHero(px*T-camX+16,py*T-camY+19,state.dir);
+if(beat&&!(NPCS[state.map]||[]).some(n=>n.name===beat.name)){
+ layers.push({y:beat.y,draw:()=>{
+  const actorX=beat.x*T-camX+16,actorY=beat.y*T-camY+15;
+  FieldSprites.draw(ctx,actorX,actorY,beat.facing,beat.step,beat.costume,null,false);
+  if(beat.emote==='rival'||beat.emote==='surprise'){
+   ellipse(actorX,actorY-39,9,9,'#f7dca9');
+   txt('!',actorX,actorY-33,13,'#425b69','center');
+  }
+ }});
+}
+if(state.party.length){
+ const pos=follower.map===state.map?(posTween(companionMove)||follower):{x:px,y:py+1};
+ layers.push({y:pos.y,draw:()=>drawMonster(state.party[0],pos.x*T-camX+16,pos.y*T-camY+28,.30,state.dir==='up')});
+}
+layers.push({y:py,draw:()=>drawHero(px*T-camX+16,py*T-camY+19,state.dir)});
+layers.sort((a,b)=>a.y-b.y);
+for(const layer of layers)layer.draw();
+drawFieldForeground(camX,camY,x0,x1,y0,y1,Math.floor(px),Math.floor(py));
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
 if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47)*H+frame*.15)%H;ellipse(x,y,1.4,1.4,'#f5e5c996')}}
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
