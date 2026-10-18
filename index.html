@@ -208,6 +208,7 @@ footer{display:none}
 <script src="./src/creature-motion.js?v=__BUILD_ID__"></script>
 <script src="./src/world-detail.js?v=__BUILD_ID__"></script>
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
+<script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -217,8 +218,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -388,6 +389,7 @@ if(id==='route'){rect(20,10,4,4,1)}
 if(id==='shrine'){rect(8,0,4,3,1)}
 // Hand-authored village and forest districts preserve permanent quest markers.
 MapLayout.apply(id,a);
+if(id==='forest')ForestSecrets.prepare(a,false);
 maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
@@ -424,7 +426,12 @@ forest:[
 {x:13,y:22,name:'精霊の泉',kind:'spring',color:'#7bc6c4',say:'澄んだ光が体に満ちていく…'},
 {x:8,y:16,name:'森の薬草師',kind:'talk',color:'#91ac82',say:'森の草むらには、よく効く薬草が混じっていることがあるよ。',sayByPhase:['日差しが届く場所に新芽があるよ。','夕方の森は迷いやすい。目印を忘れずにね。','夜のキノコは光るけど、食べられないから気をつけて。']},
 {x:5,y:14,name:'西の木陰の薬草包み',kind:'item',item:'potion',amount:2,color:'#9ec6aa'},
-{x:23,y:20,name:'東の森の星玉の小箱',kind:'item',item:'orb',amount:3,color:'#e9c888'}
+{x:23,y:20,name:'東の森の星玉の小箱',kind:'item',item:'orb',amount:3,color:'#e9c888'},
+{x:10,y:8,name:'葉の記憶石',kind:'secretRune',runeId:'leaf',color:'#a2d598'},
+{x:7,y:16,name:'しずくの記憶石',kind:'secretRune',runeId:'dew',color:'#8dd1da'},
+{x:20,y:20,name:'星の記憶石',kind:'secretRune',runeId:'star',color:'#f4d6a0'},
+{x:16,y:21,name:'月光の花',kind:'nightBloom',color:'#cbb3e1'},
+{x:3,y:11,name:'蔦の奥の忘れ物',kind:'item',item:'ether',amount:2,color:'#d1ddb6',secretOnly:true}
 ],
 shrine:[
 {x:9,y:6,facing:'down',vision:3,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
@@ -527,6 +534,7 @@ function makeMonster(id,level){return Engine.makeCreature(id,level,byId,MOVES)}
 function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
 function fresh(){return {scene:'title',map:'bedroom',x:7,y:8,dir:'down',party:[],bag:{orb:0,potion:1,herb:0,ether:0,powerCharm:0,guardCharm:0,speedCharm:0},money:300,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},story:Story.fresh(),visited:{bedroom:true},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
 let state=fresh();
+function syncForestSecrets(){ForestSecrets.prepare(maps.forest,state.events?.forestSecrets)}
 function save(){try{if(state.party.length||state.story?.playerName){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&maps[x.map]&&(x.party?.length||x.story?.playerName)){
  const migrated=Engine.migrateSave(x,byId,MOVES);
@@ -534,6 +542,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
  state.bag={...fresh().bag,...(x.bag||{})};
  state.story=Story.normalize(x.story);
  state.visited={...fresh().visited,...(x.visited||{}),[state.map]:true};
+ state.events={...(migrated.events||{}),...(x.events||{})};syncForestSecrets();
  follower={map:state.map,x:state.x,y:state.y+1};
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
@@ -659,6 +668,7 @@ function beginIntro(){
  box.append(field,confirm);consoleEl.appendChild(box);
 }
 function startBedroom(name){
+ state.events.forestSecrets=ForestSecrets.normalize(null);syncForestSecrets();
  startStoryEffect('star',null,1650);
  state.story.playerName=name;
  const start=Story.startAt();state.map=start.id;state.x=start.x;state.y=start.y;state.dir=start.dir;
@@ -974,6 +984,9 @@ if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'
 return null}
 function switchMap(e){const previous=state.map;mapTransition={started:performance.now(),from:previous,to:e.id,indoor:mapMeta[e.id].theme==='interior'||mapMeta[previous].theme==='interior'};state.map=e.id;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
+if(state.map==='forest'&&tx===ForestSecrets.GATE.x&&ty===ForestSecrets.GATE.y){
+ dialog('蔦の隠し道',ForestSecrets.next(state.events.forestSecrets,'gate',worldPhase()).text);return
+}
 const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind==='item'&&state.collected[state.map+'/'+p.name]));if(n){
  if(!['sign','item','storyDiary','storyStairs','starter','spring'].includes(n.kind)){
   const opposite={up:'down',down:'up',left:'right',right:'left'};
@@ -984,6 +997,17 @@ if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
 function npc(n,automatic=false){
+if(n.kind==='secretRune'||n.kind==='nightBloom'){
+ if(storyStage()<12){dialog(n.name,'星の光は、旅立ちのあとで目覚めるという。');return}
+ const action=ForestSecrets.next(state.events.forestSecrets,n.kind==='nightBloom'?'bloom':n.runeId,worldPhase());
+ state.events.forestSecrets=action.progress;
+ if(action.kind==='unlocked'){syncForestSecrets();startStoryEffect('star',null,1400);sfx('catch')}
+ else if(action.kind==='bloom')sfx('catch');
+ else sfx(action.kind==='hint'?'bad':'ok');
+ if(action.reward)state.bag[action.reward.item]=(state.bag[action.reward.item]||0)+action.reward.count;
+ if(action.kind==='rune'||action.kind==='unlocked'||action.kind==='bloom')save();
+ dialog(n.name,action.text);return
+}
 if(n.kind==='storyMom'){storyMother();return}
 if(n.kind==='storyStairs'){dialog(n.name,'2階には自分の部屋がある。');return}
 if(n.kind==='storyDiary'){dialog(n.name,'まだ何も書かれていない。\nこの旅の思い出で、いつかいっぱいになるだろう。');return}
@@ -1476,6 +1500,7 @@ function drawBuilding(x,y,kind,camX,camY){
  }
 }
 function isNpcVisible(n){
+ if(n.secretOnly)return !!state.events?.forestSecrets?.gateOpen;
  if(n.kind==='storyInspector')return storyStage()===10;
  return true;
 }
@@ -1507,6 +1532,27 @@ if(n.kind==='storyDiary'){
 }
 if(n.kind==='storyStairs'){
  for(let i=0;i<4;i++){const t=i*5;pixel(x-15+t/4,y-10+t,30-t/2,5,'#b99f80');pixel(x-13+t/4,y-8+t,25-t/2,1,'#f0d5af')}
+ return;
+}
+if(n.kind==='secretRune'){
+ const active=(state.events?.forestSecrets?.sequence||0)>ForestSecrets.RUNES.findIndex(r=>r.id===n.runeId);
+ ellipse(x,y+11,13,5,'#213e4277');
+ rounded(x-10,y-17,20,27,4,active?'#a6c9a7':'#768c89');
+ rounded(x-7,y-13,14,18,3,active?'#dce8bf':'#b4c2b5');
+ txt(n.runeId==='leaf'?'葉':n.runeId==='dew'?'水':'星',x,y+1,12,active?'#387e60':'#65788a','center');
+ if(active)for(let k=0;k<4;k++){const a=k*Math.PI/2+frame*.025;ellipse(x+Math.cos(a)*17,y-6+Math.sin(a)*16,2,2,n.color)}
+ return;
+}
+if(n.kind==='nightBloom'){
+ const active=worldPhase()>=1,bloomed=!!state.events?.forestSecrets?.bloomClaimed;
+ ellipse(x,y+11,12,5,'#395d5177');
+ line(x,y+9,x,y-11,'#659a78',3);
+ for(let k=0;k<6;k++){
+  const a=k*Math.PI/3+frame*.008;
+  ellipse(x+Math.cos(a)*(active?10:5),y-11+Math.sin(a)*(active?8:4),active?6:3,active?5:3,
+   active&&!bloomed?'#d3b7ec':'#839e9b');
+ }
+ ellipse(x,y-11,4,4,active&&!bloomed?'#fff2b6':'#c4d1c3');
  return;
 }
 if(n.kind==='item'){ellipse(x,y+12,11,4,'#334a4d55');ellipse(x,y-5,8+Math.sin(frame*.07)*2,9,'#f2d2a8');ellipse(x,y-5,4,5,'#8f9fbe');for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.06;ellipse(x+Math.cos(a)*12,y-5+Math.sin(a)*12,2,2,'#f5efbd')}return}
@@ -2000,6 +2046,19 @@ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-c
 WorldDetail.draw(ctx,state.map,maps[state.map],camX,camY,{x0,x1,y0,y1},frame,T);
 WorldDetail.districtFeatures(ctx,state.map,camX,camY,frame,T);
 drawScenery(camX,camY,x0,x1,y0,y1);
+if(state.map==='forest'){
+ const gate=ForestSecrets.GATE,gx=gate.x*T-camX,gy=gate.y*T-camY;
+ if(!state.events?.forestSecrets?.gateOpen){
+  pixel(gx,gy,32,32,'#234f4077');
+  for(let j=0;j<5;j++){const dx=gx+4+j*5;
+   line(dx,gy+32,dx+Math.sin(frame*.026+j)*4,gy+2,'#60966c',3);
+   ellipse(dx+2,gy+13+j%3*4,5,2.5,'#9cbc77');
+  }
+ }else if(gx>-60&&gx<W+60&&gy>-60&&gy<H+60){
+  for(let j=0;j<6;j++){const a=j*Math.PI/3+frame*.011;
+   ellipse(gx+16+Math.cos(a)*15,gy+16+Math.sin(a)*13,1.6,1.6,'#cde9be9b')}
+ }
+}
 drawLandmarks(camX,camY);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
