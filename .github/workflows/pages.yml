@@ -42,10 +42,12 @@ jobs:
           node tests/story.cjs
           node tests/music.cjs
           node tests/creature-art.cjs
+          node tests/creature-motion.cjs
           node tests/battle-backdrops.cjs
           node tests/field-sprites.cjs
           node tests/npc-schedules.cjs
           node tests/cinematics.cjs
+          node tests/world-detail.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -59,6 +61,8 @@ jobs:
           cp src/story.js _site/src/
           cp src/music.js _site/src/
           cp src/creature-art.js _site/src/
+          cp src/creature-motion.js _site/src/
+          cp src/world-detail.js _site/src/
           cp src/battle-backdrops.js _site/src/
           cp src/field-sprites.js _site/src/
           cp src/npc-schedules.js _site/src/
