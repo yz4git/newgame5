@@ -209,6 +209,7 @@ footer{display:none}
 <script src="./src/world-detail.js?v=__BUILD_ID__"></script>
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
 <script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
+<script src="./src/region-puzzles.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -218,8 +219,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -390,6 +391,7 @@ if(id==='shrine'){rect(8,0,4,3,1)}
 // Hand-authored village and forest districts preserve permanent quest markers.
 MapLayout.apply(id,a);
 if(id==='forest')ForestSecrets.prepare(a,false);
+RegionPuzzles.prepare(id,a,null);
 maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
@@ -435,7 +437,11 @@ forest:[
 ],
 shrine:[
 {x:9,y:6,facing:'down',vision:3,name:'星の守り手',kind:'boss',party:[['glint',11],['shade',9]],reward:1200,color:'#eed19c',say:'ここまで来た者よ。星のしるしを授けるにふさわしいか、試そう。'},
-{x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'}
+{x:13,y:11,name:'古代の碑文',kind:'sign',color:'#c8b68b',say:'かつて星と大地はひとつだった。旅はここから始まり、ここへ還る。'},
+{x:5,y:7,name:'月の石柱',kind:'regionalPuzzle',puzzleId:'moon',color:'#c9c6f0'},
+{x:14,y:12,name:'風の石柱',kind:'regionalPuzzle',puzzleId:'wind',color:'#a6d9bd'},
+{x:14,y:7,name:'星の石柱',kind:'regionalPuzzle',puzzleId:'star',color:'#f5d49b'},
+{x:17,y:7,name:'奥の古代祭壇',kind:'regionalPuzzle',puzzleId:'shrineCache',requiresUnlock:'shrine',color:'#dfcb99'}
 ],
 lake:[
 {x:4,y:8,name:'釣り人 リョウ',kind:'trainer',facing:'down',vision:4,color:'#789bbd',party:[['puddlo',6],['aquill',7]],reward:320,say:'水辺の星霊は、粘り強いんだ。'},
@@ -443,14 +449,20 @@ lake:[
 {x:5,y:18,name:'湖畔の立て札',kind:'sign',color:'#d1b585',say:'青凪の湖畔　水面が星空を映す静かな場所。'},
 {x:8,y:20,name:'湖の生態学者 ハル',kind:'script',script:'lakeSurvey',color:'#9bd0c0'},
 {x:9,y:20,name:'湖の散歩人',kind:'talk',color:'#a8c6bc',say:'この湖は水辺の星霊と小鳥の宝庫なんだ。',sayByPhase:['朝は水面が鏡みたいに静かだね。','夕暮れの湖は、いつまでも眺めていられるよ。','夜の星が湖に映って、空が二つあるみたいだ。']},
-{x:18,y:19,name:'拾える星玉',kind:'item',item:'orb',amount:3,color:'#f3d5a2'}],
+{x:18,y:19,name:'拾える星玉',kind:'item',item:'orb',amount:3,color:'#f3d5a2'},
+{x:10,y:14,name:'湖の水門ハンドル',kind:'regionalPuzzle',puzzleId:'lever',color:'#9fc1b9'},
+{x:14,y:6,name:'水底に眠っていた石箱',kind:'regionalPuzzle',puzzleId:'lakeCache',requiresUnlock:'lake',color:'#e1caa8'}],
 highland:[
 {x:12,y:18,name:'山登り ツバサ',kind:'trainer',facing:'down',vision:4,color:'#d6a97e',party:[['crag',11],['sparkit',12]],reward:640,say:'高いところから見る星は格別だぜ！'},
 {x:7,y:8,name:'星読み サヨ',kind:'trainer',facing:'right',vision:4,color:'#cebad3',party:[['lumin',12],['shade',12],['orchid',13]],reward:730,say:'星の導きが、どちらを選ぶか見てみましょう。'},
 {x:20,y:12,name:'古びた道具箱',kind:'item',item:'potion',amount:3,color:'#f2dec1'},
 {x:12,y:5,name:'高原の石碑',kind:'script',script:'starPillar',color:'#bcbcc6'},
 {x:18,y:19,name:'星の試練官 マコト',kind:'script',script:'astralTrial',color:'#e1c29b'},
-{x:20,y:23,name:'山の旅人',kind:'talk',color:'#b7b4a3',say:'この高原は遠回りしても、景色の良い道を選びたい。',sayByPhase:['朝の高原の空気は澄み切っているよ。','夕方は結晶が夕陽を反射してきれいだよ。','夜の高原は冷えるから、早めに休んでね。']}],
+{x:20,y:23,name:'山の旅人',kind:'talk',color:'#b7b4a3',say:'この高原は遠回りしても、景色の良い道を選びたい。',sayByPhase:['朝の高原の空気は澄み切っているよ。','夕方は結晶が夕陽を反射してきれいだよ。','夜の高原は冷えるから、早めに休んでね。']},
+{x:9,y:11,name:'星座の設計図',kind:'regionalPuzzle',puzzleId:'chart',color:'#b7ccdd'},
+{x:8,y:12,name:'西の星鏡',kind:'regionalPuzzle',puzzleId:'mirror0',color:'#b6cbd3'},
+{x:14,y:12,name:'中央の星鏡',kind:'regionalPuzzle',puzzleId:'mirror1',color:'#b6cbd3'},
+{x:14,y:7,name:'北の星鏡',kind:'regionalPuzzle',puzzleId:'mirror2',color:'#b6cbd3'}],
 center:[{x:7,y:4,name:'受付係 ミユ',kind:'heal',color:'#ef97a2',say:'休憩しましょうか？'} ,{x:3,y:7,name:'旅の少女',kind:'talk',color:'#8aafd0',say:'星霊センターは旅の安心できる場所。元気がなくなったら立ち寄ってね。'}],
 mart:[{x:7,y:4,name:'店員 サク',kind:'shop',color:'#cf9e63'}, {x:10,y:7,name:'お客さん',kind:'talk',color:'#c7aac9',say:'星玉は、弱らせてから使うと捕まえやすいよ。'}],
 lab:[{x:8,y:5,name:'アオイ博士',kind:'prof',color:'#d9d1a9',say:'星霊の種類はとても豊富。見つけた星霊は図鑑に記録されるよ。'},
@@ -535,6 +547,9 @@ function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
 function fresh(){return {scene:'title',map:'bedroom',x:7,y:8,dir:'down',party:[],bag:{orb:0,potion:1,herb:0,ether:0,powerCharm:0,guardCharm:0,speedCharm:0},money:300,seen:{},caught:{},defeated:{},collected:{},boxes:Engine.emptyBoxes(),events:{},story:Story.fresh(),visited:{bedroom:true},badge:false,running:false,steps:0,encounterSteps:0,battle:null,prevScene:'world',menuPage:'home',mute:false,quest:'starter',time:0,saveVersion:2};}
 let state=fresh();
 function syncForestSecrets(){ForestSecrets.prepare(maps.forest,state.events?.forestSecrets)}
+function syncRegionPuzzles(){
+ for(const id of ['lake','shrine','highland'])RegionPuzzles.prepare(id,maps[id],state.events?.regionPuzzles)
+}
 function save(){try{if(state.party.length||state.story?.playerName){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&maps[x.map]&&(x.party?.length||x.story?.playerName)){
  const migrated=Engine.migrateSave(x,byId,MOVES);
@@ -542,7 +557,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
  state.bag={...fresh().bag,...(x.bag||{})};
  state.story=Story.normalize(x.story);
  state.visited={...fresh().visited,...(x.visited||{}),[state.map]:true};
- state.events={...(migrated.events||{}),...(x.events||{})};syncForestSecrets();
+ state.events={...(migrated.events||{}),...(x.events||{})};syncForestSecrets();syncRegionPuzzles();
  follower={map:state.map,x:state.x,y:state.y+1};
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
@@ -669,6 +684,7 @@ function beginIntro(){
 }
 function startBedroom(name){
  state.events.forestSecrets=ForestSecrets.normalize(null);syncForestSecrets();
+ state.events.regionPuzzles=RegionPuzzles.normalize(null);syncRegionPuzzles();
  startStoryEffect('star',null,1650);
  state.story.playerName=name;
  const start=Story.startAt();state.map=start.id;state.x=start.x;state.y=start.y;state.dir=start.dir;
@@ -997,6 +1013,17 @@ if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
 function npc(n,automatic=false,phaseOverride=null){
+if(n.kind==='regionalPuzzle'){
+ if(storyStage()<12){dialog(n.name,'まだ旅の準備が必要だ。星霊と旅立ったら、また調べてみよう。');return}
+ const result=RegionPuzzles.interact(state.events.regionPuzzles,state.map,n.puzzleId);
+ state.events.regionPuzzles=result.progress;
+ if(result.kind==='unlocked'||result.kind==='reward'){
+  syncRegionPuzzles();startStoryEffect('star',null,1650);sfx('catch');
+ }else sfx(result.kind==='hint'?'bad':'ok');
+ if(result.reward)state.bag[result.reward.item]=(state.bag[result.reward.item]||0)+result.reward.count;
+ if(['unlocked','reward','activated','rotated'].includes(result.kind))save();
+ dialog(n.name,result.text);return
+}
 if(n.kind==='secretRune'||n.kind==='nightBloom'){
  if(storyStage()<12){dialog(n.name,'星の光は、旅立ちのあとで目覚めるという。');return}
  const action=ForestSecrets.next(state.events.forestSecrets,n.kind==='nightBloom'?'bloom':n.runeId,phaseOverride===null?worldPhase():phaseOverride);
@@ -1500,6 +1527,8 @@ function drawBuilding(x,y,kind,camX,camY){
  }
 }
 function isNpcVisible(n){
+ if(n.requiresUnlock==='lake')return !!state.events?.regionPuzzles?.lake?.lowered;
+ if(n.requiresUnlock==='shrine')return !!state.events?.regionPuzzles?.shrine?.open;
  if(n.secretOnly)return !!state.events?.forestSecrets?.gateOpen;
  if(n.kind==='storyInspector')return storyStage()===10;
  return true;
