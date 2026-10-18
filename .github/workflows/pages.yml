@@ -49,6 +49,7 @@ jobs:
           node tests/cinematics.cjs
           node tests/world-detail.cjs
           node tests/map-layout.cjs
+          node tests/forest-secrets.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -65,6 +66,7 @@ jobs:
           cp src/creature-motion.js _site/src/
           cp src/world-detail.js _site/src/
           cp src/map-layout.js _site/src/
+          cp src/forest-secrets.js _site/src/
           cp src/battle-backdrops.js _site/src/
           cp src/field-sprites.js _site/src/
           cp src/npc-schedules.js _site/src/
