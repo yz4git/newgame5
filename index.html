@@ -2049,7 +2049,7 @@ function drawMonster(m,x,y,scale=1,back=false){
  ctx.translate(x+motion.x+reaction*(back?8:-8),y+motion.y+reaction*4);
  ctx.rotate(motion.rotation);
  ctx.scale((scale||1)*motion.sx*(1-reaction*.045),(scale||1)*motion.sy*(1+reaction*.068));
- CreatureArt.draw(ctx,def,frame,back);
+ CreatureArt.draw(ctx,def,frame,back,attack);
  if(attacking)CreatureMotion.trail(ctx,def,frame,motion);
  if(reaction>.28){
   for(let i=0;i<5;i++){
