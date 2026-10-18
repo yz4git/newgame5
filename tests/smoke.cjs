@@ -331,9 +331,8 @@ assert.equal(g.get().bag.ether,afterCache,'Hidden cache does not duplicate after
 assert(g.get().collected['forest/蔦の奥の忘れ物'],'Hidden cache obtained flag survives save migration');
 const flower=g.NPCS.forest.find(x=>x.kind==='nightBloom');
 assert(flower);
-context.worldPhase=()=>1;
 const firstBloom=g.get().bag.ether;
-g.npc(flower);assert.equal(g.get().bag.ether,firstBloom+2,'Dusk flower rewards two PP restores');
-g.world();g.npc(flower);assert.equal(g.get().bag.ether,firstBloom+2,'Night bloom never gives duplicate items');
+g.npc(flower,false,1);assert.equal(g.get().bag.ether,firstBloom+2,'Dusk flower rewards two PP restores');
+g.world();g.npc(flower,false,2);assert.equal(g.get().bag.ether,firstBloom+2,'Night bloom never gives duplicate items');
 assert.match(html,/src\/forest-secrets\.js/,'The forest secrets runtime is bundled');
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
