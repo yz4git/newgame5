@@ -51,6 +51,7 @@ jobs:
           node tests/map-layout.cjs
           node tests/forest-secrets.cjs
           node tests/region-puzzles.cjs
+          node tests/exploration-journal.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -69,6 +70,7 @@ jobs:
           cp src/map-layout.js _site/src/
           cp src/forest-secrets.js _site/src/
           cp src/region-puzzles.js _site/src/
+          cp src/exploration-journal.js _site/src/
           cp src/battle-backdrops.js _site/src/
           cp src/field-sprites.js _site/src/
           cp src/npc-schedules.js _site/src/
