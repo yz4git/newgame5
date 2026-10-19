@@ -51,6 +51,49 @@ function hint(id,save,level=0){
  if(!current.visited)return 'まだ訪れていない地域。現地に着くと、この場所の記録が開かれる。';
  return region.hints[Math.max(0,Math.min(2,Math.trunc(level)||0))];
 }
+/* Confirmed discoveries only: unresolved entries have no clue-bearing title.
+ * This reads existing saves and never introduces a new persistent format. */
+function milestones(id,save){
+ const data=save&&typeof save==='object'?save:{},events=data.events||{};
+ const F=events.forestSecrets||{},R=events.regionPuzzles||{},collected=data.collected||{};
+ const count=Math.max(0,Math.min(3,Number(F.sequence)||0));
+ const angles=Array.isArray(R.highland?.angles)?R.highland.angles:[];
+ const checked=(label,done)=>({label,done:!!done});
+ switch(id){
+  case 'forest':return [
+   checked('記憶石の最初の共鳴',count>=1),checked('記憶石の二度目の共鳴',count>=2),
+   checked('記憶石の最後の共鳴',count>=3),
+   checked('隠れた道の奥の発見',collected['forest/蔦の奥の忘れ物']),
+   checked('月光の花の採取',F.bloomClaimed)];
+  case 'lake':return [checked('湖の水位が変化した',R.lake?.lowered),
+   checked('小島で宝物を発見',R.lake?.cacheTaken)];
+  case 'shrine':return [checked('月の石柱が点灯',R.shrine?.progress>=1),
+   checked('風の石柱が点灯',R.shrine?.progress>=2),
+   checked('星の石柱が点灯',R.shrine?.progress>=3),
+   checked('祭壇の奥を調査',R.shrine?.cacheTaken)];
+  case 'highland':return [checked('西の星鏡を調整',angles[0]===1),
+   checked('中央の星鏡を調整',angles[1]===0),
+   checked('北の星鏡を調整',angles[2]===3),
+   checked('星座が完成',R.highland?.solved)];
+  default:return null;
+ }
+}
+function nextLead(id,save){
+ const p=progress(id,save);if(!p)return null;
+ if(!p.visited)return '訪れると、新しい記録が開かれる。';
+ if(p.complete)return 'この土地の探索記録は完成した。';
+ const F=save?.events?.forestSecrets||{},R=save?.events?.regionPuzzles||{};
+ switch(id){
+  case 'forest':
+   if((Number(F.sequence)||0)<3)return '森の不思議な石を観察してみよう。';
+   if(!save?.collected?.['forest/蔦の奥の忘れ物'])return '変化した森の風景をもう一度調べよう。';
+   return '時間帯によって変わる森の景色に注目しよう。';
+  case 'lake':return R.lake?.lowered?'水辺の景色が変わった場所を歩いてみよう。':'湖畔にある古い仕掛けを探してみよう。';
+  case 'shrine':return (Number(R.shrine?.progress)||0)<3?'古い碑文の言葉と石柱を見比べよう。':'新しく開いた場所を探索してみよう。';
+  case 'highland':return '星図の手掛かりと、鏡が向く方角を比べてみよう。';
+  default:return null;
+ }
+}
 function nearby(map,x,y,npcs,visible=()=>true){
  let nearest=null;
  for(const n of npcs||[]){
@@ -62,5 +105,5 @@ function nearby(map,x,y,npcs,visible=()=>true){
  }
  return nearest;
 }
-return Object.freeze({REGIONS,progress,summary,hint,nearby});
+return Object.freeze({REGIONS,progress,summary,hint,milestones,nextLead,nearby});
 });
