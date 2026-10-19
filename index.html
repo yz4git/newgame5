@@ -210,6 +210,7 @@ footer{display:none}
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
 <script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
 <script src="./src/region-puzzles.js?v=__BUILD_ID__"></script>
+<script src="./src/exploration-journal.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -219,13 +220,13 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
-let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null;
+let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null,explorationFocus=null,explorationHint=0;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const $=(s)=>document.querySelector(s);
@@ -1235,7 +1236,38 @@ function openPage(page){state.prevScene=state.scene==='world'?'world':state.prev
 if(page!=='dex')state.dexFocus=null;
 state.partyFocus=null;
 screen('menu');menu()}
+function explorationMenu(){
+ const rows=Exploration.summary(state);
+ const amount=rows.reduce((sum,p)=>sum+p.done,0),possible=rows.reduce((sum,p)=>sum+p.total,0);
+ ui('EXPLORATION / 探索手帳','地域の仕掛けと発見の記録。\n探索進捗 '+amount+'/'+possible+
+ '\n※ 詳しいヒントは自分で選んだ場合だけ表示されます。',[
+ ...rows.map(r=>({text:(r.complete?'★ ':r.visited?'◇ ':'？ ')+r.name+'  '+(r.visited?r.done+'/'+r.total:r.status),
+ on:()=>explorationDetail(r.id,0)})),
+ {text:'↶ ギアへ',on:()=>openPage('gear')},
+ {text:'↶ メニュー',on:()=>openPage('home')}
+ ]);
+}
+function explorationDetail(id,level=0){
+ const entry=Exploration.progress(id,state);
+ if(!entry){explorationMenu();return}
+ explorationFocus=id;explorationHint=Math.max(0,Math.min(2,level));
+ state.menuPage='explorationDetail';
+ const clue=Exploration.hint(id,state,explorationHint);
+ ui('DISCOVERY / '+entry.title,
+ entry.name+'　'+entry.status+'\n進捗：'+entry.done+'/'+entry.total+
+ (entry.visited?'\n'+entry.details:'')+
+ '\n\n【探索の手掛かり '+(entry.visited?explorationHint+1:0)+'】\n'+clue,[
+ {text:'✦ '+(explorationHint<2?'さらに詳しいヒント':'最も詳しいヒントを表示中'),
+  disabled:!entry.visited||explorationHint>=2,
+  on:()=>explorationDetail(id,explorationHint+1)},
+ {text:'↶ 探索手帳へ',on:()=>{state.menuPage='exploration';explorationMenu()}},
+ {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
+
 function menu(){const p=state.menuPage;
+if(p==='exploration'){explorationMenu();return}
+if(p==='explorationDetail'){explorationDetail(explorationFocus||state.map,explorationHint);return}
 if(p==='gear'){
  if(storyStage()<6){ui('ASTRA GEAR','まだアストラギアを持っていない。',[{text:'もどる',on:()=>openPage('home')}]);return}
  const loc=mapMeta[state.map]?.name||'不明',time=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
@@ -1252,6 +1284,7 @@ if(p==='gear'){
  ].join('\n'),[
  {text:'✦ 現在地',on:()=>{toast(loc+' / '+state.steps+'歩')} },
  {text:'◈ 星霊図鑑',on:()=>openPage('dex')},
+ {text:'✧ 探索手帳',on:()=>openPage('exploration')},
  {text:'↶ もどる',on:()=>openPage('home')}
  ]);return;
 }
@@ -1367,7 +1400,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -2220,6 +2253,19 @@ layers.push({y:py,draw:()=>drawHero(px*T-camX+16,py*T-camY+19,state.dir)});
 layers.sort((a,b)=>a.y-b.y);
 for(const layer of layers)layer.draw();
 drawFieldForeground(camX,camY,x0,x1,y0,y1,Math.floor(px),Math.floor(py));
+if(storyStage()>=12&&state.scene==='world'){
+ const clue=Exploration.nearby(state.map,state.x,state.y,NPCS[state.map],isNpcVisible);
+ if(clue){
+  const x=clue.x*T-camX+16,y=clue.y*T-camY-18;
+  if(x>12&&x<W-12&&y>19&&y<H-12){
+   const bounce=Math.sin(frame*.09)*2;
+   rounded(x-9,y-13+bounce,18,19,5,'#274f5ddd');
+   txt(clue.direct?'A':'?',x,y+1+bounce,13,'#ffedb3','center');
+   ellipse(x,y-17+bounce,2,2,'#e3f0b8a0');
+  }
+ }
+}
+
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
 if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47)*H+frame*.15)%H;ellipse(x,y,1.4,1.4,'#f5e5c996')}}
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
