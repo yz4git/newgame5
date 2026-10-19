@@ -611,7 +611,7 @@ const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home
 const view=commands?'battleCommands':moves?'moves':talk?'dialog':party?'party':dex?'dex':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
 consoleEl.dataset.mode=battle?'battle':'normal';
 consoleEl.dataset.view=view;
-document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus))?'true':'false';
+document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail')?'true':'false';
 const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
 const upper=document.getElementById('upperMessage');
 const header=view==='battleCommands'?'⚔ たたかい':view==='moves'?'⚔ わざをえらぶ':state.scene==='world'?'✦ タッチメニュー':state.scene==='menu'?'☰ ぼうけんメニュー':talk?'▤ メッセージ':label;
@@ -1240,7 +1240,7 @@ function explorationMenu(){
  const rows=Exploration.summary(state);
  const amount=rows.reduce((sum,p)=>sum+p.done,0),possible=rows.reduce((sum,p)=>sum+p.total,0);
  ui('EXPLORATION / 探索手帳','地域の仕掛けと発見の記録。\n探索進捗 '+amount+'/'+possible+
- '\n※ 詳しいヒントは自分で選んだ場合だけ表示されます。',[
+ '\n訪問地域 '+rows.filter(r=>r.visited).length+'/'+rows.length+'\n※ 詳しいヒントは自分で選んだ場合だけ表示されます。',[
  ...rows.map(r=>({text:(r.complete?'★ ':r.visited?'◇ ':'？ ')+r.name+'  '+(r.visited?r.done+'/'+r.total:r.status),
  on:()=>explorationDetail(r.id,0)})),
  {text:'↶ ギアへ',on:()=>openPage('gear')},
@@ -1253,9 +1253,13 @@ function explorationDetail(id,level=0){
  explorationFocus=id;explorationHint=Math.max(0,Math.min(2,level));
  state.menuPage='explorationDetail';
  const clue=Exploration.hint(id,state,explorationHint);
+ const found=entry.visited?(Exploration.milestones(id,state)||[]).filter(m=>m.done):[];
+ const discoveries=found.length?found.map(m=>'✓ '+m.label).join('\n'):'まだ見つかっていない。';
+ const lead=Exploration.nextLead(id,state);
  ui('DISCOVERY / '+entry.title,
  entry.name+'　'+entry.status+'\n進捗：'+entry.done+'/'+entry.total+
- (entry.visited?'\n'+entry.details:'')+
+ (entry.visited?'\n\n【見つけた記録】\n'+discoveries+'\n\n【次の調査】\n'+lead:'')+
+ (entry.visited&&explorationHint>=1?'\n\n'+entry.details:'')+
  '\n\n【探索の手掛かり '+(entry.visited?explorationHint+1:0)+'】\n'+clue,[
  {text:'✦ '+(explorationHint<2?'さらに詳しいヒント':'最も詳しいヒントを表示中'),
   disabled:!entry.visited||explorationHint>=2,
@@ -2499,6 +2503,52 @@ txt('#'+String(SPECIES.findIndex(q=>q.id===entry.id)+1).padStart(3,'0')+'  '+ent
 rounded(40,H-40,W-80,28,8,'#e1eee8');
 txt(entry.type+' TYPE  /  '+(state.caught[entry.id]?'REGISTERED':'SEEN'),W/2,H-21,12,'#316b78','center');
 }
+/* Top-screen atlas: no map coordinates, solutions, or undiscovered names leak here. */
+function drawExplorationScreen(){
+ const rows=Exploration.summary(state),entry=state.menuPage==='explorationDetail'?Exploration.progress(explorationFocus||state.map,state):null;
+ const gradient=ctx.createLinearGradient(0,0,W,H);gradient.addColorStop(0,'#193e4d');gradient.addColorStop(1,'#427779');
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
+ for(let i=0;i<24;i++)ellipse(18+rand(i,61)*380,10+rand(i,62)*334,1.5,1.5,'#d9e9c975');
+ rounded(15,12,W-30,H-24,13,'#d4c5a4');rounded(21,18,W-42,H-36,10,'#f3e9d3');
+ for(let j=0;j<13;j++)pixel(29,33+j*24,W-58,1,'#dbcbb24d');
+ txt('✧  ASTRA EXPLORATION  ✧',W/2,43,18,'#3b6470','center');
+ pixel(39,55,W-78,2,'#c6ad83');
+ if(!entry){
+  const amount=rows.reduce((s,r)=>s+r.done,0),total=rows.reduce((s,r)=>s+r.total,0);
+  txt('探索記録',40,78,12,'#857968');txt(amount+' / '+total,373,78,13,'#45686c','right');
+  const colors=['#759c7b','#6494ae','#a28dba','#819aaf'],symbols=['✿','≋','✧','✦'];
+  rows.forEach((r,i)=>{
+   const y=90+57*i,tone=colors[i];
+   rounded(36,y,W-72,51,8,i%2?'#e5dbc4':'#ebe1cb');
+   rounded(42,y+6,39,39,7,r.visited?tone:'#b6b5a6');
+   txt(r.visited?symbols[i]:'?',61,y+33,23,'#fff6e5','center');
+   txt(r.visited?r.name:'未訪問の地域',91,y+21,13,'#445c5d');
+   txt(r.status,92,y+38,11,'#8d806d');
+   rounded(259,y+29,112,9,4,'#b9b9a7');
+   if(r.visited&&r.done)rounded(260,y+30,110*r.done/r.total,7,3,tone);
+   txt(r.visited?r.done+'/'+r.total:'--',370,y+20,11,'#587276','right');
+  });
+  txt('下画面から地域を選んで記録を開こう',W/2,336,10,'#897865','center');
+  return;
+ }
+ const styles={forest:['#699577','✿'],lake:['#669ab8','≋'],shrine:['#a292b6','✧'],highland:['#839cad','✦']};
+ const [tone,symbol]=styles[entry.id]||['#779a9a','✧'];
+ rounded(37,70,W-74,249,12,'#e5d9bd');rounded(45,78,W-90,75,10,'#4f7779');
+ for(let i=0;i<9;i++)ellipse(56+i*35,118+Math.sin(frame*.024+i)*6,2,2,'#c8e2d36a');
+ txt(symbol,79,131,35,'#f2efd7','center');txt(entry.visited?entry.name:'未踏の地域',112,108,18,'#f5ecd0');txt(entry.status,113,132,12,'#e0e9dd');
+ const found=entry.visited?Exploration.milestones(entry.id,state)||[]:[],value=entry.visited?entry.done/entry.total:0;
+ txt('DISCOVERIES',60,181,12,'#766d5f');txt(entry.visited?entry.done+' / '+entry.total:'-- / '+entry.total,358,181,13,'#466e70','right');
+ rounded(59,192,298,14,6,'#bfbba9');if(value)rounded(61,194,294*value,10,4,tone);
+ for(let i=0;i<entry.total;i++){
+  const x=76+(entry.total===1?0:264*i/(entry.total-1)),done=!!found[i]?.done;
+  if(i<entry.total-1)rounded(x+9,243,264/(entry.total-1)-17,3,1,'#c3b69b');
+  ellipse(x,244,15,15,done?tone:'#c5bba5');ellipse(x,244,10,10,done?'#e6f2dc':'#dfd4ba');
+  txt(done?'✓':'·',x,249,14,done?'#3a7569':'#9e8e78','center');
+  txt(String(i+1).padStart(2,'0'),x,277,10,done?'#467c70':'#9c8d76','center');
+ }
+ txt(entry.complete?'✦ すべての記録がそろった ✦':entry.visited?'発見した手掛かりを記録していこう':'現地に着くと調査が始まる',W/2,305,12,'#657b73','center');
+ txt('下画面で発見記録とヒントを確認',W/2,337,10,'#887966','center');
+}
 function drawTitle(){
 const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#152d43');gr.addColorStop(1,'#567a74');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
 for(let i=0;i<42;i++){const x=rand(i,2,4)*W,y=rand(i,3,4)*H*.72;ellipse(x,y,rand(i,1)*2+1,rand(i,1)*2+1,'#f0e7bc')}
@@ -2516,7 +2566,8 @@ if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:
 if(state.scene==='battle')drawBattle();
 else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
 else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();
-else if(state.scene==='menu'&&state.menuPage==='dex'&&state.dexFocus)drawDexPreview();
+else if(state.scene==='menu'&&(state.menuPage==='exploration'||state.menuPage==='explorationDetail'))drawExplorationScreen();
+ else if(state.scene==='menu'&&state.menuPage==='dex'&&state.dexFocus)drawDexPreview();
 else if(state.scene==='menu'&&state.menuPage==='party'&&Number.isInteger(state.partyFocus))drawPartyPreview();
 else drawWorld();
 if(state.scene!=='title'&&state.scene!=='starter')state.time+=1/60;
