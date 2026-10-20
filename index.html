@@ -212,6 +212,7 @@ footer{display:none}
 <script src="./src/region-puzzles.js?v=__BUILD_ID__"></script>
 <script src="./src/exploration-journal.js?v=__BUILD_ID__"></script>
 <script src="./src/field-requests.js?v=__BUILD_ID__"></script>
+<script src="./src/town-legacy.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -221,8 +222,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -411,12 +412,13 @@ const NPCS={
 village:[
 {x:10,y:12,name:'研究所の案内板',kind:'sign',icon:'P',color:'#d9d1a9',say:'アオイ研究所はこちら。建物の入口から入れます。'},
 {x:14,y:13,name:'旅の友 ナギ',kind:'storyGuide',color:'#a4c6d9'},
+{x:13,y:12,name:'星の記録係 アカリ',kind:'townArchivist',color:'#b7b8d4'},
 {x:8,y:9,name:'回復係 ミユ',kind:'heal',icon:'♥',color:'#ef97a2'},
 {x:15,y:9,name:'道具屋 サク',kind:'shop',icon:'$',color:'#caa565'},
-{x:18,y:11,name:'旅人',kind:'talk',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。',sayByPhase:['朝になると、森へ向かう旅人が増えるんだ。','夕陽の町は、懐かしい匂いがするね。','夜の森に光る星霊がいるんだって！']},
+{x:18,y:11,name:'旅人',kind:'talk',townReaction:'traveler',color:'#9cafd0',say:'北の森には光る星霊がいるらしいよ。',sayByPhase:['朝になると、森へ向かう旅人が増えるんだ。','夕陽の町は、懐かしい匂いがするね。','夜の森に光る星霊がいるんだって！']},
 {x:21,y:12,name:'花の世話人',kind:'talk',requestId:'flower',color:'#afba7b',say:'噴水のそばの花は毎日少しずつ違う色に咲くんだよ。',sayByPhase:['朝露の間に花を見回るのが日課なの。','夕方は花を閉じる子が多いね。','夜でも星の光で咲く花があるのよ。']},
 {x:15,y:14,name:'図鑑調査員 ユズ',kind:'script',script:'dexResearch',color:'#a9c8c8'},
-{x:6,y:12,name:'看板',kind:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
+{x:6,y:12,name:'看板',kind:'sign',townReaction:'sign',color:'#96744f',say:'ミナモリの町 ー 北：そよかぜの小道'}
 ],
 route:[
 {x:11,y:13,facing:'down',vision:4,name:'見習い ミオ',kind:'trainer',party:[['chiro',4]],reward:160,color:'#df9981',say:'私の仲間たちの強さ、見ていって！'},
@@ -546,7 +548,7 @@ function runNpcScript(name,script){
 function requestNpc(n){
  const r=FieldRequests.entry(n.requestId,state);
  if(!r){dialog(n.name,n.say||'また会おう。');return}
- if(r.status==='complete'){dialog(n.name,FieldRequests.afterText(r.id,state));return}
+ if(r.status==='complete'){const extra=r.id==='flower'?TownLegacy.citizenText('flower',state):null;dialog(n.name,FieldRequests.afterText(r.id,state)+(extra?'\n'+extra:''));return}
  if(r.status==='available'){dialog(n.name,r.intro+'\n\n【依頼】'+r.objective,[
   {text:'✦ 依頼を引き受ける',on:()=>acceptFieldRequest(r.id)},
   {text:'↶ またあとで',on:()=>world()}]);return}
@@ -571,6 +573,40 @@ function claimFieldRequest(id,choice){
  if(result.reward.money)state.money+=result.reward.money;
  save();sfx('catch');startStoryEffect('star',null,1200);
  const r=FieldRequests.entry(id,state);dialog(r.npc,result.text);
+ return true;
+}
+function archivistNpc(n){
+ const progress=TownLegacy.snapshot(state),words=TownLegacy.archivistText(state);
+ if(progress.status==='available'){
+  dialog(n.name,words+'\n\n4地域すべての報告がそろったら、星の記録祭をひらこう。',[
+   {text:'✦ 記録をまとめる',on:()=>acceptTownLegacy()},
+   {text:'↶ またあとで',on:()=>world()}
+  ]);return;
+ }
+ if(progress.status==='ready'){
+  dialog(n.name,words,[
+   {text:'✦ 記録祭を完成させる',on:()=>finishTownLegacy()},
+   {text:'↶ もう少しあとで',on:()=>world()}
+  ]);return;
+ }
+ dialog(n.name,words);
+}
+function acceptTownLegacy(){
+ const result=TownLegacy.accept(state);
+ if(!result.ok)return false;
+ state.events.townLegacy=result.progress;
+ save();sfx('ok');
+ dialog('星の記録係 アカリ','ありがとう！\n森・湖・町・高原の調査を終えて、4つの記録をそろえよう。\n旅先の依頼を報告すれば記録が町に届くよ。');
+ return true;
+}
+function finishTownLegacy(){
+ const result=TownLegacy.complete(state);
+ if(!result.ok)return false;
+ state.events.townLegacy=result.progress;
+ if(result.reward.item)state.bag[result.reward.item]=(state.bag[result.reward.item]||0)+result.reward.count;
+ if(result.reward.money)state.money+=result.reward.money;
+ save();startStoryEffect('star','星の記録係 アカリ',2000);sfx('catch');
+ dialog('星の記録係 アカリ',result.text);
  return true;
 }
 function moveMaxPP(name){return Engine.maxPP(name,MOVES)}
@@ -642,7 +678,7 @@ const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home
 const view=commands?'battleCommands':moves?'moves':talk?'dialog':party?'party':dex?'dex':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
 consoleEl.dataset.mode=battle?'battle':'normal';
 consoleEl.dataset.view=view;
-document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail'||state.menuPage==='requests'||state.menuPage==='requestDetail')?'true':'false';
+document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail'||state.menuPage==='requests'||state.menuPage==='requestDetail'||state.menuPage==='townLegacy')?'true':'false';
 const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
 const upper=document.getElementById('upperMessage');
 const header=view==='battleCommands'?'⚔ たたかい':view==='moves'?'⚔ わざをえらぶ':state.scene==='world'?'✦ タッチメニュー':state.scene==='menu'?'☰ ぼうけんメニュー':talk?'▤ メッセージ':label;
@@ -1067,6 +1103,7 @@ if(n.kind==='secretRune'||n.kind==='nightBloom'){
  if(action.kind==='rune'||action.kind==='unlocked'||action.kind==='bloom')save();
  dialog(n.name,action.text);return
 }
+if(n.kind==='townArchivist'){archivistNpc(n);return}
 if(n.kind==='talk'&&n.requestId&&storyStage()>=12){requestNpc(n);return}
 if(n.kind==='storyMom'){storyMother();return}
 if(n.kind==='storyStairs'){dialog(n.name,'2階には自分の部屋がある。');return}
@@ -1086,7 +1123,7 @@ const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='b
 const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
 forcedTrainer=automatic;
 dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
-dialog(n.name,(n.kind==='talk'&&n.sayByPhase?.[worldPhase()])||n.say||'いい旅になりますように！')}
+dialog(n.name,TownLegacy.citizenText(n.townReaction,state)||(n.kind==='talk'&&n.sayByPhase?.[worldPhase()])||n.say||'いい旅になりますように！')}
 function dialog(name,txt,options){state.dialogSpeaker=name;screen('dialog');ui(name,txt,options||[{text:'▶ つづける',on:()=>world()}]);sfx('ok')}
 function wildBattle(){const choice=Engine.chooseEncounter(mapMeta[state.map].wild,{phase:worldPhase()});if(!choice)return;state.encounterSteps=0;startBattle([makeMonster(choice.id,choice.level)],{trainer:false})}
 function firstAlive(){return state.party.findIndex(m=>m.hp>0)}
@@ -1327,7 +1364,24 @@ function requestDetail(id){
   {text:'↶ フィールド',on:()=>world()}
  ]);
 }
+function townLegacyMenu(){
+ state.menuPage='townLegacy';
+ const p=TownLegacy.snapshot(state),ready=FieldRequests.summary(state).filter(r=>r.status==='ready').length;
+ ui('VILLAGE / 町の記録祭','町に届いた各地の調査報告 '+p.count+' / '+p.total+
+ '\n広場の成長：'+p.tierName+'\n記録係：'+p.statusText+
+ (p.status==='active'?'\n\n'+TownLegacy.archivistText(state):
+  p.status==='available'?'\n\n町の広場で記録係に話しかけよう。':
+  p.status==='ready'?'\n\n4つの記録がそろった！ 町の記録係に報告しよう。':
+  p.status==='complete'?'\n\n記録祭が完成した！ 町に戻ると飾り付けが変わっている。':'')+
+ (ready?'\n\n報告できる地域の依頼：'+ready:''),
+ [
+ {text:'✉ 地域の依頼を見る',on:()=>openPage('requests')},
+ {text:'↶ アストラギア',on:()=>openPage('gear')},
+ {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
 function menu(){const p=state.menuPage;
+if(p==='townLegacy'){townLegacyMenu();return}
 if(p==='requests'){requestsMenu();return}
 if(p==='requestDetail'){requestDetail(requestFocus);return}
 if(p==='exploration'){explorationMenu();return}
@@ -1350,6 +1404,7 @@ if(p==='gear'){
  {text:'◈ 星霊図鑑',on:()=>openPage('dex')},
  {text:'✧ 探索手帳',on:()=>openPage('exploration')},
  {text:'✉ 地域の依頼',on:()=>openPage('requests')},
+ {text:'✦ 町の記録祭',on:()=>openPage('townLegacy')},
  {text:'↶ もどる',on:()=>openPage('home')}
  ]);return;
 }
@@ -1465,7 +1520,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -1625,6 +1680,7 @@ function drawBuilding(x,y,kind,camX,camY){
  }
 }
 function isNpcVisible(n){
+ if(n.kind==='townArchivist')return TownLegacy.snapshot(state).visible;
  if(n.requiresUnlock==='lake')return !!state.events?.regionPuzzles?.lake?.lowered;
  if(n.requiresUnlock==='shrine')return !!state.events?.regionPuzzles?.shrine?.open;
  if(n.secretOnly)return !!state.events?.forestSecrets?.gateOpen;
@@ -1726,6 +1782,13 @@ const xx=point.x*T-camX+16,yy=point.y*T-camY+15;
 const moving=!!(beat&&beat.name===n.name&&beat.moving)||!!tween&&tween.t<1;
 const phase=beat&&beat.name===n.name?beat.step:moving?Math.floor(tween.t*8):0;
 FieldSprites.draw(ctx,xx,yy,n.facing||'down',phase,n.kind,n.color,false);
+if(n.kind==='townArchivist'){
+ const status=TownLegacy.snapshot(state).status;
+ if(['available','ready'].includes(status)){
+ const bob=Math.sin(frame*.09)*2;
+ ellipse(xx,yy-31+bob,10,10,status==='ready'?'#f9d68a':'#c8dcca');
+ txt(status==='ready'?'!':'✉',xx,yy-27+bob,13,'#375c64','center');
+ }}
 if(n.requestId&&storyStage()>=12){const request=FieldRequests.entry(n.requestId,state);
  if(request&&['ready','available'].includes(request.status)){
  const dy=Math.sin(frame*.09)*2;
@@ -2293,6 +2356,7 @@ if(state.map==='forest'){
  }
 }
 drawLandmarks(camX,camY);
+drawTownLegacy(camX,camY);
 if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
@@ -2629,6 +2693,82 @@ function drawRequestBoard(){
  });
  txt('COMPLETED '+done+'/'+rows.length+'  ·  READY '+ready,W/2,332,11,'#f2e4c7','center');
 }
+/* Decorations follow completed reports; they never alter tile collision or exits. */
+function drawTownLegacy(camX,camY){
+ if(state.map!=='village')return;
+ const level=TownLegacy.snapshot(state).tier;
+ if(level<1)return;
+ const at=(x,y)=>({x:x*T-camX+16,y:y*T-camY+13});
+ const inView=p=>p.x>-72&&p.x<W+72&&p.y>-80&&p.y<H+80;
+ const square=at(12,11);
+ if(inView(square)){
+  ellipse(square.x,square.y+11,44,15,'#af936c');
+  ellipse(square.x,square.y+9,36,11,'#e6d7b7');
+  for(let k=0;k<4;k++){
+   const a=k*Math.PI/2+Math.PI/4;
+   ellipse(square.x+Math.cos(a)*26,square.y+9+Math.sin(a)*7,6,2.8,'#b08b62');
+  }
+  ellipse(square.x,square.y+8,11,6,'#7babb0');
+  txt('✦',square.x,square.y+13,13,'#f5e1a2','center');
+ }
+ if(level>=2){
+  for(const [gx,gy] of [[9,11],[16,12]]){
+   const p=at(gx,gy);
+   if(!inView(p))continue;
+   rounded(p.x-15,p.y+6,30,7,3,'#826954');
+   for(let i=0;i<3;i++){const px=p.x-10+i*10;line(px,p.y+7,px,p.y-1,'#497c5d',2);ellipse(px,p.y-3,3.4,3.2,i%2?'#dbcae9':'#f5c8af')}
+  }
+ }
+ if(level>=3){
+  for(const [gx,gy] of [[10,9],[15,9]]){
+   const p=at(gx,gy);if(!inView(p))continue;
+   const shine=(Math.sin(frame*.038+gx)+1)*.5;
+   ellipse(p.x,p.y+10,9,4,'#7e7463b3');
+   pixel(p.x-2,p.y-14,4,23,'#a98c68');
+   ellipse(p.x,p.y-16,7+shine*2,9+shine*2,'#e6c58bb8');
+   ellipse(p.x,p.y-16,3.5,6,'#fff3c9');
+  }
+ }
+ if(level>=4){
+  const p=at(12,9);
+  if(inView(p)){
+   line(p.x-105,p.y-33,p.x+105,p.y-35,'#e9dfc4',2);
+   for(let i=0;i<9;i++){
+    const x=p.x-96+i*24,y=p.y-32+Math.sin(frame*.035+i)*1.5;
+    ctx.fillStyle=['#bb979e','#84b6ac','#e9cd8e'][i%3];
+    ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+6,y);ctx.lineTo(x,y+15);ctx.closePath();ctx.fill();
+   }
+  }
+ }
+ if(level>=5&&inView(square)){
+  for(let i=0;i<10;i++){
+   const a=frame*.011+i*Math.PI/5;
+   ellipse(square.x+Math.cos(a)*43,square.y-9+Math.sin(a)*22,2.2,2.2,'#fff0baad');
+  }
+  txt('✧',square.x,square.y-15,20,'#f8e2aa','center');
+ }
+}
+function drawTownRecordPage(){
+ const p=TownLegacy.snapshot(state);
+ const gradient=ctx.createLinearGradient(0,0,W,H);gradient.addColorStop(0,'#426b70');gradient.addColorStop(1,'#809b7a');
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
+ rounded(23,20,W-46,H-40,13,'#b48f64');rounded(31,27,W-62,H-54,10,'#f2e5c9');
+ txt('✦  MINAMORI CHRONICLE  ✦',W/2,62,18,'#54736d','center');
+ pixel(56,74,W-112,2,'#c4aa84');
+ txt(p.tierName,W/2,110,19,'#4c706f','center');
+ for(let i=0;i<4;i++){
+  const x=71+i*91,complete=i<p.count;
+  ellipse(x,170,27,27,complete?'#93bba9':'#bfc0b1');
+  ellipse(x,170,20,20,complete?'#e8eee0':'#ded7c4');
+  txt(complete?'✦':'?',x,178,27,complete?'#568074':'#9a8c76','center');
+  if(i<3)line(x+30,170,x+60,170,'#c0b49a',3);
+ }
+ txt('地域の報告：'+p.count+' / '+p.total,W/2,230,15,'#6f796b','center');
+ txt(p.status==='complete'?'★ 星の記録祭 完成 ★':p.status==='ready'?'記録係に成果を届けよう':
+  p.status==='available'?'広場の記録係に話しかけよう':
+  p.status==='active'?'旅の記録を集め続けよう':'各地を旅して調査を始めよう',W/2,274,12,'#7b8073','center');
+ txt('調査の成果で町の景色が変わる',W/2,322,11,'#95866b','center');
+}
 function drawTitle(){
 const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#152d43');gr.addColorStop(1,'#567a74');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
 for(let i=0;i<42;i++){const x=rand(i,2,4)*W,y=rand(i,3,4)*H*.72;ellipse(x,y,rand(i,1)*2+1,rand(i,1)*2+1,'#f0e7bc')}
@@ -2646,6 +2786,7 @@ if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:
 if(state.scene==='battle')drawBattle();
 else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
 else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();
+else if(state.scene==='menu'&&state.menuPage==='townLegacy')drawTownRecordPage();
 else if(state.scene==='menu'&&(state.menuPage==='requests'||state.menuPage==='requestDetail'))drawRequestBoard();
 else if(state.scene==='menu'&&(state.menuPage==='exploration'||state.menuPage==='explorationDetail'))drawExplorationScreen();
  else if(state.scene==='menu'&&state.menuPage==='dex'&&state.dexFocus)drawDexPreview();
