@@ -517,5 +517,5 @@ assert.equal(g.get().money,townMoney+600);
 assert.equal(g.get().bag.guardCharm,oldCharm+1);
 assert.equal(chronicle.snapshot(g.get()).status,'complete');
 assert.match(chronicle.citizenText('traveler',g.get()),/記録祭/);
-assert.match(html,/src\\/town-legacy\\.js/,'Town module is present in the HTML bundle');
+assert(html.includes('src/town-legacy.js'),'Town module is present in the HTML bundle');
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
