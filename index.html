@@ -202,6 +202,7 @@ footer{display:none}
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
+<script src="./src/touch-navigation.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-tactics.js?v=__BUILD_ID__"></script>
 <script src="./src/companion-bond.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-rematches.js?v=__BUILD_ID__"></script>
@@ -226,12 +227,13 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!TouchNavigation||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
+let menuButtons=[],menuFocus=0,dpadPointerId=null;
 let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null,explorationFocus=null,explorationHint=0,requestFocus=null;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -791,11 +793,32 @@ options.forEach((o,i)=>{
   button.append(badge,nm,meta,gauge);
  }else if(party)button.classList.add('party-back');
  button.disabled=!!o.disabled;
- button.addEventListener('click',()=>{beep(600,.045);o.on()});
+ button.addEventListener('click',()=>{menuFocus=i;beep(600,.045);o.on()});
  ops.appendChild(button);
 });
 consoleEl.append(sub,say,ops);
+menuButtons=[...ops.children];
+menuFocus=TouchNavigation.first(menuButtons);
+markMenuFocus();
 consoleEl.scrollTop=0;
+}
+function markMenuFocus(){
+ for(let i=0;i<menuButtons.length;i++){
+  const btn=menuButtons[i];if(!btn)continue;
+  const selected=i===menuFocus&&!btn.disabled;
+  btn.classList.toggle?.('nav-selected',selected);
+  btn.dataset.selected=selected?'true':'false';
+  if(selected){btn.setAttribute?.('aria-current','true')}
+  else btn.removeAttribute?.('aria-current');
+ }
+}
+function navigateMenu(dir){
+ if(state.scene==='world')return false;
+ const cols=consoleEl.dataset.view==='dialog'?2:2;
+ const index=TouchNavigation.next(menuButtons,menuFocus,dir,cols);
+ if(index<0)return false;
+ if(index!==menuFocus){menuFocus=index;markMenuFocus();menuButtons[index]?.scrollIntoView?.({block:'nearest',inline:'nearest'});beep(480,.025,'sine',.012)}
+ return true;
 }
 function screen(scene){state.scene=scene;document.getElementById('app').dataset.scene=scene;setHud()}
 function setHud(){areaEl.textContent=mapMeta[state.map]?.name||'星の大地';hudR.textContent=state.scene==='battle'?'⚔ BATTLE':(state.running?'⚡ RUN · ':'')+(state.badge?'✦ 星のしるし':(state.party[0]?'✦ '+byId[state.party[0].id].name+' Lv.'+state.party[0].level:'✦ はじまりの旅'))}
@@ -1657,7 +1680,7 @@ state.bag.ether--;m.pp=Object.fromEntries((m.moves||byId[m.id].moves).map(n=>[n,
 return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
-function buttonA(){if(state.scene==='world'){interact();return}const btn=consoleEl.querySelector('.options button:not(:disabled)');if(btn)btn.click()}
+function buttonA(){if(state.scene==='world'){interact();return}const btn=menuButtons[menuFocus];if(btn&&!btn.disabled)btn.click()}
 function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
@@ -1670,13 +1693,29 @@ document.querySelectorAll('#touchQuick button[data-page]').forEach(button=>{
   openPage(button.dataset.page);
  });
 });
-document.querySelectorAll('.dkey').forEach(el=>{const d=el.dataset.dir;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);resetHold();holdDir=d;el.classList.add('pressed');walk(d);lastStep=performance.now()});
-el.addEventListener('pointerup',()=>resetHold());el.addEventListener('pointercancel',()=>resetHold());el.addEventListener('lostpointercapture',()=>resetHold())});
+function applyDirection(dir){
+ if(!dir){resetHold();return}
+ if(state.scene!=='world'){resetHold();navigateMenu(dir);return}
+ if(holdDir!==dir){resetHold();holdDir=dir;document.querySelector('.dkey[data-dir="'+dir+'"]')?.classList.add('pressed');walk(dir);lastStep=performance.now()}
+}
+const pad=$('#dpad');
+pad.addEventListener('pointerdown',e=>{
+ e.preventDefault();if(dpadPointerId!==null)return;
+ dpadPointerId=e.pointerId;pad.setPointerCapture(e.pointerId);
+ applyDirection(TouchNavigation.direction(e.clientX,e.clientY,pad.getBoundingClientRect()));
+});
+pad.addEventListener('pointermove',e=>{
+ if(e.pointerId!==dpadPointerId)return;
+ e.preventDefault();applyDirection(TouchNavigation.direction(e.clientX,e.clientY,pad.getBoundingClientRect()));
+});
+function stopDpad(e){if(e.pointerId!==dpadPointerId)return;dpadPointerId=null;resetHold()}
+pad.addEventListener('pointerup',stopDpad);pad.addEventListener('pointercancel',stopDpad);pad.addEventListener('lostpointercapture',stopDpad);
 document.addEventListener('keydown',e=>{if(e.target&&['INPUT','TEXTAREA'].includes(e.target.tagName))return;
 if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Escape','Backspace','w','a','s','d','z','x','m'].includes(e.key))e.preventDefault();
-const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];if(dir&&!e.repeat){holdDir=dir;walk(dir);lastStep=performance.now()}
+const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];
+if(dir&&!e.repeat)applyDirection(dir);
 if(e.repeat)return;if(e.key==='z'||e.key==='Enter'||e.key===' ')buttonA();if(e.key==='x'||e.key==='Escape'||e.key==='Backspace')buttonB();if(e.key==='m')buttonMenu()});
-document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key))resetHold()});
+document.addEventListener('keyup',e=>{const dirs=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];if(dirs.includes(e.key)&&dpadPointerId===null)resetHold()});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 $('#audioBtn').addEventListener('click',()=>{
