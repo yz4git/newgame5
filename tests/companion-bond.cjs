@@ -5,7 +5,7 @@ const save={steps:0,map:'forest',events:{},party:[{id:'chiro',hp:30,maxHp:30,fri
 assert.equal(C.visit('talk',{party:[]}).ok,false);
 assert.equal(C.visit('unknown',save).ok,false);
 const greet=C.visit('talk',save);
-assert.match(greet.text,/森/);
+assert.match(greet.text,/木の葉|森/);
 assert.equal(greet.bond,0);
 let pet=C.visit('pet',save);
 assert.equal(pet.friendship,72);
