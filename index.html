@@ -187,6 +187,36 @@ footer{display:none}
 .name-entry{display:flex;gap:6px;padding:7px;border:2px solid #8db1af;background:#dbece5;border-radius:9px}
 .name-entry input{font-size:16px;min-width:0;flex:1;border:2px solid #a0bab8;background:#fffef4;color:#243e48;border-radius:7px;padding:8px 5px;user-select:text;-webkit-user-select:text}
 .name-entry button{border:2px solid #73a1a6;border-radius:7px;padding:8px;background:#fbf9df;color:#326873;font-weight:800;font-size:12px}
+/* v0.26 — direct touchscreen navigation and crisp at-a-glance battle information. */
+#console .options button.nav-selected:not(:disabled),#console .options button[data-selected="true"]:not(:disabled){
+ outline:3px solid #f6c967;outline-offset:-3px;
+ box-shadow:0 0 0 2px #326e78,0 3px 0 #355761;
+ filter:saturate(1.15);
+}
+#console[data-view="battleCommands"] .options button.nav-selected:not(:disabled){
+ outline:3px solid #fff3a4;outline-offset:-4px;box-shadow:0 0 0 2px #284e62,0 4px #193746;
+}
+#console[data-view="moves"] .options button{
+ position:relative;flex-direction:column;gap:3px;line-height:1.25;
+ padding:8px 7px 8px 10px;text-align:center;white-space:normal;
+}
+#console[data-view="moves"] .options button[data-matchup="strong"]:not(:disabled):after{
+ content:"◎ 有利";font-size:9px;position:absolute;top:2px;right:3px;
+ color:#1d7c55;background:#d3f2db;border-radius:3px;padding:1px 3px;
+}
+#console[data-view="moves"] .options button[data-matchup="weak"]:not(:disabled):after{
+ content:"△ 不利";font-size:9px;position:absolute;top:2px;right:3px;
+ color:#876c4a;background:#f9ecd3;border-radius:3px;padding:1px 3px;
+}
+#console[data-view="moves"] .options button[data-pp-low="true"]{background:linear-gradient(#fff5e2,#f3dcc9)}
+#console[data-view="moves"] .options button[data-pp-low="true"]:before{
+ content:"●";position:absolute;top:2px;left:3px;color:#cb744c;font-size:11px;
+}
+#dpad{touch-action:none}
+.dkey{user-select:none;-webkit-user-select:none}
+#console .options button{touch-action:manipulation}
+#touchQuick button{touch-action:manipulation}
+@media(max-height:740px){#console .options button{min-height:40px}}
 </style>
 </head>
 <body>
@@ -777,6 +807,7 @@ options.forEach((o,i)=>{
   button.className='move-button';
   const move=knownMoves.find(name=>o.text.startsWith(name+' '));
   button.dataset.type=move?(MOVES[move]?.type||'無'):'無';
+  button.dataset.matchup=o.matchup||'normal';button.dataset.ppLow=o.lowPP?'true':'false';
  }
  if(party&&i<state.party.length){
   const mon=state.party[i],definition=byId[mon.id],ratio=mon.hp/mon.maxHp;
@@ -1291,10 +1322,17 @@ function showBattle(message){if(!state.battle)return;const b=state.battle;b.busy
 function battleMessage(message,callback,delay=680){const b=state.battle;if(!b)return;let done=false;const finish=()=>{if(done||state.battle!==b)return;done=true;callback()};b.busy=true;ui('BATTLE',message,[{text:'▶ つづける',on:finish}]);if(delay>0)setTimeout(finish,delay)}
 function chooseMove(){
  const m=current(),moves=m.moves||byId[m.id].moves,remaining=moves.some(n=>(m.pp?.[n]??moveMaxPP(n))>0);
- ui('ATTACK / '+byId[m.id].name,remaining?'タイプ・PP・技の効果に注目。':'PPがすべて尽きた！ わるあがきを使える。',
- (remaining?moves.map(name=>({text:name+' '+(MOVES[name].category==='physical'?'物理':MOVES[name].category==='special'?'特殊':'変化')+' '+(m.pp?.[name]??moveMaxPP(name))+'/'+moveMaxPP(name),disabled:(m.pp?.[name]??moveMaxPP(name))<=0,on:()=>turn(name)})):
- [{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}])
- .concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]));
+ const opponent=byId[foe().id],title='ATTACK / '+byId[m.id].name;
+ const options=remaining?moves.map(name=>{
+  const spec=MOVES[name],pp=m.pp?.[name]??moveMaxPP(name),max=moveMaxPP(name);
+  const value=spec?.p?effectiveness(spec.type||'無',opponent.type):1;
+  const matchup=!spec?.p?'normal':value>1?'strong':value<1?'weak':'normal';
+  const cat=spec.category==='physical'?'物理':spec.category==='special'?'特殊':'変化';
+  return {text:name+'  '+(spec.type||'変化')+' / '+cat+'  PP '+pp+'/'+max,
+    matchup,lowPP:pp<=Math.ceil(max*.25),disabled:pp<=0,on:()=>turn(name)};
+ }):[{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}];
+ ui(title,remaining?'相手：'+opponent.name+' / '+opponent.type+'タイプ\n◎ 有利　△ 不利　● PPが少ない':'PPがすべて尽きた！ わるあがきを使える。',
+ options.concat([{text:'↶ もどる',on:()=>showBattle('どうする？')}]));
 }
 function combatDamage(attacker,target,name){return Engine.calcDamage(attacker,target,name,byId,MOVES,effectiveness,Math.random,state.battle||{})}
 function turn(move){const b=state.battle;if(!b||b.busy)return;
@@ -2596,6 +2634,20 @@ if(storyStage()>=12&&state.scene==='world'){
 
 if(state.map==='forest'||state.map==='shrine'){for(let i=0;i<17;i++){const px=(rand(i,8,23)*W)|0,py=((rand(i,3,4)*H+frame*(i%3+1)*.11)%H)|0;ellipse(px,py,1.5,1.5,'#e4f0a999')}}
 if(m.theme==='highland'){for(let i=0;i<20;i++){const x=rand(i,93)*W,y=(rand(i,47)*H+frame*.15)%H;ellipse(x,y,1.4,1.4,'#f5e5c996')}}
+if(state.scene==='world'){
+ const [dx,dy]=dirDelta[state.dir],faceX=state.x+dx,faceY=state.y+dy;
+ const nearby=(NPCS[state.map]||[]).find(n=>n.x===faceX&&n.y===faceY&&isNpcVisible(n)&&!(n.kind==='item'&&state.collected[state.map+'/'+n.name]));
+ if(nearby){
+  const label=nearby.kind==='trainer'||nearby.kind==='boss'?'⚔ '+nearby.name:
+   ['talk','storyGuide','prof','townArchivist','workshop','heal','shop'].includes(nearby.kind)?'話す：'+nearby.name:'調べる：'+nearby.name;
+  const width=Math.min(300,Math.max(118,label.length*11+48));
+  rounded((W-width)/2,307,width,30,8,'#173d4eea');
+  rounded((W-width)/2+3,310,width-6,24,6,'#e9edda');
+  rounded((W-width)/2+8,313,22,18,5,'#447b80');
+  txt('A',(W-width)/2+19,326,12,'#f8f4da','center');
+  txt(label,W/2+8,326,12,'#31555c','center');
+ }
+}
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
 if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
@@ -2745,7 +2797,7 @@ rounded(12,14,198,68,10,'#50676c');
 rounded(16,18,190,60,7,'#f4f1dd');
 pixel(16,18,190,4,'#d5e0c4');
 txt(byId[m.id].name,25,39,14,'#243e43');
-txt('Lv '+m.level,192,38,12,'#31474e','right');
+txt('['+byId[m.id].type+']',137,38,11,'#567f82','right');txt('Lv '+m.level,192,38,12,'#31474e','right');
 rounded(24,46,172,22,6,'#d7dfca');
 txt('HP',30,61,10,'#6e8577');
 drawBar(54,52,138,m.hp/m.maxHp,m.hp/m.maxHp<.28?'#e88d71':m.hp/m.maxHp<.5?'#ddc56d':'#84bc89');
@@ -2754,12 +2806,12 @@ rounded(213,263,193,80,10,'#536e70');
 rounded(217,267,185,72,7,'#f7f1df');
 pixel(217,267,185,4,'#d5e4d2');
 txt(byId[mine.id].name,228,287,14,'#243e43');
-txt('Lv '+mine.level,392,287,12,'#31474e','right');
+txt('['+byId[mine.id].type+']',336,287,11,'#567f82','right');txt('Lv '+mine.level,392,287,12,'#31474e','right');
 rounded(228,294,164,23,6,'#d9e3ce');
 txt('HP',234,310,10,'#69847a');
 drawBar(259,299,129,mine.hp/mine.maxHp,mine.hp/mine.maxHp<.28?'#e88d71':mine.hp/mine.maxHp<.5?'#ddc56d':'#84bc89');
 txt(''+mine.hp+' / '+mine.maxHp,385,329,11,'#31464d','right');
-drawBar(231,332,155,(mine.xp||0)/(mine.level*19),'#7aa9cf');
+drawBar(231,332,155,(mine.xp||0)/Engine.xpNeed(mine.level),'#7aa9cf');
 if(mine.status)txt(mine.status,267,327,10,'#a45e72');
 rounded(12,92,104,19,4,'#29434d99');
 txt(b.trainer?'TRAINER':'WILD STAR',19,105,9,'#fff5db');
