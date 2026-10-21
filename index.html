@@ -1385,7 +1385,7 @@ b.action={who,name,started:performance.now(),target:mine?'enemy':'ally',previous
 const res=combatDamage(actor,target,name);
 Object.assign(b.action,{damage:res.damage||0,critical:!!res.critical,efficacy:res.efficacy||1,miss:!!res.miss});
 b.shake=res.damage>0?14:0;b.flash=11;
-if(target.hp<=0){b.faintAt=performance.now();b.faintSide=mine?'enemy':'you'}
+if(target.hp<=0){b.faintAt=performance.now()+310;b.faintSide=mine?'enemy':'you'}
 sfx('attack',MOVES[name]?.type);
 const extra=target.hp===0?(mine?' '+byId[target.id].name+' を倒した！':' '+byId[target.id].name+' は倒れてしまった！'):'';
 battleMessage(res.text+extra,()=>{
@@ -1405,7 +1405,7 @@ for(const i of indices){
  if(result.evolved){state.seen[result.evolved.to]=1;state.caught[result.evolved.to]=(state.caught[result.evolved.to]||0)+1;
   news.push(byId[result.evolved.from].name+' は '+byId[result.evolved.to].name+' に進化！');sfx('catch')}
 }
-const next=()=>{b.index++;
+const next=()=>{b.index++;b.action=null;b.faintAt=null;b.faintSide=null;
  if(b.index<b.enemies.length){
   state.seen[foe().id]=1;
   const entry=Engine.battleEnter(foe(),current(),b.weather);
@@ -1441,6 +1441,7 @@ resetBattleStats();state.battle=null;save();dialog('VICTORY',message,[{text:'▶
 function knockout(){
  const idx=firstAlive();if(idx<0){healAndReturn();return}
  state.battle.active=idx;
+ state.battle.action=null;state.battle.faintAt=null;state.battle.faintSide=null;
  if(!state.battle.participants.includes(idx))state.battle.participants.push(idx);
  const entry=Engine.battleEnter(current(),foe(),state.battle.weather);
  battleMessage(byId[current().id].name+' が飛び出した！'+(entry?' '+entry:''),()=>showBattle('戦闘を続けよう！'),900);
@@ -2754,7 +2755,7 @@ if(b.weather==='sand')for(let i=0;i<30;i++){
 }
 const shot=BattleDirection.scene({action:b.action,elapsed:b.action?performance.now()-b.action.started:0,
  frame,allyShape:byId[mine.id].shape,enemyShape:byId[m.id].shape,
- isPhysical:b.action?.name?MOVES[b.action.name]?.category==='physical':false});
+ entrance:clamp((performance.now()-(b.opened||0))/750,0,1),isPhysical:b.action?.name?MOVES[b.action.name]?.category==='physical':false});
 const t=shot.progress,attacking=shot.active,bFrom=shot.fromAlly;
 const oursX=shot.ally.x,foeX=shot.enemy.x;
 const hit=shot.hit;
@@ -2858,6 +2859,7 @@ if(cap!==null){
  if(p>.44&&p<.7)for(let j=0;j<11;j++){const a=j*.57+frame*.01;ellipse(toX+Math.cos(a)*(9+frame%14),195+Math.sin(a)*(9+frame%14),2,2,'#f4e7ad')}
 }
 BattleDirection.drawFeedback(ctx,shot,frame);
+BattleDirection.drawMoveCue(ctx,shot,b.action?.name?MOVES[b.action.name]?.type:'無');
 // Each status pane uses a nameplate, level badge, health gauge and condition indicator.
 rounded(12,14,198,68,10,'#50676c');
 rounded(16,18,190,60,7,'#f4f1dd');
