@@ -47,6 +47,7 @@ jobs:
           node tests/music.cjs
           node tests/creature-art.cjs
           node tests/creature-motion.cjs
+          node tests/battle-direction.cjs
           node tests/battle-backdrops.cjs
           node tests/field-sprites.cjs
           node tests/npc-schedules.cjs
@@ -78,6 +79,7 @@ jobs:
           cp src/music.js _site/src/
           cp src/creature-art.js _site/src/
           cp src/creature-motion.js _site/src/
+          cp src/battle-direction.js _site/src/
           cp src/world-detail.js _site/src/
           cp src/visual-polish.js _site/src/
           cp src/map-layout.js _site/src/
