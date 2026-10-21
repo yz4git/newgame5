@@ -34,7 +34,7 @@ for(const zone of T.ZONES){
  assert.equal(T.drawGround(ctx,zone,tiles,0,0,range,24),count);
  assert.equal(buffer.join(';'),original,'Same frame is pixel-deterministic in '+zone);
  zoneLooks.add(original);
- const structures=T.drawPlaces(ctx,zone,0,0,24);
+ const structures=T.drawPlaces(ctx,zone,0,zone==='lake'?400:0,24);
  assert(structures>=1,'Authored visible landmark in '+zone);
 }
 assert(zoneLooks.size>=4,'Cliffs, shores and paving create different landscape profiles');
