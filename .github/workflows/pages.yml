@@ -52,6 +52,7 @@ jobs:
           node tests/npc-schedules.cjs
           node tests/cinematics.cjs
           node tests/world-detail.cjs
+          node tests/visual-polish.cjs
           node tests/map-layout.cjs
           node tests/forest-secrets.cjs
           node tests/region-puzzles.cjs
@@ -78,6 +79,7 @@ jobs:
           cp src/creature-art.js _site/src/
           cp src/creature-motion.js _site/src/
           cp src/world-detail.js _site/src/
+          cp src/visual-polish.js _site/src/
           cp src/map-layout.js _site/src/
           cp src/forest-secrets.js _site/src/
           cp src/region-puzzles.js _site/src/
