@@ -111,6 +111,14 @@ function hurt(mon,progress,back=false,critical=false){
   base.x=recoil*5;base.y=peak*2;
   base.rotation=(back?1:-1)*peak*.18;
   base.sx=1+peak*.10;base.sy=1-peak*.10;break;
+ case 'rabbit':
+  base.x=recoil*8;base.y=peak*7;
+  base.rotation=(back?1:-1)*peak*.06;
+  base.sx=1+peak*.14;base.sy=1-peak*.19;break;
+ case 'squirrel':
+  base.x=recoil*15;base.y=-peak*3;
+  base.rotation=(back?1:-1)*peak*.19;
+  base.sx=1-peak*.13;base.sy=1+peak*.08;break;
  case 'otter':case 'fox':
   base.x=recoil*10;base.y=peak*3;
   base.rotation=(back?1:-1)*peak*.13;
