@@ -19,7 +19,7 @@ assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
 const node=(id)=>({
   id,style:{},innerHTML:'',textContent:'',className:'',disabled:false,dataset:{},children:[],
-  classList:{add:noop,remove:noop},addEventListener:noop,
+  classList:{add:noop,remove:noop},listeners:{},addEventListener(kind,callback){this.listeners[kind]=callback},click(){this.listeners.click?.()},
   append(...children){this.children.push(...children)},
   appendChild(child){this.children.push(child)},
   querySelector(){return null},
@@ -583,5 +583,55 @@ g.get().events.townLegacy.claimed=false;
 g.switchMap({id:'workshop',x:12,y:7,dir:'up'});g.walk('up');
 assert.equal(g.get().map,'workshop','Archive door stays closed before completing festival');
 g.get().events=restoredEvents;g.get().story.stage=restoredStage;g.world();
+
+// Quality parity: walk-with-friend actions, voluntary rematches and manual technique decisions.
+g.get().story.stage=12;
+g.switchMap({id:'route',x:11,y:22,dir:'up'});
+g.world();
+let actionLabels=nodes.get('console').children.at(-1).children.map(b=>b.textContent);
+assert(actionLabels.some(s=>s.includes('連れ歩き')),'A quick companion interaction is available from the field');
+const friend=g.get().party[0],startFriendship=friend.friendship;
+g.talkToCompanion();
+assert.match(nodes.get('console').children.at(-2).textContent,/一緒に歩いている/);
+g.companionAction('pet');
+assert(friend.friendship>=startFriendship,'Petting never reduces friendship');
+const afterFirstPet=friend.friendship;
+g.companionAction('pet');
+assert.equal(friend.friendship,afterFirstPet,'No repeated friendship farming');
+g.world();
+const trainingNPC=g.NPCS.route.find(n=>n.kind==='trainer');
+assert(trainingNPC);
+const key='route/'+trainingNPC.name;
+g.get().defeated[key]=true;
+g.get().steps=Math.max(130,g.get().steps);
+g.get().events.trainerRematches={[key]:{wins:0,lastStep:0}};
+g.npc(trainingNPC);
+actionLabels=nodes.get('console').children.at(-1).children.map(b=>b.textContent);
+assert(actionLabels.some(t=>t.includes('再戦する')),'Previously defeated trainers now offer optional rematches');
+const firstRematch=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('再戦する'));
+firstRematch.click();
+assert.equal(g.get().scene,'battle');
+assert.equal(g.get().battle.rematch,true);
+assert.equal(g.get().battle.enemies[0].level,trainingNPC.party[0][1]+2,'First rematch raises opponents by two levels');
+assert(g.enemyMove(g.get().battle.enemies[0]),'Trainer tactical selector returns valid action');
+// Simulate an ordinary battle awarding a new move to a fully trained four-slot creature.
+friend.id='flamio';friend.level=11;friend.xp=0;
+friend.moves=['ひっかく','ひのこ','たいあたり','きあいだめ'];
+friend.pp={ひっかく:7,ひのこ:8,たいあたり:10,きあいだめ:4};
+g.startBattle([g.makeMonster('koro',11)],{trainer:false});
+g.defeatEnemy();
+let controls=nodes.get('console').children.at(-1).children;
+assert(controls.some(b=>b.textContent.includes('つづける')),'Experience is displayed before learning');
+controls.find(b=>b.textContent.includes('つづける')).click();
+controls=nodes.get('console').children.at(-1).children;
+assert(controls.some(b=>b.textContent.includes('たいあたり を忘れる')),'Four learned moves are offered for deliberate replacement');
+assert(friend.moves.includes('たいあたり'),'Existing move is never silently dropped');
+controls.find(b=>b.textContent.includes('たいあたり を忘れる')).click();
+assert(friend.moves.includes('ほのおのうず')&&!friend.moves.includes('たいあたり'),'User choice determines the forgotten move');
+controls=nodes.get('console').children.at(-1).children;
+controls.find(b=>b.textContent.includes('つづける')).click();
+assert.equal(g.get().battle,null,'Battle finishes normally after the learning choice');
+g.world();
+assert(html.includes('src/trainer-tactics.js')&&html.includes('src/companion-bond.js')&&html.includes('src/trainer-rematches.js'),'New battle/companion modules are shipped');
 
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
