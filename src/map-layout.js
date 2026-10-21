@@ -7,6 +7,15 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const SITES={
+ route:[
+  {id:'north-gate',x:11,y:1},
+  {id:'south-gate',x:11,y:24},
+  {id:'west-meadow',x:6,y:8},
+  {id:'east-lake-trail',x:22,y:11},
+  {id:'south-lookout',x:8,y:19},
+  {id:'rookie-trainer',x:11,y:13},
+  {id:'insect-trainer',x:16,y:7}
+ ],
  village:[
   {id:'north-gate',x:11,y:1},
   {id:'town-square',x:12,y:11},
@@ -118,8 +127,27 @@ function forest(a){
  // Preserve original top and bottom gate collision cells exactly.
  paint(a,12,0,4,3,1);paint(a,12,h-3,4,3,1);
 }
+function route(a){
+ const h=a.length;
+ // Optional western flower-path loop bypasses the central trainer spine.
+ path(a,[{x:11,y:2},{x:8,y:5},{x:6,y:8},{x:6,y:12},{x:7,y:17},{x:9,y:20},{x:11,y:23}],2);
+ // Eastern outlook branches toward the existing lake exit, keeping marsh intact.
+ path(a,[{x:12,y:5},{x:16,y:7},{x:20,y:9},{x:22,y:11}],2);
+ path(a,[{x:11,y:11},{x:16,y:11},{x:20,y:11}],2);
+ // Southern short-loop connects the meadow to the canonical forest gate.
+ path(a,[{x:8,y:19},{x:6,y:18},{x:8,y:21},{x:12,y:22}],2);
+ // Differentiated wildflower meadow flanks, never stamping over roads/water.
+ for(const [x0,y0,w,h0] of [[3,11,3,5],[18,5,3,3],[4,21,4,3]]){
+  for(let y=y0;y<y0+h0;y++)for(let x=x0;x<x0+w;x++)
+   if(a[y]?.[x]===0&&rand(x,y,70)>.2)a[y][x]=7;
+ }
+ // All canonical gates and trainer standing spots are collision-safe.
+ paint(a,10,0,4,3,1);paint(a,10,h-3,4,3,1);
+ for(const [x,y] of [[16,7],[11,13],[8,19],[22,11],[6,8]])a[y][x]=1;
+}
 function apply(id,tiles){
  if(!tiles?.length||!tiles[0]?.length)return false;
+ if(id==='route'){route(tiles);return true}
  if(id==='village'){village(tiles);return true}
  if(id==='forest'){forest(tiles);return true}
  return false;
