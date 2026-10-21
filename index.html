@@ -233,6 +233,7 @@ footer{display:none}
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
 <script src="./src/touch-navigation.js?v=__BUILD_ID__"></script>
+<script src="./src/visual-polish.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-tactics.js?v=__BUILD_ID__"></script>
 <script src="./src/companion-bond.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-rematches.js?v=__BUILD_ID__"></script>
@@ -257,8 +258,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!TouchNavigation||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!TouchNavigation||!VisualPolish||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -2594,6 +2595,12 @@ if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
 // Y-order painter's algorithm: actors nearer the camera can cover those behind.
+if(animated&&animated.t<1){
+ VisualPolish.footsteps(ctx,
+  {x:animated.fromX||movement.fromX*T-camX+16,y:movement.fromY*T-camY+19},
+  {x:movement.toX*T-camX+16,y:movement.toY*T-camY+19},
+  animated.t,state.map);
+}
 const layers=[];
 for(const n of NPCS[state.map]){
  if(n.kind==='item'&&state.collected[state.map+'/'+n.name])continue;
@@ -2619,6 +2626,7 @@ layers.push({y:py,draw:()=>drawHero(px*T-camX+16,py*T-camY+19,state.dir)});
 layers.sort((a,b)=>a.y-b.y);
 for(const layer of layers)layer.draw();
 drawFieldForeground(camX,camY,x0,x1,y0,y1,Math.floor(px),Math.floor(py));
+VisualPolish.field(ctx,state.map,camX,camY,frame,worldPhase());
 if(storyStage()>=12&&state.scene==='world'){
  const clue=Exploration.nearby(state.map,state.x,state.y,NPCS[state.map],isNpcVisible);
  if(clue){
