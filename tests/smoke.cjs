@@ -40,6 +40,7 @@ context.globalThis=context;
 vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:5000,filename:'rpg-engine.js'});
 vm.runInNewContext(fs.readFileSync('src/trainer-tactics.js','utf8'),context,{timeout:5000,filename:'trainer-tactics.js'});
 vm.runInNewContext(fs.readFileSync('src/companion-bond.js','utf8'),context,{timeout:5000,filename:'companion-bond.js'});
+vm.runInNewContext(fs.readFileSync('src/trainer-rematches.js','utf8'),context,{timeout:5000,filename:'trainer-rematches.js'});
 vm.runInNewContext(fs.readFileSync('src/story.js','utf8'),context,{timeout:5000,filename:'story.js'});
 assert(context.AstraStory,'Story engine was initialized');
 assert(context.AstraEngine,'RPG engine was initialized');
