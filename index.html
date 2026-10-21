@@ -627,6 +627,61 @@ function finishTownLegacy(){
  dialog('星の記録係 アカリ',result.text);
  return true;
 }
+function workshopMenu(){
+ if(state.map!=='workshop'||Workshop.townTier(state)<2){world();return}
+ screen('shop');
+ const tier=Workshop.townTier(state);
+ const options=Workshop.available(state).map(recipe=>({
+  text:(Workshop.canCraft(recipe.id,state).ok?'✦ ':'× ')+recipe.title,
+  on:()=>workshopRecipe(recipe.id)
+ }));
+ ui('ASTRA WORKSHOP / 星霊工房',
+ '町の知恵で道具を精製しよう。\n発展レベル：'+tier+'\n材料はバッグから消費されます。\n町の発展でレシピが増えます。',
+ options.concat([{text:'↶ フィールド',on:()=>world()}]));
+}
+function workshopRecipe(id){
+ if(state.map!=='workshop'||Workshop.townTier(state)<2){world();return}
+ const recipe=Workshop.RECIPES.find(r=>r.id===id);
+ if(!recipe||!Workshop.available(state).some(r=>r.id===id)){workshopMenu();return}
+ const check=Workshop.canCraft(id,state);
+ screen('shop');ui('RECIPE / '+recipe.title,Workshop.recipeText(recipe)+'\n\n所持金：'+state.money+'G\n'+
+ (check.ok?'材料がそろっています。':check.reason),[
+ {text:'✦ 精製する',disabled:!check.ok,on:()=>craftWorkshop(id)},
+ {text:'↶ レシピ一覧',on:()=>workshopMenu()}
+ ]);
+}
+function craftWorkshop(id){
+ if(state.map!=='workshop')return false;
+ const result=Workshop.craft(id,state);
+ if(!result.ok){toast(result.reason);workshopRecipe(id);return false}
+ state.bag=result.bag;state.money=result.money;
+ save();sfx('catch');startStoryEffect('star',null,1150);
+ dialog('星霊工房',result.text,[
+ {text:'▶ 続けて作る',on:()=>workshopMenu()},
+ {text:'↶ 工房を出る',on:()=>world()}]);
+ return true;
+}
+function archiveAction(n){
+ if(!Workshop.archiveUnlocked(state)){dialog(n.name,'資料室はまだ閉ざされている。');return}
+ const prior=state.events.townWorkshop||{};
+ if(n.kind==='archivePanel'){
+  const result=Workshop.readPanel(n.panel,state);
+  if(!result.ok){dialog(n.name,'記録を読み取れない。');return}
+  state.events.townWorkshop={...prior,archive:result.state};save();sfx('ok');
+  dialog(n.name,result.text);return;
+ }
+ if(n.kind==='archiveCache'){
+  const result=Workshop.archiveReward(state);
+  if(!result.ok){
+   const current=Workshop.archiveState(state),found=Workshop.PANELS.filter(id=>current.panels[id]).length;
+   dialog(n.name,current.claimed?'結晶は静かに光り続けている。':'3つの記録板を調べると、結晶が応えるらしい。\n'+found+'/3 復元');return;
+  }
+  state.events.townWorkshop={...prior,archive:result.state};
+  for(const [id,count] of Object.entries(result.reward.bag))state.bag[id]=(state.bag[id]||0)+count;
+  state.money+=result.reward.money;save();sfx('catch');startStoryEffect('star',null,1400);
+  dialog(n.name,result.text);return;
+ }
+}
 function moveMaxPP(name){return Engine.maxPP(name,MOVES)}
 function makeMonster(id,level){return Engine.makeCreature(id,level,byId,MOVES)}
 function normalizeMonster(m){return Engine.normalize(m,byId,MOVES)}
@@ -1123,6 +1178,8 @@ if(n.kind==='secretRune'||n.kind==='nightBloom'){
  if(action.kind==='rune'||action.kind==='unlocked'||action.kind==='bloom')save();
  dialog(n.name,action.text);return
 }
+if(n.kind==='workshop'){if(storyStage()<12){dialog(n.name,'工房はまだ準備中。');return}workshopMenu();return}
+if(n.kind==='archivePanel'||n.kind==='archiveCache'){archiveAction(n);return}
 if(n.kind==='townArchivist'){archivistNpc(n);return}
 if(n.kind==='talk'&&n.requestId&&storyStage()>=12){requestNpc(n);return}
 if(n.kind==='storyMom'){storyMother();return}
