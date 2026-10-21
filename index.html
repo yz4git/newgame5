@@ -2074,28 +2074,38 @@ return 0;
 function drawDialoguePortrait(){
  const name=state.dialogSpeaker||'';
  if(!name||['星の朝','CAPTURE','VICTORY','帰還','ITEM GET'].some(x=>name.includes(x)))return;
- const colors=['#d1a47f','#7dabc5','#a2b982','#b08eb3','#caa38b'];
- let sum=0;for(const ch of name)sum=(sum+ch.charCodeAt(0))%997;
- const coat=colors[sum%colors.length],hair=name.includes('博士')?'#91a8b7':name.includes('家族')?'#785d52':name.includes('旅人')?'#b96a53':'#495865';
- const x=W-118,y=43;
- rounded(x,y,105,147,10,'#284c5877');
- rounded(x+4,y+4,97,139,9,'#d8e8e2');
- ellipse(x+52,y+140,42,17,'#547a89');
- ellipse(x+52,y+114,37,41,coat);
- rounded(x+18,y+108,68,36,10,coat);
- ellipse(x+52,y+71,29,37,'#edc9aa');
- ellipse(x+52,y+44,33,16,hair);
- ellipse(x+26,y+67,7,21,hair);ellipse(x+78,y+67,7,21,hair);
- ellipse(x+40,y+77,2.6,3,'#263e47');ellipse(x+63,y+77,2.6,3,'#263e47');
- line(x+45,y+92,x+59,y+91,'#b07572',2);
- if(name.includes('博士')){
-  line(x+33,y+77,x+70,y+77,'#4c7180',2);
-  ellipse(x+40,y+78,9,7,'#b8d7e288');ellipse(x+63,y+78,9,7,'#b8d7e288');
+ const npc=Object.values(NPCS).flat().find(n=>n.name===name);
+ const kind=npc?.kind||(
+  name.includes('博士')?'prof':name.includes('家族')?'storyMom':
+  name.includes('ライバル')||name.includes('ナギ')?'storyGuide':
+  name.includes('調査員')?'storyScholar':'talk');
+ const outfit=FieldSprites.TYPES[kind]||FieldSprites.TYPES.talk;
+ const x=W-116,y=36;
+ // Unique original pixel-character vignette, not a repeated generic face.
+ rounded(x-2,y-2,110,156,10,'#223c4db8');
+ rounded(x+2,y+1,102,148,8,'#c4d6c9');
+ rounded(x+7,y+6,92,135,6,outfit.coat);
+ rounded(x+11,y+11,84,119,5,'#d2e0d6');
+ for(let i=0;i<6;i++){
+  const yy=y+20+i*17;
+  line(x+13,yy,x+91,yy-7,'#f8f2d24d',2);
  }
- if(name.includes('調査員')){pixel(x+19,y+45,66,7,'#415b79');pixel(x+29,y+32,47,16,'#506f91')}
- if(name.includes('観測者')){pixel(x+26,y+39,51,8,'#639b86')}
- rounded(x+5,y+120,95,21,4,'#335964');
- txt(name.length>7?name.slice(0,7)+'…':name,x+52,y+135,11,'#f5f0cf','center');
+ ellipse(x+53,y+114,38,17,'#5f8389a4');
+ ellipse(x+53,y+113,31,10,'#edf4d6a4');
+ ctx.save();
+ ctx.translate(x+53,y+115);
+ ctx.scale(2.35,2.35);
+ FieldSprites.draw(ctx,0,0,'down',Math.floor(frame/14)%8,kind,npc?.color||null,false);
+ ctx.restore();
+ if(kind==='prof'||kind==='storyScholar'){
+  rounded(x+14,y+17,19,13,4,'#37596eaa');txt('✎',x+24,y+27,10,'#fff0b6','center');
+ }else if(kind==='trainer'||kind==='boss'){
+  rounded(x+14,y+17,19,13,4,'#6a5668aa');txt('⚔',x+24,y+27,10,'#fff0b6','center');
+ }else if(kind==='workshop'){
+  rounded(x+14,y+17,19,13,4,'#745c53aa');txt('✦',x+24,y+27,10,'#ffedca','center');
+ }
+ rounded(x+4,y+128,100,22,5,'#2f5765');
+ txt(name.length>8?name.slice(0,8)+'…':name,x+54,y+143,10,'#fff4d5','center');
 }
 function drawScenery(camX,camY,x0,x1,y0,y1){
  const name=state.map,meta=mapMeta[name],indoor=meta.theme==='interior';
