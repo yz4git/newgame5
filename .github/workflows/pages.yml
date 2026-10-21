@@ -54,6 +54,7 @@ jobs:
           node tests/exploration-journal.cjs
           node tests/field-requests.cjs
           node tests/town-legacy.cjs
+          node tests/town-workshop.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -75,6 +76,7 @@ jobs:
           cp src/exploration-journal.js _site/src/
           cp src/field-requests.js _site/src/
           cp src/town-legacy.js _site/src/
+          cp src/town-workshop.js _site/src/
           cp src/battle-backdrops.js _site/src/
           cp src/field-sprites.js _site/src/
           cp src/npc-schedules.js _site/src/
