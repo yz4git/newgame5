@@ -50,6 +50,8 @@ assert(context.AstraEngine,'RPG engine was initialized');
 vm.runInNewContext(fs.readFileSync('src/creature-art.js','utf8'),context,{timeout:5000,filename:'creature-art.js'});
 assert(context.AstraCreatureArt,'Species-specific creature art was loaded');
 vm.runInNewContext(fs.readFileSync('src/creature-motion.js','utf8'),context,{timeout:5000,filename:'creature-motion.js'});
+vm.runInNewContext(fs.readFileSync('src/battle-direction.js','utf8'),context,{timeout:5000,filename:'battle-direction.js'});
+assert(context.AstraBattleDirection,'Battle staging module is available');
 assert(context.AstraCreatureMotion,'Per-creature animation profiles loaded');
 vm.runInNewContext(fs.readFileSync('src/world-detail.js','utf8'),context,{timeout:5000,filename:'world-detail.js'});
 vm.runInNewContext(fs.readFileSync('src/visual-polish.js','utf8'),context,{timeout:5000,filename:'visual-polish.js'});
