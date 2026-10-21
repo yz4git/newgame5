@@ -2716,18 +2716,20 @@ function drawMonster(m,x,y,scale=1,back=false){
  const phase=active?clamp((performance.now()-active.started)/760,0,1):1;
  const attack=attacking&&phase<1?phase:null;
  const hit=!attacking&&active&&(active.damage||0)>0&&phase>.39&&phase<.73;
- const reaction=hit?Math.sin((phase-.37)/.36*Math.PI):0;
  const motion=CreatureMotion.pose(def,frame,attack,back);
+ const hurt=hit?CreatureMotion.hurt(def,phase,back,!!active.critical):CreatureMotion.hurt(def,1,back);
  ctx.save();
- ctx.translate(x+motion.x+reaction*(back?8:-8),y+motion.y+reaction*4);
- ctx.rotate(motion.rotation);
- ctx.scale((scale||1)*motion.sx*(1-reaction*.045),(scale||1)*motion.sy*(1+reaction*.068));
+ ctx.translate(x+motion.x+hurt.x,y+motion.y+hurt.y);
+ ctx.rotate(motion.rotation+hurt.rotation);
+ ctx.scale((scale||1)*motion.sx*hurt.sx,(scale||1)*motion.sy*hurt.sy);
  CreatureArt.draw(ctx,def,frame,back,attack);
  if(attacking)CreatureMotion.trail(ctx,def,frame,motion);
- if(reaction>.28){
-  for(let i=0;i<5;i++){
-   const a=i*1.256+frame*.05;
-   ellipse(Math.cos(a)*43,-25+Math.sin(a)*36,2.5*reaction,2.5*reaction,'#fff0bbba');
+ if(hurt.intensity>.28){
+  const count=active?.critical?9:5;
+  for(let i=0;i<count;i++){
+   const a=i*Math.PI*2/count+frame*.04;
+   ellipse(Math.cos(a)*(30+8*hurt.intensity),-25+Math.sin(a)*(25+7*hurt.intensity),
+    1.8*hurt.intensity,1.8*hurt.intensity,active?.critical?'#fff5b4b7':'#fff0bb99');
   }
  }
  ctx.restore();
