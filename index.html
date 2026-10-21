@@ -204,6 +204,7 @@ footer{display:none}
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-tactics.js?v=__BUILD_ID__"></script>
 <script src="./src/companion-bond.js?v=__BUILD_ID__"></script>
+<script src="./src/trainer-rematches.js?v=__BUILD_ID__"></script>
 <script src="./src/story.js?v=__BUILD_ID__"></script>
 <script src="./src/music.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
@@ -225,8 +226,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Tactics||!Companion||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -1225,7 +1226,19 @@ if(n.kind==='heal'||n.kind==='spring'){state.party.forEach(m=>{m.hp=m.maxHp;m.st
 if(n.kind==='shop'){screen('shop');shop();return}
 if(n.kind==='trainer'||n.kind==='boss'){
 if(storyStage()<12){dialog(n.name,'旅の準備ができたら、また勝負しよう！');return}
-const key=state.map+'/'+n.name;if(state.defeated[key]){dialog(n.name,n.kind==='boss'?'星のしるしは、君の勇気の証だ。':'また、いつか勝負しよう！');return}
+const key=state.map+'/'+n.name;
+if(state.defeated[key]){
+ if(n.kind!=='trainer'){dialog(n.name,'星のしるしは、君の勇気の証だ。');return}
+ const s=Rematches.status(key,state);
+ if(!s.ready){dialog(n.name,'また戦おう！ 少し修行を積んでから会いに来て。\n再戦まであと '+s.remaining+' 歩。');return}
+ const next=Rematches.lineup(n,key,state);
+ dialog(n.name,'前より腕を上げたようだね！\n修行試合 '+(s.wins+1)+' 回目 / 仲間が '+next.bonus+' Lvほど成長したよ。',[
+  {text:'⚔ 再戦する',on:()=>startBattle(next.party.map(([id,l])=>makeMonster(id,l)),{
+    trainer:true,npc:n,trainerKey:key,reward:next.reward,rematch:true
+   })},
+  {text:'↶ またあとで',on:()=>world()}]);
+ return;
+}
 const battleNow=()=>startBattle(n.party.map(([id,l])=>makeMonster(id,l)),{trainer:true,npc:n,trainerKey:key,reward:n.reward});
 forcedTrainer=automatic;
 dialog(n.name,n.say,automatic?[{text:'勝負だ！',on:battleNow}]:[{text:'勝負する！',on:battleNow},{text:'まだ待って',on:()=>world()}]);return}
@@ -1240,7 +1253,7 @@ function startBattle(enemies,options){
  enemies.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp;state.seen[m.id]=1});
  const weather=Engine.weatherFor(state.map);
  state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,tutorial:!!options.tutorial,opened:performance.now(),faintAt:null,faintSide:null,
- action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,busy:false,shake:0,flash:0,messages:[]};
+ action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,rematch:!!options.rematch,busy:false,shake:0,flash:0,messages:[]};
  const firstMessage=Engine.battleEnter(current(),foe(),weather);
  const foeMessage=Engine.battleEnter(foe(),current(),weather);
  screen('battle');
@@ -1354,7 +1367,10 @@ function victory(){const b=state.battle;if(!b)return;
 let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利！ 仲間に経験値が入った！';
 if(b.trainer){
  if(b.npc?.kind==='rival'&&storyStage()===9){storyStep(10);state.events.storyRivalResolved=true}
- state.money+=b.reward;state.defeated[b.trainerKey]=true;if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
+ state.money+=b.reward;state.defeated[b.trainerKey]=true;
+  if(b.npc?.kind==='trainer'&&b.trainerKey){state.events.trainerRematches=state.events.trainerRematches||{};
+   state.events.trainerRematches[b.trainerKey]=Rematches.markWin(b.trainerKey,state,b.rematch)}
+  if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
 resetBattleStats();state.battle=null;save();dialog('VICTORY',message,[{text:'▶ 冒険へ戻る',on:()=>world()}])}
 function knockout(){
  const idx=firstAlive();if(idx<0){healAndReturn();return}
