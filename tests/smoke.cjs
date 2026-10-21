@@ -715,4 +715,31 @@ assert(html.includes('BattleDirection.drawMoveCue'),'Combatant actions receive a
 assert(html.includes('BattleDirection.hpFraction'),'Combatant health bars drain in sync');
 g.get().battle=null;g.world();
 
+// v0.29: actual game runtime has joined coastlines, alpine stairs, five roof styles, and exploratory route.
+const terrain=context.AstraTerrainComposition,architecture=context.AstraBuildingProfile;
+assert(terrain&&terrain.drawGround&&terrain.drawPlaces,'Terrain renderer reached browser VM');
+assert(architecture&&architecture.KINDS.length===5,'All special-building profiles reached browser VM');
+assert(html.includes('Terrain.drawGround(ctx,state.map'),'Terrain draws inside the actual map scene');
+assert(html.includes('Terrain.drawPlaces(ctx,state.map'),'Landmark structures draw inside the actual map scene');
+assert(html.includes('Buildings.draw(ctx,kind'),'Functional buildings render their specialized rooflines');
+const scenic=g.NPCS.route.find(n=>n.kind==='item'&&n.name==='花の回り道の星玉包み');
+const directionSign=g.NPCS.route.find(n=>n.kind==='sign'&&n.name==='湖へ続く道標');
+assert(scenic&&directionSign,'Optional meadow reward and eastern trail guide are present');
+assert(context.AstraMapLayout.reachable(g.maps.route,{x:11,y:1},{x:6,y:8}),'Western scenic path is reachable from the main gate');
+assert(context.AstraMapLayout.reachable(g.maps.route,{x:11,y:1},{x:22,y:11}),'Eastern lake approach is reachable');
+assert.equal(g.maps.route[15][18],3,'Existing lakeside pool remains unfilled by path redesign');
+for(const id of ['village','route','forest','lake','shrine','highland']){
+ g.switchMap({id,x:11,y:id==='village'?11:10,dir:'up'});
+ g.draw();
+}
+g.switchMap({id:'route',x:6,y:8,dir:'left'});
+const orbCount=g.get().bag.orb;
+g.npc(scenic);
+assert.equal(g.get().bag.orb,orbCount+2,'Finding west meadow item grants two star orbs');
+g.world();g.npc(scenic);
+assert.equal(g.get().bag.orb,orbCount+2,'Scenic item cannot be claimed twice');
+assert.equal(g.load(),true);
+assert.equal(g.get().bag.orb,orbCount+2,'Scenic reward persists through save reload');
+g.world();
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
