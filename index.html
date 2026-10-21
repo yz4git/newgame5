@@ -241,6 +241,7 @@ footer{display:none}
 <script src="./src/music.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-motion.js?v=__BUILD_ID__"></script>
+<script src="./src/battle-direction.js?v=__BUILD_ID__"></script>
 <script src="./src/world-detail.js?v=__BUILD_ID__"></script>
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
 <script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
@@ -258,8 +259,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!TouchNavigation||!VisualPolish||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!TouchNavigation||!VisualPolish||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!BattleDirection||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -1379,8 +1380,11 @@ const [who,name]=sequence[i],mine=who==='you',actor=mine?current():foe(),target=
 if(actor.hp<=0){takeTurns(sequence,i+1);return}
 const stop=Engine.skipStatus(actor);if(stop){battleMessage(byId[actor.id].name+(stop==='ねむり'?' は眠っている…':' は体がしびれて動けない！'),()=>takeTurns(sequence,i+1),650);return}
 if(!mine&&name!=='わるあがき'&&actor.pp&&actor.pp[name]>0)actor.pp[name]=Math.max(0,actor.pp[name]-(Engine.abilityFor(target)==='プレッシャー'?2:1));
-b.action={who,name,started:performance.now()};
-const res=combatDamage(actor,target,name);b.shake=res.damage>0?14:0;b.flash=11;
+const previousHp=target.hp;
+b.action={who,name,started:performance.now(),target:mine?'enemy':'ally',previousHp};
+const res=combatDamage(actor,target,name);
+Object.assign(b.action,{damage:res.damage||0,critical:!!res.critical,efficacy:res.efficacy||1,miss:!!res.miss});
+b.shake=res.damage>0?14:0;b.flash=11;
 if(target.hp<=0){b.faintAt=performance.now();b.faintSide=mine?'enemy':'you'}
 sfx('attack',MOVES[name]?.type);
 const extra=target.hp===0?(mine?' '+byId[target.id].name+' を倒した！':' '+byId[target.id].name+' は倒れてしまった！'):'';
@@ -1450,8 +1454,11 @@ function enemyFreeTurn(){
  const m=foe(),target=current(),name=enemyMove(m),skip=Engine.skipStatus(m);
  if(skip){battleMessage(byId[m.id].name+(skip==='ねむり'?' は眠っている…':' はまひで動けなかった！'),()=>takeTurns([],0),700);return}
  if(name!=='わるあがき'&&m.pp?.[name]>0)m.pp[name]=Math.max(0,m.pp[name]-(Engine.abilityFor(target)==='プレッシャー'?2:1));
- b.action={who:'enemy',name,started:performance.now()};
- const r=combatDamage(m,target,name);b.shake=12;beep(180,.1,'square');
+ const previousHp=target.hp;
+ b.action={who:'enemy',name,started:performance.now(),target:'ally',previousHp};
+ const r=combatDamage(m,target,name);
+ Object.assign(b.action,{damage:r.damage||0,critical:!!r.critical,efficacy:r.efficacy||1,miss:!!r.miss});
+ b.shake=r.damage>0?12:0;beep(180,.1,'square');
  battleMessage(r.text,()=>{
   if(target.hp<=0)knockout();
   else if(m.hp<=0)defeatEnemy();
@@ -2708,7 +2715,7 @@ function drawMonster(m,x,y,scale=1,back=false){
  const attacking=!!(active&&((back&&active.who==='you')||(!back&&active.who==='enemy')));
  const phase=active?clamp((performance.now()-active.started)/760,0,1):1;
  const attack=attacking&&phase<1?phase:null;
- const hit=!attacking&&active&&(MOVES[active.name]?.p||0)>0&&phase>.37&&phase<.73;
+ const hit=!attacking&&active&&(active.damage||0)>0&&phase>.39&&phase<.73;
  const reaction=hit?Math.sin((phase-.37)/.36*Math.PI):0;
  const motion=CreatureMotion.pose(def,frame,attack,back);
  ctx.save();
@@ -2743,21 +2750,23 @@ if(b.weather==='sand')for(let i=0;i<30;i++){
  const x=(rand(i,818)*W+frame*1.7)%W,y=rand(i,83)*H;
  ellipse(x,y,2.2,1.2,'#bca786b3');
 }
-const t=b.action?clamp((performance.now()-b.action.started)/760,0,1):1;
-const attacking=t<1,bFrom=b.action?.who==='you';
-const surge=attacking?Math.sin(Math.PI*t)*15:0;
-const oursX=105+(attacking&&bFrom?surge:0),foeX=307-(attacking&&!bFrom?surge:0);
-const hit=!(!attacking||t<.37||t>.72);
-const shake=hit&&b.shake>0?Math.sin(t*82)*5:0;
+const shot=BattleDirection.scene({action:b.action,elapsed:b.action?performance.now()-b.action.started:0,
+ frame,allyShape:byId[mine.id].shape,enemyShape:byId[m.id].shape,
+ isPhysical:b.action?.name?MOVES[b.action.name]?.category==='physical':false});
+const t=shot.progress,attacking=shot.active,bFrom=shot.fromAlly;
+const oursX=shot.ally.x,foeX=shot.enemy.x;
+const hit=shot.hit;
+const shake=hit&&b.shake>0?Math.sin(t*82)*3:0;
+BattleDirection.drawGround(ctx,shot,frame);
 const cap=b.capture?clamp((performance.now()-b.capture.started)/1850,0,1):null;
 if(cap===null||cap<.44){
  const targetOffset=(hit&&bFrom?shake:0);
  const fade=b.faintSide==='enemy'&&b.faintAt?clamp(1-(performance.now()-b.faintAt)/720,0,1):1;
- if(fade>0){ctx.save();ctx.globalAlpha=fade;drawMonster(m,foeX+targetOffset,190+(1-fade)*24,1.01*fade,false);ctx.restore()}
+ if(fade>0){ctx.save();ctx.globalAlpha=fade;drawMonster(m,foeX+targetOffset,shot.enemy.y+(1-fade)*24,shot.enemy.scale*fade,false);ctx.restore()}
 }
 const ourOffset=(hit&&!bFrom?shake:0);
 const ourFade=b.faintSide==='you'&&b.faintAt?clamp(1-(performance.now()-b.faintAt)/720,0,1):1;
-if(ourFade>0){ctx.save();ctx.globalAlpha=ourFade;drawMonster(mine,oursX+ourOffset,326+(1-ourFade)*27,1.36*ourFade,true);ctx.restore()}
+if(ourFade>0){ctx.save();ctx.globalAlpha=ourFade;drawMonster(mine,oursX+ourOffset,shot.ally.y+(1-ourFade)*27,shot.ally.scale*ourFade,true);ctx.restore()}
 if(attacking){
  const move=MOVES[b.action.name]||{type:'無'};
  const cols={火:['#ffd18a','#ed6842'],水:['#c6f2ec','#539fc9'],草:['#d0eba2','#569d61'],雷:['#fff3a0','#e8bc41'],風:['#e9f6e7','#8fbdc9'],岩:['#e1d1b1','#897f6b'],影:['#ceb4ed','#735294'],光:['#fffce0','#edbd79'],無:['#e2e9dd','#8ca6af']};
@@ -2832,7 +2841,7 @@ if(attacking){
   ellipse(ox,oy,7*(1-burst)+1,6*(1-burst)+1,'#fff4d3b3');
  }
 }
-if(attacking&&MOVES[b.action.name]?.p){
+if(attacking&&!b.action.miss&&MOVES[b.action.name]?.p){
  const kind=MOVES[b.action.name]?.type||'無',defending=bFrom?m:mine;
  VisualPolish.battleImpact(ctx,kind,bFrom?foeX:oursX,bFrom?165:280,t,frame,{
   effectiveness:effectiveness(kind,byId[defending.id].type)
@@ -2846,6 +2855,7 @@ if(cap!==null){
  else{ellipse(orbX,orbY,12,12,'#405d70');ellipse(orbX,orbY-3,12,9,'#e65f5a');pixel(orbX-11,orbY-1,22,4,'#f1e8d2');ellipse(orbX,orbY,4,4,'#e9f5e5')}
  if(p>.44&&p<.7)for(let j=0;j<11;j++){const a=j*.57+frame*.01;ellipse(toX+Math.cos(a)*(9+frame%14),195+Math.sin(a)*(9+frame%14),2,2,'#f4e7ad')}
 }
+BattleDirection.drawFeedback(ctx,shot,frame);
 // Each status pane uses a nameplate, level badge, health gauge and condition indicator.
 rounded(12,14,198,68,10,'#50676c');
 rounded(16,18,190,60,7,'#f4f1dd');
@@ -2854,7 +2864,8 @@ txt(byId[m.id].name,25,39,14,'#243e43');
 txt('['+byId[m.id].type+']',137,38,11,'#567f82','right');txt('Lv '+m.level,192,38,12,'#31474e','right');
 rounded(24,46,172,22,6,'#d7dfca');
 txt('HP',30,61,10,'#6e8577');
-drawBar(54,52,138,m.hp/m.maxHp,m.hp/m.maxHp<.28?'#e88d71':m.hp/m.maxHp<.5?'#ddc56d':'#84bc89');
+const foeHealth=BattleDirection.hpFraction(m,b.action,'enemy',t);
+drawBar(54,52,138,foeHealth,foeHealth<.28?'#e88d71':foeHealth<.5?'#ddc56d':'#84bc89');
 if(m.status)txt(m.status,154,75,10,'#8e5869','right');
 rounded(213,263,193,80,10,'#536e70');
 rounded(217,267,185,72,7,'#f7f1df');
@@ -2863,8 +2874,9 @@ txt(byId[mine.id].name,228,287,14,'#243e43');
 txt('['+byId[mine.id].type+']',336,287,11,'#567f82','right');txt('Lv '+mine.level,392,287,12,'#31474e','right');
 rounded(228,294,164,23,6,'#d9e3ce');
 txt('HP',234,310,10,'#69847a');
-drawBar(259,299,129,mine.hp/mine.maxHp,mine.hp/mine.maxHp<.28?'#e88d71':mine.hp/mine.maxHp<.5?'#ddc56d':'#84bc89');
-txt(''+mine.hp+' / '+mine.maxHp,385,329,11,'#31464d','right');
+const ourHealth=BattleDirection.hpFraction(mine,b.action,'ally',t);
+drawBar(259,299,129,ourHealth,ourHealth<.28?'#e88d71':ourHealth<.5?'#ddc56d':'#84bc89');
+txt(''+BattleDirection.hpNumber(mine,b.action,'ally',t)+' / '+mine.maxHp,385,329,11,'#31464d','right');
 drawBar(231,332,155,(mine.xp||0)/Engine.xpNeed(mine.level),'#7aa9cf');
 if(mine.status)txt(mine.status,267,327,10,'#a45e72');
 rounded(12,92,104,19,4,'#29434d99');
