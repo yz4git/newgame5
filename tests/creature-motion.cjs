@@ -35,4 +35,21 @@ for(const mon of creatures){
 assert(idleSet.size>=10,'Idle rhythms differ between forms');
 assert(attackSet.size>=12,'Attacks have distinct silhouettes, not one shared lunge');
 assert.notDeepEqual(M.pose(creatures[0],42,.51,true),M.pose(creatures[0],42,.51,false));
+const reactions=new Set();
+for(const mon of creatures){
+ const still=M.hurt(mon,.1);
+ assert.equal(still.intensity,0);
+ const recoil=M.hurt(mon,.56,false);
+ const front=M.hurt(mon,.56,true);
+ const heavy=M.hurt(mon,.56,false,true);
+ assert(recoil.intensity>.1,'Actual hit must trigger flinch for '+mon.id);
+ assert(heavy.intensity>=recoil.intensity,'Critical strikes create stronger recoil');
+ assert(Math.sign(front.x)===-Math.sign(recoil.x),'Opponent attacks push in opposite directions');
+ for(const k of ['x','y','rotation','sx','sy','intensity'])assert(Number.isFinite(recoil[k]),mon.id+' flinch remains finite');
+ assert(recoil.sx>.5&&recoil.sy>.5,'Flinch cannot collapse sprite');
+ reactions.add([recoil.x.toFixed(2),recoil.y.toFixed(2),recoil.rotation.toFixed(3),recoil.sx.toFixed(3)].join('/'));
+}
+assert(reactions.size>=7,'Hit reactions vary across shape families, not a shared shake');
+assert.equal(M.hurt({shape:'fox'},NaN).intensity,0);
+assert.equal(M.hurt({shape:'fox'},1).intensity,0);
 console.log('PASS: 16 monsters, 13 unique silhouettes, idle differences, attack anticipation, rear views, and localized trails');
