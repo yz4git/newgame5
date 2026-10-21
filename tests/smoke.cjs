@@ -54,6 +54,8 @@ vm.runInNewContext(fs.readFileSync('src/battle-direction.js','utf8'),context,{ti
 assert(context.AstraBattleDirection,'Battle staging module is available');
 assert(context.AstraCreatureMotion,'Per-creature animation profiles loaded');
 vm.runInNewContext(fs.readFileSync('src/world-detail.js','utf8'),context,{timeout:5000,filename:'world-detail.js'});
+vm.runInNewContext(fs.readFileSync('src/terrain-composition.js','utf8'),context,{timeout:5000,filename:'terrain-composition.js'});
+assert(context.AstraTerrainComposition,'Terrain composition graphics module is loaded');
 vm.runInNewContext(fs.readFileSync('src/visual-polish.js','utf8'),context,{timeout:5000,filename:'visual-polish.js'});
 assert(context.AstraVisualPolish,'Visual polish module available in game harness');
 assert(context.AstraWorldDetail,'Tile overlay scene detailing loaded');
