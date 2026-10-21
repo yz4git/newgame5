@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawDialoguePortrait,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -669,4 +669,22 @@ assert(html.includes('src/touch-navigation.js'),'Input module is loaded in HTML'
 assert(html.includes('data-matchup="strong"'),'Move effectiveness has a visible UI style');
 g.drawBattle();
 g.get().battle=null;g.world();
+// v0.27: visual upgrades keep scene drawing and story dialog stable.
+const artwork=context.AstraVisualPolish;
+assert(artwork&&artwork.field&&artwork.battleImpact,'Elemental visual module was installed');
+for(const zone of ['village','route','forest','lake','shrine','highland']){
+ assert(artwork.field(ctx,zone,32,64,120,2)>0,zone+' draws unique atmospheric geometry');
+}
+for(const role of ['heal','shop','lab','home','observatory']){
+ g.drawBuilding(4,5,role,0,0);
+}
+for(const npcName of ['星の記録係 アカリ','工房主 リク','旅の友 ナギ']){
+ g.get().dialogSpeaker=npcName;
+ g.drawDialoguePortrait();
+}
+g.get().dialogSpeaker='';
+assert(html.includes("FieldSprites.draw(ctx,0,0,'down'"),'Character portraits use actual authored profession sprites');
+assert(html.includes("VisualPolish.battleImpact("),'Hit animation uses localized elemental impact');
+assert(html.includes("VisualPolish.field("),'Field scene uses per-region visual finishing');
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
