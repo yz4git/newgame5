@@ -2597,7 +2597,7 @@ if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;
 // Y-order painter's algorithm: actors nearer the camera can cover those behind.
 if(animated&&animated.t<1){
  VisualPolish.footsteps(ctx,
-  {x:animated.fromX||movement.fromX*T-camX+16,y:movement.fromY*T-camY+19},
+  {x:movement.fromX*T-camX+16,y:movement.fromY*T-camY+19},
   {x:movement.toX*T-camX+16,y:movement.toY*T-camY+19},
   animated.t,state.map);
 }
@@ -2791,6 +2791,12 @@ if(attacking){
   }
   ellipse(ox,oy,7*(1-burst)+1,6*(1-burst)+1,'#fff4d3b3');
  }
+}
+if(attacking&&MOVES[b.action.name]?.p){
+ const kind=MOVES[b.action.name]?.type||'無',defending=bFrom?m:mine;
+ VisualPolish.battleImpact(ctx,kind,bFrom?foeX:oursX,bFrom?165:280,t,frame,{
+  effectiveness:effectiveness(kind,byId[defending.id].type)
+ });
 }
 if(cap!==null){
  const p=cap,fromX=170,toX=307,orbX=fromX+(toX-fromX)*clamp(p/.42,0,1);
