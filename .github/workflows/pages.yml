@@ -53,6 +53,7 @@ jobs:
           node tests/npc-schedules.cjs
           node tests/cinematics.cjs
           node tests/world-detail.cjs
+          node tests/terrain-composition.cjs
           node tests/visual-polish.cjs
           node tests/map-layout.cjs
           node tests/forest-secrets.cjs
@@ -81,6 +82,7 @@ jobs:
           cp src/creature-motion.js _site/src/
           cp src/battle-direction.js _site/src/
           cp src/world-detail.js _site/src/
+          cp src/terrain-composition.js _site/src/
           cp src/visual-polish.js _site/src/
           cp src/map-layout.js _site/src/
           cp src/forest-secrets.js _site/src/
