@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -38,6 +38,8 @@ const context={document:doc,window:{addEventListener:noop},Math:deterministicMat
   requestAnimationFrame:noop,setTimeout:callback=>{timers.push(callback);return timers.length},clearTimeout:noop};
 context.globalThis=context;
 vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:5000,filename:'rpg-engine.js'});
+vm.runInNewContext(fs.readFileSync('src/trainer-tactics.js','utf8'),context,{timeout:5000,filename:'trainer-tactics.js'});
+vm.runInNewContext(fs.readFileSync('src/companion-bond.js','utf8'),context,{timeout:5000,filename:'companion-bond.js'});
 vm.runInNewContext(fs.readFileSync('src/story.js','utf8'),context,{timeout:5000,filename:'story.js'});
 assert(context.AstraStory,'Story engine was initialized');
 assert(context.AstraEngine,'RPG engine was initialized');
