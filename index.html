@@ -1894,6 +1894,36 @@ function drawBuilding(x,y,kind,camX,camY){
    ellipse(sx+w-8-i*6,sy+91-i*2,6,5,'#7eab71');
   }
  }
+ // Pixel-scale architecture pass: roof layers, lit glazing, shutters, and steps.
+ line(sx+5,sy+52,sx+w-5,sy+52,'#344d627f',2.5);
+ line(sx+18,sy+19,sx+w-18,sy+19,'#f2ddbe82',2);
+ line(sx+28,sy+8,sx+w-28,sy+8,'#f9edca8d',1.2);
+ for(let i=0;i<Math.floor((w-30)/18);i++){
+  const roofX=sx+19+i*18,roofY=sy+24+i%2*2;
+  line(roofX,roofY,roofX+7,roofY+5,'#32495b67',1.4);
+ }
+ for(let i=0;i<3;i++){
+  const y=sy+63+i*12;
+  if(i===1)continue;
+  line(sx+6,y,sx+20,y,'#afaa9786',1);
+  line(sx+w-20,y,sx+w-6,y,'#afaa9786',1);
+ }
+ pixel(center-25,sy+101,50,3,'#7e8783');
+ pixel(center-28,sy+104,56,3,'#c8bda7');
+ pixel(center-22,sy+107,44,2,'#a5a69b');
+ if(isClinic){
+  pixel(sx+12,sy+81,13,13,'#648975');ellipse(sx+18,sy+79,8,5,'#96bc88');
+  pixel(sx+w-25,sy+81,13,13,'#648975');ellipse(sx+w-18,sy+79,8,5,'#96bc88');
+ }else if(isLab){
+  pixel(center-2,sy+11,4,13,'#d9ecdc');ellipse(center,sy+12,3,3,'#f2dca8');
+  for(let k=0;k<3;k++)pixel(sx+18+k*4,sy+83,3,4,'#8bbdc0');
+ }else if(isObservatory){
+  line(sx+18,sy+43,sx+18,sy+61,'#a9ced0',2);
+  line(sx+w-19,sy+43,sx+w-19,sy+61,'#a9ced0',2);
+  ellipse(center,sy-14,3,3,'#fff1b8');
+ }else if(isShop){
+  ellipse(sx+19,sy+82,8,5,'#67875a');ellipse(sx+w-20,sy+82,8,5,'#6a8c64');
+ }
 }
 function isNpcVisible(n){
  if(n.kind==='townArchivist')return TownLegacy.snapshot(state).visible;
