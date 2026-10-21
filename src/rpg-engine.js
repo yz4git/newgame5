@@ -176,9 +176,9 @@ function normalize(mon,species,moves,rng=Math.random){
  out.ability=out.ability||ABILITIES[out.id]||'なし';out.stages=null;
  return out;
 }
-function gainXP(mon,amount,species,moves,rng=Math.random){
- let levels=[],learned=[],evolved=null;
- if(!mon||!species[mon.id])return {levels,learned,evolved};
+function gainXP(mon,amount,species,moves,rng=Math.random,options={}){
+ let levels=[],learned=[],evolved=null,pending=[];
+ if(!mon||!species[mon.id])return {levels,learned,evolved,pending};
  mon.xp+=Math.max(0,Math.floor(amount));
  for(let step=0;step<100&&mon.level<100&&mon.xp>=xpNeed(mon.level);step++){
   mon.xp-=xpNeed(mon.level);
@@ -188,7 +188,9 @@ function gainXP(mon,amount,species,moves,rng=Math.random){
   mon.friendship=cap((mon.friendship||70)+1,0,255);
   levels.push(mon.level);
   const newMoves=(LEARNSETS[mon.id]||[]).filter(([lv])=>lv===mon.level);
-  for(const [,name] of newMoves){if(mon.moves.includes(name))continue;const forgotten=mon.moves.length>=4?mon.moves.shift():null;
+  for(const [,name] of newMoves){if(mon.moves.includes(name)||pending.includes(name))continue;
+   if(mon.moves.length>=4&&options.chooseMoves){pending.push(name);continue}
+   const forgotten=mon.moves.length>=4?mon.moves.shift():null;
    if(forgotten)delete mon.pp[forgotten];
    mon.moves.push(name);mon.pp[name]=maxPP(name,moves);
    learned.push({name,forgotten});
@@ -200,13 +202,23 @@ function gainXP(mon,amount,species,moves,rng=Math.random){
    mon.hp=cap(hp+mon.maxHp-old,0,mon.maxHp);
    evolved={from,to:mon.id};
    for(const name of species[mon.id].moves){
-    if(mon.moves.includes(name))continue;
+    if(mon.moves.includes(name)||pending.includes(name))continue;
+    if(mon.moves.length>=4&&options.chooseMoves){pending.push(name);continue}
     if(mon.moves.length>=4){const forgotten=mon.moves.shift();delete mon.pp[forgotten];learned.push({name,forgotten})}
     mon.moves.push(name);mon.pp[name]=maxPP(name,moves);
    }
   }
  }
- return {levels,learned,evolved};
+ return {levels,learned,evolved,pending};
+}
+function replaceKnownMove(mon,newName,oldName,moves){
+ if(!mon||!Array.isArray(mon.moves)||!moves[newName]||mon.moves.includes(newName))return {ok:false};
+ const index=mon.moves.indexOf(oldName);
+ if(index<0||mon.moves.length<4)return {ok:false};
+ mon.moves.splice(index,1,newName);
+ mon.pp={...(mon.pp||{})};
+ delete mon.pp[oldName];mon.pp[newName]=maxPP(newName,moves);
+ return {ok:true,forgotten:oldName,learned:newName};
 }
 function gainEffort(mon,opponent,species){
  if(!mon||!opponent||!species[opponent.id])return;
@@ -394,5 +406,5 @@ function migrateSave(save,species,moves,rng=Math.random){
  if(!next.events||typeof next.events!=='object')next.events={};
  return next;
 }
-return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ABILITIES,WEATHERS,WEATHER_BY_MAP,STAGES,stageFactor,abilityFor,ensureBattleStats,changeStage,battleEnter,battleLeave,weatherFor,weatherInfo,speedFor,weatherHit,tickWeather,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,gainEffort,applyEvent,runEvent,eventCondition,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
+return Object.freeze({NATURES,NEW_MOVES,LEARNSETS,EVOLUTIONS,ABILITIES,WEATHERS,WEATHER_BY_MAP,STAGES,stageFactor,abilityFor,ensureBattleStats,changeStage,battleEnter,battleLeave,weatherFor,weatherInfo,speedFor,weatherHit,tickWeather,ivs,xpNeed,maxHpFor,statsFor,maxPP,availableMoves,makeCreature,normalize,gainXP,replaceKnownMove,gainEffort,applyEvent,runEvent,eventCondition,calcDamage,afterTurn,skipStatus,catchProbability,chooseEncounter,emptyBoxes,fixBoxes,putInStorage,takeFromStorage,deposit,migrateSave});
 });
