@@ -2451,7 +2451,7 @@ if(state.map==='forest'){
 }
 drawLandmarks(camX,camY);
 drawTownLegacy(camX,camY);
-if(state.map==='village'){drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
+if(state.map==='village'){drawWorkshopFacade(camX,camY);drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
 if(m.theme==='interior'){drawInteriorSet(camX,camY);rounded(110,5,196,26,8,'#264656c9');txt(m.name,W/2,23,13,'#f6f1da','center')}
 if(state.map==='shrine'){pixel(7*T-camX,2*T-camY,6*T,3*T,'#5c717b');for(let i=0;i<5;i++){const px=(8+i)*T-camX;pixel(px,3*T-camY,5,40,'#9ca59a')}ellipse(10*T-camX,3*T-camY,23,9,'#f5d6a6')}
@@ -2788,6 +2788,20 @@ function drawRequestBoard(){
  txt('COMPLETED '+done+'/'+rows.length+'  ·  READY '+ready,W/2,332,11,'#f2e4c7','center');
 }
 /* Decorations follow completed reports; they never alter tile collision or exits. */
+function drawWorkshopFacade(camX,camY){
+ if(Workshop.townTier(state)<2)return;
+ const x=15-camX,y=5*T-camY;
+ if(x<-140||x>W+80||y>H+120||y<-160)return;
+ pixel(x+7,y+55,108,47,'#c8c6ae');pixel(x+5,y+94,112,8,'#6f8079');
+ pixel(x,y+42,123,15,'#758b92');rounded(x+8,y+20,108,27,5,'#688b95');
+ rounded(x+20,y+11,86,14,5,'#a7c9bb');
+ for(let k=0;k<5;k++)line(x+10+k*24,y+35,x+25+k*23,y+35,'#d8e1d5',2);
+ rounded(x+74,y+69,33,33,2,'#526f7a');rounded(x+79,y+76,24,25,2,'#a0acaa');
+ pixel(x+90,y+84,4,10,'#e9d5ae');
+ for(const dx of [23,47]){rounded(x+dx,y+67,15,22,2,'#4a7184');pixel(x+dx+3,y+70,9,13,'#b7d7c9')}
+ rounded(x+26,y+48,67,11,3,'#e4d2a8');txt('✦ WORKSHOP',x+59,y+57,9,'#58716a','center');
+ if(Workshop.townTier(state)>=4){ellipse(x+59,y+10,15,8,'#d4d2a5');txt('✦',x+59,y+15,13,'#638d82','center')}
+}
 function drawTownLegacy(camX,camY){
  if(state.map!=='village')return;
  const level=TownLegacy.snapshot(state).tier;
