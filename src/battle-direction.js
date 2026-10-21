@@ -15,8 +15,9 @@ const SHAPE_SCALE=Object.freeze({
 const ease=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function scale(shape){return SHAPE_SCALE[shape]||1}
-function scene({action=null,elapsed=0,frame=0,allyShape='mouse',enemyShape='mouse',isPhysical=false}={}){
+function scene({action=null,elapsed=0,frame=0,allyShape='mouse',enemyShape='mouse',isPhysical=false,entrance=1}={}){
  const p=action?clamp(elapsed/DURATION,0,1):1;
+ const open=action?1:ease(clamp(entrance,0,1));
  const active=!!action&&p<1,fromAlly=action?.who==='you';
  const hit=active&&(action.damage||0)>0&&p>=.39&&p<=.72;
  const windup=active?ease(p/.24):0;
@@ -26,16 +27,16 @@ function scene({action=null,elapsed=0,frame=0,allyShape='mouse',enemyShape='mous
  const recoil=hit?Math.sin(Math.PI*clamp((p-.39)/.33,0,1))*6:0;
  const beat=Math.sin(frame*.045)*.8;
  const ally={
-   x:105+(fromAlly?nudge:0)+(!fromAlly&&hit?-recoil:0),
-   y:326+(fromAlly?Math.sin(p*Math.PI)*-3:0)+beat,
-   scale:1.36*scale(allyShape)
+   x:105-35*(1-open)+(fromAlly?nudge:0)+(!fromAlly&&hit?-recoil:0),
+   y:326+17*(1-open)+(fromAlly?Math.sin(p*Math.PI)*-3:0)+beat,
+   scale:1.36*scale(allyShape)*(.72+.28*open)
  };
  const enemy={
-   x:307+(!fromAlly?-nudge:0)+(fromAlly&&hit?recoil:0),
-   y:190+(!fromAlly?Math.sin(p*Math.PI)*-3:0)-beat,
-   scale:1.01*scale(enemyShape)
+   x:307+40*(1-open)+(!fromAlly?-nudge:0)+(fromAlly&&hit?recoil:0),
+   y:190+15*(1-open)+(!fromAlly?Math.sin(p*Math.PI)*-3:0)-beat,
+   scale:1.01*scale(enemyShape)*(.72+.28*open)
  };
- return {progress:p,active,fromAlly,hit,windup,release,ally,enemy,
+ return {progress:p,active,fromAlly,hit,windup,release,ally,enemy,opening:open,
    target:fromAlly?'enemy':'ally',damage:action?.damage||0,
    critical:!!action?.critical,efficacy:action?.efficacy||1,
    miss:!!action?.miss,move:action?.name||'',duration:DURATION};
@@ -75,8 +76,8 @@ function drawFeedback(c,shot,frame=0){
  const alpha=ease((p-.42)/.12)*(1-ease((p-.82)/.15));
  if(alpha<=0)return false;
  const isEnemy=shot.target==='enemy';
- const x=isEnemy?shot.enemy.x+30:shot.ally.x+53;
- const y=isEnemy?shot.enemy.y-75:shot.ally.y-117;
+ const x=isEnemy?shot.enemy.x+16:shot.ally.x+53;
+ const y=isEnemy?shot.enemy.y-52:shot.ally.y-117;
  let label='';
  if(shot.miss)label='MISS';
  else if(shot.damage>0)label=(shot.critical?'✦ ':'−')+shot.damage;
@@ -90,5 +91,25 @@ function drawFeedback(c,shot,frame=0){
  c.fillText(label,x,baseline+1);c.restore();
  return true;
 }
-return Object.freeze({DURATION,SHAPE_SCALE,scale,scene,hpFraction,hpNumber,drawGround,drawFeedback});
+function drawMoveCue(c,shot,type='無'){
+ if(!c||!shot?.active||!shot.move)return false;
+ const p=shot.progress,opacity=ease(p/.13)*(1-ease((p-.59)/.25));
+ if(opacity<=0)return false;
+ const shades={
+  '火':'#bd6555','水':'#538cab','草':'#618b68','雷':'#b69b47',
+  '風':'#6992a3','岩':'#897d68','影':'#786596','光':'#b59c66','無':'#718b94'
+ };
+ const caption=shot.move.length>11?shot.move.slice(0,11)+'…':shot.move;
+ const width=Math.min(160,Math.max(102,caption.length*13+48));
+ const x=208-width/2,y=129;
+ c.save();c.globalAlpha=opacity;
+ c.fillStyle='#203c49e6';c.beginPath();c.roundRect(x,y,width,26,8);c.fill();
+ c.fillStyle=shades[type]||shades['無'];c.beginPath();c.roundRect(x+3,y+4,23,18,5);c.fill();
+ c.fillStyle='#fff6db';c.font='bold 12px system-ui,sans-serif';c.textAlign='center';
+ c.fillText(type,x+15,y+17);
+ c.textAlign='left';c.fillText(caption,x+33,y+17);
+ c.restore();
+ return true;
+}
+return Object.freeze({DURATION,SHAPE_SCALE,scale,scene,hpFraction,hpNumber,drawGround,drawFeedback,drawMoveCue});
 });
