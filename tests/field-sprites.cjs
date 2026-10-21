@@ -32,4 +32,14 @@ const orientations=[];
 for(const dir of Field.DIRECTIONS){output.length=0;Field.draw(canvas,188,177,dir,1,'hero');orientations.push(output.join(';'))}
 assert.equal(new Set(orientations).size,4,'Front, back, left and right art must differ');
 assert.equal(Field.draw(null,0,0),false);
-console.log('PASS: 4 directions, 8-frame sprite cycles, 12 costumes, running and unique silhouettes');
+// Key event NPCs now have original profession-specific coats, hats and equipment.
+const professions=['hero','trainer','rival','townArchivist','workshop','heal','shop','prof','boss'];
+const illustrations=professions.map(kind=>{
+ output.length=0;
+ const sprite=Field.draw(canvas,188,177,'down',1,kind);
+ assert.equal(sprite.kind,kind);
+ return output.join(';');
+});
+assert.equal(new Set(illustrations).size,professions.length,'Lead, rivals and specialist NPCs need distinct drawn outfits');
+assert(Field.TYPES.townArchivist&&Field.TYPES.workshop&&Field.TYPES.rival,'New role palettes shipped');
+console.log('PASS: 4 directions, 8-frame sprite cycles, profession silhouettes, running and distinct character clothing');
