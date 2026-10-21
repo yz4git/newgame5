@@ -22,6 +22,8 @@ const node=(id)=>({
   classList:{add:noop,remove:noop},listeners:{},addEventListener(kind,callback){this.listeners[kind]=callback},click(){this.listeners.click?.()},
   append(...children){this.children.push(...children)},
   appendChild(child){this.children.push(child)},
+  setPointerCapture(id){this.captured=id},
+  getBoundingClientRect(){return {left:0,top:0,width:128,height:96}},
   querySelector(){return null},
   getContext(){return ctx}
 });
@@ -635,4 +637,34 @@ assert.equal(g.get().battle,null,'Battle finishes normally after the learning ch
 g.world();
 assert(html.includes('src/trainer-tactics.js')&&html.includes('src/companion-bond.js')&&html.includes('src/trainer-rematches.js'),'New battle/companion modules are shipped');
 
+// v0.26: D-pad now navigates every menu and remains independent of the A button.
+g.openPage('home');
+let controlsV26=element('console').children.at(-1).children;
+assert.equal(controlsV26[0].dataset.selected,'true','Default menu focus is visibly marked');
+g.navigateMenu('right');
+assert.equal(controlsV26[1].dataset.selected,'true','Right navigates to inventory');
+g.buttonA();
+assert.equal(g.get().menuPage,'bag','A confirms the highlighted option, not always first');
+g.openPage('home');
+const padV26=element('#dpad');
+const touchV26=(pointerId,x,y)=>({pointerId,clientX:x,clientY:y,preventDefault(){}});
+assert(padV26.listeners.pointerdown&&padV26.listeners.pointermove,'D-pad captures drag and change events');
+padV26.listeners.pointerdown(touchV26(7,64,6));
+padV26.listeners.pointermove(touchV26(7,64,88));
+padV26.listeners.pointermove(touchV26(7,120,48));
+controlsV26=element('console').children.at(-1).children;
+assert.equal(controlsV26[3].dataset.selected,'true','Sliding thumb from down to right switches selection');
+padV26.listeners.pointerup(touchV26(7,120,48));
+g.buttonA();
+assert.equal(g.get().menuPage,'gear','Physical A activates the slide-selected menu option');
+g.world();
+// Battle touchscreen exposes type advantage without executing a move.
+g.startBattle([g.makeMonster('leafin',5)],{trainer:false});
+g.chooseMove();
+const moveButtonsV26=element('console').children.at(-1).children;
+assert(moveButtonsV26.some(b=>b.textContent.startsWith('ひのこ ')&&b.dataset.matchup==='strong'),'Move palette marks a real super-effective skill');
+assert(html.includes('src/touch-navigation.js'),'Input module is loaded in HTML');
+assert(html.includes('data-matchup="strong"'),'Move effectiveness has a visible UI style');
+g.drawBattle();
+g.get().battle=null;g.world();
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
