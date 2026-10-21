@@ -1631,7 +1631,7 @@ function ellipse(x,y,rx,ry,col){ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,
 function line(x,y,x2,y2,col,w=2){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
 function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
 function txt(str,x,y,size=12,col='#fff',align='left'){ctx.fillStyle=col;ctx.font='bold '+size+'px system-ui,sans-serif';ctx.textAlign=align;ctx.fillText(str,x,y);ctx.textAlign='left'}
-const ROOM_THEMES={bedroom:['#e5d3af','#75969b','#d1a980'],home:['#dac7a5','#73958d','#b17b64'],lab:['#bdcfd0','#638995','#729da9'],center:['#e2dfcf','#8298ae','#d28f93'],mart:['#cfbd9a','#8fa2a1','#aa8d69'],observatory:['#b7c1c9','#5f7b95','#769bb1']};
+const ROOM_THEMES={workshop:['#e0d7bb','#849b91','#9f835e'],archive:['#d1d7d2','#798fa5','#ad9e82'],bedroom:['#e5d3af','#75969b','#d1a980'],home:['#dac7a5','#73958d','#b17b64'],lab:['#bdcfd0','#638995','#729da9'],center:['#e2dfcf','#8298ae','#d28f93'],mart:['#cfbd9a','#8fa2a1','#aa8d69'],observatory:['#b7c1c9','#5f7b95','#769bb1']};
 function drawTile(t,x,y,gx,gy,theme,mapId){
 const room=ROOM_THEMES[mapId];
 if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':room?room[0]:'#cbb37d');pixel(x,y+2,T,2,room?room[2]:'#c4ad79');if(rand(gx,gy,3)>.8)pixel(x+6,y+19,9,2,'#a48e65');if(room){line(x,y,x+T,y,room[2],1);line(x,y,x,y+T,room[2],1)}}
@@ -1793,6 +1793,13 @@ if(n.kind==='storyDiary'){
 if(n.kind==='storyStairs'){
  for(let i=0;i<4;i++){const t=i*5;pixel(x-15+t/4,y-10+t,30-t/2,5,'#b99f80');pixel(x-13+t/4,y-8+t,25-t/2,1,'#f0d5af')}
  return;
+}
+if(n.kind==='archivePanel'||n.kind==='archiveCache'){
+ const memory=Workshop.archiveState(state),active=n.kind==='archiveCache'?memory.claimed:memory.panels[n.panel];
+ ellipse(x,y+12,14,5,'#243d4777');rounded(x-11,y-18,22,32,3,active?'#8eb9b4':'#687e91');
+ rounded(x-8,y-15,16,22,2,active?'#e2efe0':'#b6c6c8');
+ txt(n.kind==='archiveCache'?'✦':n.panel==='forest'?'森':n.panel==='lake'?'水':'空',x,y+1,14,active?'#4a866d':'#456e80','center');
+ if(active)ellipse(x,y-25+Math.sin(frame*.06)*2,4,4,'#eae8b6');return;
 }
 if(n.kind==='regionalPuzzle'){
  const p=RegionPuzzles.normalize(state.events?.regionPuzzles);
@@ -2086,7 +2093,7 @@ function drawInteriorSet(camX,camY){
  const room=state.map;
  if(mapMeta[room].theme!=='interior')return;
  const X=(x)=>x*T-camX,Y=(y)=>y*T-camY;
- const wall={bedroom:'#688b91',home:'#739687',lab:'#678f9c',center:'#718c9d',mart:'#a58e69',observatory:'#627d94'}[room]||'#668b91';
+ const wall={workshop:'#8d918b',archive:'#65869b',bedroom:'#688b91',home:'#739687',lab:'#678f9c',center:'#718c9d',mart:'#a58e69',observatory:'#627d94'}[room]||'#668b91';
  const x1=X(1),x2=X(mapMeta[room].w-1);
  // Wainscoting and layered wall shadow; room-specific color, not a flat backdrop.
  pixel(x1,Y(1)-8,x2-x1,16,'#233e4e44');
@@ -2106,7 +2113,7 @@ function drawInteriorSet(camX,camY){
   }
  }
  // Rugs are flat with subtle directional hatching; never block interaction.
- const rug=room==='lab'?'#9eb6bb':room==='center'?'#d9b7b2':room==='mart'?'#be987c':
+ const rug=room==='workshop'?'#b1a183':room==='archive'?'#899ca7':room==='lab'?'#9eb6bb':room==='center'?'#d9b7b2':room==='mart'?'#be987c':
  room==='bedroom'?'#c89983':room==='home'?'#c8a277':'#97aabb';
  const rx=room==='lab'?X(5):room==='observatory'?X(4):X(5),ry=Y(6);
  rounded(rx,ry,room==='lab'?185:158,room==='lab'?70:95,14,'#3c53555b');
@@ -2115,7 +2122,17 @@ function drawInteriorSet(camX,camY){
  for(let lineIndex=0;lineIndex<6;lineIndex++){
   line(rx+13,ry+15+lineIndex*8,rx+(room==='lab'?160:133),ry+15+lineIndex*8,'#f1e6d030',1);
  }
- if(room==='bedroom'){
+ if(room==='workshop'){
+ const x=X(3),y=Y(5),q=X(10),z=Y(5);
+ rounded(x-9,y-16,78,55,8,'#7c736a');rounded(x-2,y-10,64,36,5,'#9daba5');
+ ellipse(x+29,y+3,19,13,'#3f6975');ellipse(x+29,y+3,11,7,'#f1cc8f');
+ for(let i=0;i<3;i++)ellipse(x+15+i*13,y-15+Math.sin(frame*.04+i)*3,2,2,'#e2ead1');
+ rounded(q-10,z-15,76,56,6,'#6a8790');rounded(q-5,z-8,67,41,4,'#b3c8c4');
+ for(let i=0;i<4;i++)ellipse(q+7+i*13,z+10,5,6,['#b1d8c4','#d9bf92','#d0adbe','#b5b9da'][i]);
+ }else if(room==='archive'){
+ const x=X(6),y=Y(3);rounded(x-11,y-17,135,67,8,'#677783');rounded(x-5,y-11,123,56,5,'#b3c7c6');
+ for(let i=0;i<6;i++){pixel(x+i*19,y-5,10,31,'#5b8193');ellipse(x+i*19+5,y+5,2.4,2.4,'#e7d7aa')}
+ }else if(room==='bedroom'){
   // Real side-view bed mattress, pillows and blanket on the room's blocked furniture.
   const bx=X(9)-1,by=Y(3);
   rounded(bx-7,by-12,107,64,8,'#6b6258');
