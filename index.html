@@ -202,6 +202,8 @@ footer{display:none}
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
+<script src="./src/trainer-tactics.js?v=__BUILD_ID__"></script>
+<script src="./src/companion-bond.js?v=__BUILD_ID__"></script>
 <script src="./src/story.js?v=__BUILD_ID__"></script>
 <script src="./src/music.js?v=__BUILD_ID__"></script>
 <script src="./src/creature-art.js?v=__BUILD_ID__"></script>
@@ -223,8 +225,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!Tactics||!Companion||!Story||!CreatureArt||!CreatureMotion||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -1246,16 +1248,13 @@ const faster=Engine.speedFor(user,byId,b.weather)>=Engine.speedFor(enemy,byId,b.
 const userFirst=priority>enemyPriority||(priority===enemyPriority&&faster);
 const sequence=userFirst?[['you',move],['enemy',opponentMove]]:[['enemy',opponentMove],['you',move]];
 takeTurns(sequence,0)}
-function enemyMove(m){if(state.battle?.tutorial)return 'しっぽをふる';const choices=(m.moves||byId[m.id].moves).filter(x=>(m.pp?.[x]??1)>0);
-if(!choices.length)return 'わるあがき';
-if(m.hp/m.maxHp<.3&&choices.includes('こうごうせい')&&Math.random()<.65)return 'こうごうせい';
-const type=byId[current()?.id]?.type;
-return choices.map(name=>{
- const skill=MOVES[name],weather=state.battle?.weather||'clear';
- const weatherBonus=weather==='rain'&&skill.type==='水'?1.5:weather==='sun'&&skill.type==='火'?1.5:1;
- const stageBonus=skill.effect==='stage'?(m.stages?.[skill.stat]||0)<2?30:5:0;
- return {name,score:((skill.p||8)*(type?effectiveness(skill.type,type):1)*(skill.type===byId[m.id].type?1.5:1)*weatherBonus+stageBonus)*(.90+Math.random()*.20)}
-}).sort((a,b)=>b.score-a.score)[0].name;
+function enemyMove(m){
+ if(state.battle?.tutorial)return 'しっぽをふる';
+ const b=state.battle||{},levels=b.enemies?.map(x=>x.level)||[];
+ const tier=!b.trainer?'wild':b.npc?.kind==='boss'||b.npc?.kind==='trial'?'elite':
+  Math.max(...levels,0)>=10?'veteran':'rookie';
+ return Tactics.choose({attacker:m,defender:current(),species:byId,moves:MOVES,effectiveness,
+  weather:b.weather||'clear',turn:b.turn||1,skill:tier,rng:Math.random});
 }
 function takeTurns(sequence,i){const b=state.battle;if(!b)return;
 if(i>=sequence.length){
@@ -1290,11 +1289,16 @@ else takeTurns(sequence,i+1)},950)}
 function defeatEnemy(){
 const b=state.battle;if(!b)return;
 if(b.tutorial){resetBattleStats();state.battle=null;save();dialog('捕獲の練習','星霊を倒してしまった！\nナギにもう一度話しかければ、また練習できるよ。');return}
-const baseReward=(foe().level+3)*17,eligible=b.participants.filter(i=>state.party[i]?.hp>0),indices=eligible.length?eligible:[b.active],news=[];
-for(const i of indices){const mon=state.party[i];Engine.gainEffort(mon,foe(),byId);const result=Engine.gainXP(mon,Math.max(1,Math.floor(baseReward/indices.length)),byId,MOVES);
-for(const lv of result.levels)news.push(byId[mon.id].name+' Lv.'+lv);
-for(const move of result.learned)news.push(byId[mon.id].name+' は '+move.name+' を覚えた！'+(move.forgotten?' ('+move.forgotten+' を忘れた)':''));
-if(result.evolved){state.seen[result.evolved.to]=1;state.caught[result.evolved.to]=(state.caught[result.evolved.to]||0)+1;news.push(byId[result.evolved.from].name+' は '+byId[result.evolved.to].name+' に進化！');sfx('catch')}}
+const baseReward=(foe().level+3)*17,eligible=b.participants.filter(i=>state.party[i]?.hp>0),indices=eligible.length?eligible:[b.active],news=[],pending=[];
+for(const i of indices){
+ const mon=state.party[i];Engine.gainEffort(mon,foe(),byId);
+ const result=Engine.gainXP(mon,Math.max(1,Math.floor(baseReward/indices.length)),byId,MOVES,Math.random,{chooseMoves:true});
+ for(const lv of result.levels)news.push(byId[mon.id].name+' Lv.'+lv);
+ for(const move of result.learned)news.push(byId[mon.id].name+' は '+move.name+' を覚えた！');
+ for(const name of result.pending||[])pending.push({mon,name});
+ if(result.evolved){state.seen[result.evolved.to]=1;state.caught[result.evolved.to]=(state.caught[result.evolved.to]||0)+1;
+  news.push(byId[result.evolved.from].name+' は '+byId[result.evolved.to].name+' に進化！');sfx('catch')}
+}
 const next=()=>{b.index++;
  if(b.index<b.enemies.length){
   state.seen[foe().id]=1;
@@ -1302,7 +1306,21 @@ const next=()=>{b.index++;
   battleMessage('相手は '+byId[foe().id].name+' を繰り出した！'+(entry?' '+entry:''),()=>showBattle('次の星霊が現れた！'),850);
  }else victory();
 };
-if(news.length)battleMessage('経験値獲得！ '+news.join(' / '),next,1200);else next();
+const chooseNext=()=>{
+ if(state.battle!==b)return;
+ const task=pending.shift();if(!task){next();return}
+ if(task.mon.moves.includes(task.name)){chooseNext();return}
+ b.busy=true;
+ ui('NEW MOVE / 技の習得',byId[task.mon.id].name+' は「'+task.name+'」を覚えたい！\n技は4つまで覚えられます。忘れる技を選んでください。',[
+  ...task.mon.moves.map(old=>({text:'↻ '+old+' を忘れる',on:()=>{
+   const learned=Engine.replaceKnownMove(task.mon,task.name,old,MOVES);
+   if(learned.ok){save();battleMessage(old+' を忘れ、'+task.name+' を覚えた！',chooseNext,0)}
+   else chooseNext();
+  }})),
+  {text:'↶ 今回は覚えない',on:()=>{battleMessage(task.name+' は覚えなかった。',chooseNext,0)}}
+ ]);
+};
+if(news.length)battleMessage('経験値獲得！ '+news.join(' / '),chooseNext,1200);else chooseNext();
 }
 function resetBattleStats(){for(const m of state.party){m.stages=null;m.focus=false;m.guard=false}}
 function victory(){const b=state.battle;if(!b)return;
