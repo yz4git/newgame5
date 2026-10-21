@@ -1036,10 +1036,36 @@ function pick(id){
  state.map='village';state.x=12;state.y=17;state.dir='up';movement=null;companionMove=null;
  follower={map:state.map,x:state.x,y:state.y+1};world();save();toast(byId[id].name+' が仲間になった！');sfx('ok');
 }
+function talkToCompanion(){
+ if(!state.party.length){toast('まだ連れ歩く仲間がいない。');return}
+ const mon=state.party[0],name=byId[mon.id].name;
+ dialog(name,name+' と一緒に歩いている。\n'+Companion.status(mon),[
+  {text:'♡ 様子をみる',on:()=>companionAction('talk')},
+  {text:'✿ なでる',on:()=>companionAction('pet')},
+  {text:'✧ 周りを探す',on:()=>companionAction('search')},
+  {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
+function companionAction(action){
+ const mon=state.party[0];if(!mon){world();return}
+ const response=Companion.visit(action,{...state,companionName:byId[mon.id].name});
+ if(!response.ok){dialog('連れ歩き',response.reason);return}
+ state.events.companion=response.progress;mon.friendship=response.friendship;
+ if(response.reward){
+  const id=response.reward.item;state.bag[id]=(state.bag[id]||0)+response.reward.count;
+  sfx('catch');
+ }
+ save();
+ const labels={orb:'星玉',potion:'キズぐすり',herb:'げんき草',ether:'PP回復'};
+ dialog(byId[mon.id].name,response.text+(response.reward?'\n'+labels[response.reward.item]+' を手に入れた！':''),[
+  {text:'▶ もう一度話す',on:()=>talkToCompanion()},
+  {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
 function world(msg){
  state.previewStarter=null;screen('world');save();
  const options=[];
- if(state.party.length)options.push({text:'✦ パーティ',on:()=>openPage('party')});
+ if(state.party.length){options.push({text:'✦ パーティ',on:()=>openPage('party')});options.push({text:'♡ 連れ歩き',on:()=>talkToCompanion()})}
  options.push({text:'▣ バッグ',on:()=>openPage('bag')});
  if(storyStage()>=8)options.push({text:'◈ 星霊図鑑',on:()=>openPage('dex')});
  options.push({text:'☰ メニュー',on:()=>openPage('home')});
@@ -1154,6 +1180,7 @@ const n=NPCS[state.map].find(p=>isNpcVisible(p)&&p.x===tx&&p.y===ty&&!(p.kind===
   n.facing=opposite[state.dir];n.pauseUntil=performance.now()+2500;
  }
  npc(n);return}
+if(state.party.length&&follower.map===state.map&&tx===follower.x&&ty===follower.y){talkToCompanion();return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=4&&tx<=7){dialog('星霊センター','入り口から中へ入ろう。');return}
 if(state.map==='village'&&ty>=5&&ty<=7&&tx>=15&&tx<=18){dialog('ミナモリ商店','入り口から中へ入ろう。');return}
 toast('キラキラした風が吹いている…')}
