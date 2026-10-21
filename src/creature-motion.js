@@ -88,6 +88,41 @@ function pose(mon,frame,attackProgress=null,back=false){
  for(const k of ['x','y','rotation','sx','sy','glow','burst'])if(!Number.isFinite(result[k]))throw Error('Nonfinite creature pose');
  return result;
 }
+/* Shape-aware recoil: a bird staggers in flight while a beetle braces,
+ * rather than scaling and shaking every species by the same amount. */
+function hurt(mon,progress,back=false,critical=false){
+ const name=mon?.shape||'mouse',p=Number(progress);
+ const base={x:0,y:0,rotation:0,sx:1,sy:1,intensity:0};
+ if(!Number.isFinite(p)||p<.39||p>.74)return base;
+ const t=(p-.39)/.35,peak=Math.sin(Math.PI*clamp(t))*(critical?1.24:1);
+ const recoil=(back?-1:1)*peak;
+ switch(name){
+ case 'bird':case 'bat':case 'moth':
+  base.x=recoil*13;base.y=peak*9;base.rotation=(back?1:-1)*peak*.13;
+  base.sx=1-peak*.07;base.sy=1+peak*.08;break;
+ case 'beetle':case 'frog':
+  base.x=recoil*6;base.y=peak*5;
+  base.sx=1+peak*.12;base.sy=1-peak*.15;break;
+ case 'deer':case 'dragon':
+  base.x=recoil*9;base.y=-peak*6;
+  base.rotation=(back?1:-1)*peak*.09;
+  base.sx=1-peak*.04;base.sy=1+peak*.08;break;
+ case 'flower':
+  base.x=recoil*5;base.y=peak*2;
+  base.rotation=(back?1:-1)*peak*.18;
+  base.sx=1+peak*.10;base.sy=1-peak*.10;break;
+ case 'otter':case 'fox':
+  base.x=recoil*10;base.y=peak*3;
+  base.rotation=(back?1:-1)*peak*.13;
+  base.sx=1-peak*.1;base.sy=1+peak*.05;break;
+ default:
+  base.x=recoil*12;base.y=peak*4;
+  base.rotation=(back?1:-1)*peak*.08;
+  base.sx=1-peak*.10;base.sy=1+peak*.10;
+ }
+ base.intensity=peak;
+ return base;
+}
 function dot(ctx,x,y,r,fill){ctx.beginPath();ctx.fillStyle=fill;ctx.ellipse(x,y,r,r,0,0,Math.PI*2);ctx.fill()}
 function trail(ctx,mon,frame,shape){
  const p=shape.burst;
@@ -135,5 +170,5 @@ function trail(ctx,mon,frame,shape){
  }
  return 1;
 }
-return Object.freeze({STYLES:styles,pose,trail});
+return Object.freeze({STYLES:styles,pose,hurt,trail});
 });
