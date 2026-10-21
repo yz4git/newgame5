@@ -41,6 +41,7 @@ jobs:
           node tests/engine.cjs
           node tests/trainer-tactics.cjs
           node tests/companion-bond.cjs
+          node tests/trainer-rematches.cjs
           node tests/story.cjs
           node tests/music.cjs
           node tests/creature-art.cjs
@@ -69,6 +70,7 @@ jobs:
           cp src/rpg-engine.js _site/src/
           cp src/trainer-tactics.js _site/src/
           cp src/companion-bond.js _site/src/
+          cp src/trainer-rematches.js _site/src/
           cp src/story.js _site/src/
           cp src/music.js _site/src/
           cp src/creature-art.js _site/src/
