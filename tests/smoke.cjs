@@ -569,4 +569,16 @@ const locked={...g.get(),story:{...g.get().story,stage:11}};
 assert.equal(workshop.townTier(locked),0,'Workshop cannot open during the scripted prologue');
 const preFestival={...g.get(),events:{...g.get().events,townLegacy:{accepted:true,claimed:false}}};
 assert.equal(workshop.archiveUnlocked(preFestival),false,'Archive requires the whole festival');
+
+const restoredEvents=JSON.parse(JSON.stringify(g.get().events));
+const restoredStage=g.get().story.stage;
+g.get().events={};g.get().story.stage=12;
+g.switchMap({id:'village',x:3,y:9,dir:'up'});g.walk('up');
+assert.equal(g.get().map,'village','Workshop door stays closed before two completed reports');
+g.get().events=JSON.parse(JSON.stringify(restoredEvents));
+g.get().events.townLegacy.claimed=false;
+g.switchMap({id:'workshop',x:12,y:7,dir:'up'});g.walk('up');
+assert.equal(g.get().map,'workshop','Archive door stays closed before completing festival');
+g.get().events=restoredEvents;g.get().story.stage=restoredStage;g.world();
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
