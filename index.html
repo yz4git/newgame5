@@ -1043,7 +1043,7 @@ function world(msg){
  options.push({text:'☰ メニュー',on:()=>openPage('home')});
  ui('FIELD / '+mapMeta[state.map].name,msg||questText(),options);
 }
-function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;if(state.map==='workshop')return '工房主リクや製作台に話しかけて道具を精製しよう。奥の資料室は星の記録祭の後で開く。';if(state.map==='archive')return '森・湖・高原の3つの記録板を調べて、復元の結晶に記録を集めよう。';return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];
@@ -1445,7 +1445,7 @@ function townLegacyMenu(){
  state.menuPage='townLegacy';
  const p=TownLegacy.snapshot(state),ready=FieldRequests.summary(state).filter(r=>r.status==='ready').length;
  ui('VILLAGE / 町の記録祭','町に届いた各地の調査報告 '+p.count+' / '+p.total+
- '\n広場の成長：'+p.tierName+'\n記録係：'+p.statusText+
+ '\n広場の成長：'+p.tierName+'\n記録係：'+p.statusText+'\n工房：'+(p.tier>=2?'開業中（町の西側）':'地域の依頼2件で開業')+'\n資料室：'+(p.claimed?'公開中（工房の奥）':'記録祭完成後に解放')+
  (p.status==='active'?'\n\n'+TownLegacy.archivistText(state):
   p.status==='available'?'\n\n町の広場で記録係に話しかけよう。':
   p.status==='ready'?'\n\n4つの記録がそろった！ 町の記録係に報告しよう。':
