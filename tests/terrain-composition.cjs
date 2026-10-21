@@ -20,7 +20,7 @@ const water=T.classify('lake',tiles,9,5);
 assert.equal(water.water,true);assert(water.wetEdges.includes('s'),'Shoreline tracks real adjacent land');
 assert(!water.wetEdges.includes('n'),'Continuous water gets no internal bank');
 const road=T.classify('village',tiles,4,7);
-assert.equal(road.paved,true);assert(road.pavingEdges.includes('n')===false,'Building or rock still gets a border only when not paved');
+assert.equal(road.paved,true);assert(road.pavingEdges.includes('n'),'Road bordering rocks gets a defined paving edge');
 assert(T.classify('highland',tiles,4,6).cliffEdges.includes('w'),'Terrace wall edges are terrain-aware');
 assert.equal(T.classify('forest',tiles,4,6).cliff,false,'Cliff faces are not drawn in forest');
 assert.equal(T.hash(3,8,42),T.hash(3,8,42));
