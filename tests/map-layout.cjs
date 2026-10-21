@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const L=require('../src/map-layout.js');
 function base(w,h){return Array.from({length:h},(_,y)=>Array.from({length:w},(_,x)=>x<2||y<2||x>=w-2||y>=h-2?4:0))}
-for(const [map,w,h] of [['village',24,20],['forest',28,28]]){
+for(const [map,w,h] of [['village',24,20],['forest',28,28],['route',24,26]]){
  const a=base(w,h),b=base(w,h);
  assert.equal(L.apply(map,a),true);
  L.apply(map,b);assert.deepEqual(a,b,map+' layout is deterministic');
@@ -25,10 +25,16 @@ for(const [map,w,h] of [['village',24,20],['forest',28,28]]){
   assert.equal(a[5][4],5,'Clinic wall preserved');
   assert.equal(a[14][18],5,'House wall preserved');
   for(const [x,y] of [[10,12],[14,13],[8,9],[15,9],[18,11],[21,12],[19,12],[20,11],[15,14],[6,12]])assert(L.reachable(a,{x:11,y:1},{x,y}),'Village story actor isolated');
- }else{
+ }else if(map==='forest'){
   for(const [x,y] of [[13,12],[19,18],[9,7],[13,22],[8,16],[10,16],[13,26],[5,14],[23,20]])assert(L.reachable(a,{x:13,y:1},{x,y}),'Forest actor/route isolated '+x+','+y);
   assert(a.flat().filter(t=>t===4).length>70,'Forest has substantial tree obstacles');
+ }else{
+  for(const [x,y] of [[11,13],[16,7],[8,19],[22,11],[6,8]])assert(L.reachable(a,{x:11,y:1},{x,y}),'New wind route loop inaccessible at '+x+','+y);
+  assert.equal(a[1][11],1,'North village gate still opens');
+  assert.equal(a[24][11],1,'South forest gate still opens');
+  assert(a[8][6]===1,'Wildflower western loop exists');
+  assert(a[11][22]===1,'East lake approach exists');
  }
 }
-assert.equal(L.apply('route',base(24,26)),false,'Other maps keep original layout');
-console.log('PASS: 2 fully connected, deterministic redesigned maps, four original doors, story actors, gates and forest loops');
+assert.equal(L.apply('lake',base(30,24)),false,'Lake keeps its original puzzle geography');
+console.log('PASS: 3 deterministic connected maps including new scenic route loops, story entrances, village doors and forest gates');
