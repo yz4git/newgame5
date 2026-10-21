@@ -243,6 +243,7 @@ footer{display:none}
 <script src="./src/creature-motion.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-direction.js?v=__BUILD_ID__"></script>
 <script src="./src/world-detail.js?v=__BUILD_ID__"></script>
+<script src="./src/terrain-composition.js?v=__BUILD_ID__"></script>
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
 <script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
 <script src="./src/region-puzzles.js?v=__BUILD_ID__"></script>
@@ -259,8 +260,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-if(!Engine||!TouchNavigation||!VisualPolish||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!BattleDirection||!WorldDetail||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+if(!Engine||!TouchNavigation||!VisualPolish||!Tactics||!Companion||!Rematches||!Story||!CreatureArt||!CreatureMotion||!BattleDirection||!WorldDetail||!Terrain||!MapLayout||!ForestSecrets||!RegionPuzzles||!Exploration||!FieldRequests||!TownLegacy||!Workshop||!Battlebacks||!FieldSprites||!Schedules||!Cinematics)throw Error('RPG engine, story, creature art, battle background or field character art failed to load');
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
@@ -2619,6 +2620,7 @@ const beat=cinematicFrame(),look=Cinematics.camera({x:px,y:py},beat);
 const camX=clamp(look.x*T+16-W/2,0,m.w*T-W),camY=clamp(look.y*T+16-H/2,0,m.h*T-H);
 const x0=Math.max(0,Math.floor(camX/T)-1),x1=Math.min(m.w,Math.ceil((camX+W)/T)+1),y0=Math.max(0,Math.floor(camY/T)-1),y1=Math.min(m.h,Math.ceil((camY+H)/T)+1);
 for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)drawTile(maps[state.map][y][x],x*T-camX,y*T-camY,x,y,m.theme,state.map);
+Terrain.drawGround(ctx,state.map,maps[state.map],camX,camY,{x0,x1,y0,y1},frame,T);
 WorldDetail.draw(ctx,state.map,maps[state.map],camX,camY,{x0,x1,y0,y1},frame,T);
 WorldDetail.districtFeatures(ctx,state.map,camX,camY,frame,T);
 drawScenery(camX,camY,x0,x1,y0,y1);
@@ -2637,6 +2639,7 @@ if(state.map==='forest'){
  }
 }
 drawLandmarks(camX,camY);
+Terrain.drawPlaces(ctx,state.map,camX,camY,frame,T);
 drawTownLegacy(camX,camY);
 if(state.map==='village'){drawWorkshopFacade(camX,camY);drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
 if(state.map==='lake')drawBuilding(17,15,'observatory',camX,camY);
