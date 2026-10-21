@@ -689,4 +689,26 @@ assert(html.includes("FieldSprites.draw(ctx,0,0,'down'"),'Character portraits us
 assert(html.includes("VisualPolish.battleImpact("),'Hit animation uses localized elemental impact');
 assert(html.includes("VisualPolish.field("),'Field scene uses per-region visual finishing');
 
+// v0.28: battle staging stays readable during first entrance, hit and faint.
+const director=context.AstraBattleDirection;
+assert(director&&director.scene&&director.drawFeedback,'Battle stage director exists');
+g.startBattle([g.makeMonster('leafin',8)],{trainer:false});
+const liveBattle=g.get().battle,liveFoe=liveBattle.enemies[0];
+const firstScene=director.scene({entrance:0});
+const settledScene=director.scene({entrance:1});
+assert(firstScene.enemy.x>settledScene.enemy.x,'Opponent enters dynamically');
+const beforeDamage=liveFoe.hp;
+liveFoe.hp=Math.max(0,beforeDamage-7);
+liveBattle.action={who:'you',name:'ひのこ',started:39620,target:'enemy',previousHp:beforeDamage,damage:7,critical:false,efficacy:2,miss:false};
+g.drawBattle();
+const hpTween=director.hpFraction(liveFoe,liveBattle.action,'enemy',.5);
+assert(hpTween<=1&&hpTween>=liveFoe.hp/liveFoe.maxHp,'Active hit animates from old HP to new HP');
+liveBattle.action={who:'you',name:'ひのこ',started:39620,target:'enemy',previousHp:beforeDamage,damage:0,critical:false,efficacy:1,miss:true};
+g.drawBattle();
+assert.equal(director.scene({action:liveBattle.action,elapsed:390}).hit,false,'Miss never fakes a hit reaction');
+assert(html.includes('CreatureMotion.hurt(def,phase'),'Monster sprite uses individual hurt poses');
+assert(html.includes('BattleDirection.drawMoveCue'),'Combatant actions receive a compact cue');
+assert(html.includes('BattleDirection.hpFraction'),'Combatant health bars drain in sync');
+g.get().battle=null;g.world();
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
