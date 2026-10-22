@@ -42,7 +42,8 @@ const POIS=Object.freeze({
  lab:[['exit',8,11,'町へ戻る','gate']],
  home:[['exit',7,9,'町へ戻る','gate'],['bedroom',6,7,'自分の部屋','building']],
  bedroom:[['exit',7,9,'自宅へ戻る','gate']],
- observatory:[['exit',7,9,'湖畔へ戻る','gate']],
+ observatory:[['exit',7,9,'湖畔へ戻る','gate'],['starlab',11,4,'星見の研究室','building']],
+ starlab:[['exit',8,12,'観測小屋へ戻る','gate'],['globe',8,8,'復元の天球儀','discovery'],['notes',4,9,'三つの星の手記','discovery']],
  workshop:[['exit',7,9,'町へ戻る','gate'],['archive',12,7,'星の復元資料室','building']],
  archive:[['exit',8,11,'星霊工房へ戻る','gate']]
 });
@@ -91,6 +92,7 @@ function markers(zone,state){
  return data.filter(([id])=>{
   if(zone==='village'&&id==='workshop')return Object.values(state?.events?.fieldRequests||{}).filter(q=>q?.claimed).length>=2;
   if(zone==='workshop'&&id==='archive')return !!state?.events?.townLegacy?.claimed;
+  if(zone==='observatory'&&id==='starlab')return (state?.story?.stage||0)>=12;
   if(zone==='shrine'&&id==='highland')return !!state?.badge;
   return true;
  }).map(([id,x,y,name,type])=>({id,x,y,name,type}));
