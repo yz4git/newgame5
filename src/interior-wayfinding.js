@@ -12,7 +12,9 @@ function portalList(zone,doors,state={}){
  return entries.map(([key,link])=>{
   const [x,y]=key.split(',').map(Number);
   const claimed=Object.values(state?.events?.fieldRequests||{}).filter(r=>r?.claimed).length;
-  const locked=link.id==='archive'&&!state?.events?.townLegacy?.claimed||
+  const locked=link.id==='windspire2'&&!(state?.defeated?.['windspire/星風の番人 カイト']||state?.events?.regionalExpeditions?.windspire?.claimed)||
+   link.id==='windspire3'&&!state?.events?.spireAscent?.bridge||
+   link.id==='archive'&&!state?.events?.townLegacy?.claimed||
    link.id==='workshop'&&claimed<2||
    (link.id==='starlab'||['forestgrotto','tidevault','windspire'].includes(link.id))&&(state?.story?.stage||0)<12;
   const exit=['village','lake','route','forest','shrine','highland'].includes(link.id);
