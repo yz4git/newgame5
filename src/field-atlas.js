@@ -46,7 +46,9 @@ const POIS=Object.freeze({
  starlab:[['exit',8,12,'観測小屋へ戻る','gate'],['globe',8,8,'復元の天球儀','discovery'],['notes',4,9,'三つの星の手記','discovery']],
  forestgrotto:[['exit',8,12,'月影の森へ戻る','gate'],['runes',8,8,'古樹の3つの刻印','discovery'],['cache',8,4,'年輪の宝箱','discovery']],
  tidevault:[['exit',8,12,'青凪の湖畔へ戻る','gate'],['valves',8,9,'3つの水門','discovery'],['cache',8,4,'水底の調査箱','discovery']],
- windspire:[['exit',8,12,'星見の高原へ戻る','gate'],['guardian',8,6,'星風の番人','discovery'],['cache',8,4,'風の記録箱','discovery']],
+ windspire:[['exit',8,12,'星見の高原へ戻る','gate'],['guardian',8,6,'星風の番人','discovery'],['cache',8,4,'風の記録箱','discovery'],['stairs',12,4,'2階への階段','gate']],
+ windspire2:[['exit',8,12,'1階へ戻る','gate'],['vane',8,9,'風向計の間','discovery'],['stairs',8,3,'3階への渡り廊下','gate']],
+ windspire3:[['exit',8,12,'2階へ戻る','gate'],['warden',8,6,'天空の試練官','discovery'],['cache',8,4,'天空の記録箱','discovery']],
  workshop:[['exit',7,9,'町へ戻る','gate'],['archive',12,7,'星の復元資料室','building']],
  archive:[['exit',8,11,'星霊工房へ戻る','gate']]
 });
@@ -97,6 +99,8 @@ function markers(zone,state){
   if(zone==='workshop'&&id==='archive')return !!state?.events?.townLegacy?.claimed;
   if(zone==='observatory'&&id==='starlab')return (state?.story?.stage||0)>=12;
   if((id==='grotto'||id==='tidevault'||id==='windspire')&&(state?.story?.stage||0)<12)return false;
+  if(zone==='windspire'&&id==='stairs')return !!state?.defeated?.['windspire/星風の番人 カイト']||!!state?.events?.regionalExpeditions?.windspire?.claimed;
+  if(zone==='windspire2'&&id==='stairs')return !!state?.events?.spireAscent?.bridge;
   if(zone==='shrine'&&id==='highland')return !!state?.badge;
   return true;
  }).map(([id,x,y,name,type])=>({id,x,y,name,type}));
