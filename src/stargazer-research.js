@@ -62,5 +62,62 @@ function telescope(events,phase=0){
  ];
  return {text:lines[Math.max(0,Math.min(2,phase))]+'\n星の位置を記録手帳に書き留めた。'};
 }
-return Object.freeze({LENSES,DIRECTIONS,REWARD,normalize,snapshot,rotate,observe,align,claim,telescope});
+/* Upper-screen telescope preview, built entirely with Canvas geometry.
+ * Three weather/time palettes give a sense of discovery without artwork assets.
+ */
+function drawSky(ctx,phase=0,frame=0,solved=false){
+ if(!ctx)return false;
+ const time=Math.max(0,Math.min(2,Math.trunc(phase)||0));
+ const palettes=[
+  ['#31566b','#a2b9b0','#fff6d3'],
+  ['#302f68','#b36b7f','#ffe6ba'],
+  ['#152844','#345779','#f7f3ce']
+ ];
+ const [dark,light,stars]=palettes[time];
+ const rand=i=>{let n=Math.imul(i+233,1664525)+1013904223|0;n=Math.imul(n^(n>>>13),2246822519);return ((n^(n>>>16))>>>0)/4294967295};
+ ctx.save();
+ const gradient=ctx.createLinearGradient(0,0,0,352);
+ gradient.addColorStop(0,dark);gradient.addColorStop(1,light);
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,416,352);
+ // Atmospheric low horizon, a lake reflection and layered distant pine ridge.
+ ctx.fillStyle='#446d7580';ctx.beginPath();ctx.ellipse(208,322,280,44,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#253f55';ctx.beginPath();ctx.moveTo(0,316);
+ for(let x=0;x<=416;x+=12)ctx.lineTo(x,291-Math.sin(x*.025)*9-Math.sin(x*.07)*4);
+ ctx.lineTo(416,352);ctx.lineTo(0,352);ctx.fill();
+ ctx.fillStyle='#1e3c50';ctx.beginPath();ctx.moveTo(0,336);
+ for(let x=0;x<=416;x+=9)ctx.lineTo(x,317-Math.sin(x*.036)*8);
+ ctx.lineTo(416,352);ctx.lineTo(0,352);ctx.fill();
+ for(let i=0;i<68;i++){
+  const x=22+rand(i*13+1)*374,y=18+rand(i*11+9)*254;
+  const blink=.5+.5*Math.sin(frame*.028+i*2.2);
+  ctx.globalAlpha=.45+blink*.55;
+  ctx.beginPath();ctx.arc(x,y,.65+rand(i+6)*1.4,0,Math.PI*2);
+  ctx.fillStyle=stars;ctx.fill();
+ }
+ ctx.globalAlpha=1;
+ if(time!==0){
+  ctx.beginPath();ctx.arc(324,72,19,0,Math.PI*2);
+  ctx.fillStyle=time===2?'#e5e9db':'#f1c6c4';ctx.fill();
+  ctx.beginPath();ctx.arc(332,65,17,0,Math.PI*2);
+  ctx.fillStyle=dark;ctx.fill();
+ }
+ const starCoords=[[70,105],[124,147],[199,94],[264,142],[330,109],[294,197],[213,214],[130,205],[175,162]];
+ if(solved){
+  const links=[[0,1],[1,8],[8,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[8,6]];
+  ctx.strokeStyle='#f6e2a8b0';ctx.lineWidth=1.7;ctx.beginPath();
+  for(const [a,b] of links){ctx.moveTo(...starCoords[a]);ctx.lineTo(...starCoords[b])}
+  ctx.stroke();
+ }
+ for(let i=0;i<starCoords.length;i++){
+  const [x,y]=starCoords[i],glow=.7+.3*Math.sin(frame*.028+i);
+  ctx.fillStyle=solved?'#f9ebbb':'#9ac6c8';
+  ctx.beginPath();ctx.arc(x,y,(solved?3.4:2)*glow,0,Math.PI*2);ctx.fill();
+ }
+ ctx.fillStyle='#133647df';ctx.beginPath();ctx.roundRect(74,9,268,35,8);ctx.fill();
+ ctx.textAlign='center';ctx.font='bold 13px system-ui,sans-serif';ctx.fillStyle='#f4e8c6';
+ ctx.fillText(solved?'✦ 復元された星図　'+['朝','夕','夜'][time]:'✧ 未完成の星図　レンズを調整しよう',208,31);
+ ctx.restore();
+ return true;
+}
+return Object.freeze({LENSES,DIRECTIONS,REWARD,normalize,snapshot,rotate,observe,align,claim,telescope,drawSky});
 });
