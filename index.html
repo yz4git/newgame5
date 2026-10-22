@@ -257,6 +257,7 @@ footer{display:none}
 <script src="./src/town-workshop.js?v=__BUILD_ID__"></script>
 <script src="./src/stargazer-research.js?v=__BUILD_ID__"></script>
 <script src="./src/regional-expeditions.js?v=__BUILD_ID__"></script>
+<script src="./src/spire-ascent.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -266,8 +267,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Expeditions=globalThis.AstraRegionalExpeditions,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Expeditions,Battlebacks,FieldSprites,Schedules,Cinematics};
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Expeditions=globalThis.AstraRegionalExpeditions,Spire=globalThis.AstraSpireAscent,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Expeditions,Spire,Battlebacks,FieldSprites,Schedules,Cinematics};
 const missingDependencies=Object.entries(gameDependencies).filter(([,value])=>!value).map(([name])=>name);
 if(missingDependencies.length)throw Error('Missing game modules: '+missingDependencies.join(', '));
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
@@ -341,7 +342,9 @@ observatory:{name:'青凪の観測小屋',w:14,h:11,theme:'interior',wild:[]},
  starlab:{name:'星見の研究室',w:16,h:13,theme:'interior',wild:[]},
  forestgrotto:{name:'古樹の年輪洞',w:16,h:13,theme:'interior',wild:[]},
  tidevault:{name:'潮の隠し水路',w:16,h:13,theme:'interior',wild:[]},
- windspire:{name:'風見の尖塔',w:16,h:13,theme:'interior',wild:[]}
+ windspire:{name:'風見の尖塔・1階',w:16,h:13,theme:'interior',wild:[]},
+ windspire2:{name:'風見の尖塔・2階 風配の間',w:16,h:13,theme:'interior',wild:[]},
+ windspire3:{name:'風見の尖塔・3階 天空の間',w:16,h:13,theme:'interior',wild:[]}
 };
 const maps={};
 function makeMap(id){
@@ -364,7 +367,9 @@ if(m.theme==='interior'){
    if(id==='starlab'){row(3,6,9,8);row(5,2,3,9);row(5,13,14,9);arr[9][3]=11}
 if(id==='forestgrotto'){row(3,4,11,10);arr[8][2]=11;arr[8][13]=11}
 if(id==='tidevault'){row(2,3,12,10);Expeditions.prepare(id,arr,null)}
-if(id==='windspire'){row(3,4,11,10);arr[8][4]=11;arr[8][12]=11}
+if(id==='windspire'){row(3,4,11,10);arr[8][4]=11;arr[8][12]=11;arr[4][12]=6}
+if(id==='windspire2'){row(3,3,6,10);row(3,10,12,10);Spire.prepare(id,arr,null)}
+if(id==='windspire3'){row(3,4,11,10);arr[8][3]=11;arr[8][12]=11}
 if(id==='workshop'){row(3,4,9,8);row(5,2,4,9);row(6,10,11,10)}
 if(id==='archive'){row(3,6,9,8);row(5,2,3,9);row(5,12,13,9)}
   maps[id]=arr;return;
@@ -477,7 +482,9 @@ bedroom:{'7,10':{id:'home',x:7,y:8,dir:'down'}},
 lake:{'19,18':{id:'observatory',x:7,y:9,dir:'up'},'23,18':{id:'tidevault',x:8,y:11,dir:'up'}},
 forestgrotto:{'8,12':{id:'forest',x:21,y:17,dir:'down'}},
 tidevault:{'8,12':{id:'lake',x:23,y:19,dir:'down'}},
-windspire:{'8,12':{id:'highland',x:20,y:9,dir:'down'}},
+windspire:{'8,12':{id:'highland',x:20,y:9,dir:'down'},'12,4':{id:'windspire2',x:8,y:11,dir:'up'}},
+ windspire2:{'8,12':{id:'windspire',x:12,y:5,dir:'down'},'8,3':{id:'windspire3',x:8,y:11,dir:'up'}},
+ windspire3:{'8,12':{id:'windspire2',x:8,y:4,dir:'down'}},
 observatory:{'7,10':{id:'lake',x:19,y:19,dir:'down'},'11,4':{id:'starlab',x:8,y:11,dir:'up'}},
  starlab:{'8,12':{id:'observatory',x:11,y:5,dir:'down'}}
 };
@@ -575,6 +582,20 @@ tidevault:[
  {x:12,y:9,name:'東の水門',kind:'expValve',valve:2,color:'#84b5ce'},
  {x:3,y:10,name:'水路の修復記録',kind:'expClue',color:'#d3be95'},
  {x:8,y:4,name:'水底の調査箱',kind:'expReward',color:'#e6d49c'}
+],
+windspire2:[
+ {x:3,y:10,name:'風読みの碑文',kind:'spireClue',color:'#c7d2be'},
+ {x:4,y:9,name:'東の風向計',kind:'spireVane',vane:0,color:'#aac4c8'},
+ {x:8,y:9,name:'中央の風向計',kind:'spireVane',vane:1,color:'#aac4c8'},
+ {x:12,y:9,name:'西の風向計',kind:'spireVane',vane:2,color:'#aac4c8'},
+ {x:12,y:4,name:'風の回廊の案内',kind:'sign',color:'#d8cba7',say:'橋を渡った先の北側の階段を上ると、天空の間に続く。'}
+],
+windspire3:[
+ {x:4,y:9,name:'天空の碑文',kind:'spireClue',color:'#c7d0e0'},
+ {x:8,y:6,name:'天空の試練官 セイ',kind:'trainer',facing:'down',vision:0,
+  color:'#d7d3e5',party:[['glint',16],['aquill',16],['shade',17],['fugale',18]],reward:1100,
+  say:'ここは風の最上階。強風を味方につけた者が、天空の記録を手にできる！'},
+ {x:8,y:4,name:'天空の記録箱',kind:'spireCache',color:'#f2d8a0'}
 ],
 windspire:[
  {x:4,y:9,name:'風見の碑文',kind:'expClue',color:'#d8cba9'},
@@ -853,7 +874,7 @@ function syncForestSecrets(){ForestSecrets.prepare(maps.forest,state.events?.for
 function syncRegionPuzzles(){
  for(const id of ['lake','shrine','highland'])RegionPuzzles.prepare(id,maps[id],state.events?.regionPuzzles)
 }
-function syncExpeditions(){Expeditions.prepare('tidevault',maps.tidevault,state.events)}
+function syncExpeditions(){Expeditions.prepare('tidevault',maps.tidevault,state.events);Spire.prepare(Spire.FLOOR2,maps.windspire2,state.events)}
 function save(){try{if(state.party.length||state.story?.playerName){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&maps[x.map]&&(x.party?.length||x.story?.playerName)){
  const migrated=Engine.migrateSave(x,byId,MOVES);
@@ -1254,7 +1275,15 @@ function world(msg){
  options.push({text:'☰ メニュー',on:()=>openPage('home')});
  ui('FIELD / '+mapMeta[state.map].name,msg||questText(),options);
 }
-function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;if(state.map==='workshop')return '工房主リクや製作台に話しかけて道具を精製しよう。奥の資料室は星の記録祭の後で開く。';if(state.map==='archive')return '森・湖・高原の3つの記録板を調べて、復元の結晶に記録を集めよう。';if(Expeditions.ROOMS[state.map]){const id=state.map,p=Expeditions.state(state.events,id,!!state.defeated?.['windspire/星風の番人 カイト']);return p.claimed?'ここの調査は完了！ 次の地域の奥も探索しよう。':p.ready?'仕掛けは解除された。奥の記録箱を調べよう。':Expeditions.clue(id)}if(state.map==='starlab'){const p=Stargazer.snapshot(state.events);return p.claimed?'研究室で星空の観測を続けよう。望遠鏡で時間ごとの夜空を楽しめる。':p.solved?'星の観測箱に記録の報酬が入っている。':'三つの星の手記を読んで、レンズを正しい方角へ向けよう。';}return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;if(state.map==='workshop')return '工房主リクや製作台に話しかけて道具を精製しよう。奥の資料室は星の記録祭の後で開く。';if(state.map==='archive')return '森・湖・高原の3つの記録板を調べて、復元の結晶に記録を集めよう。';if(state.map==='windspire2'){
+ const s=Spire.status(state);return s.bridge?'石の渡り廊下がつながった！ 北の階段から最上階に進もう。':
+ '3つの風向計を東・北・西に合わせよう。風読みの碑文に手掛かりがある。'
+}
+if(state.map==='windspire3'){
+ const s=Spire.status(state);return s.claimed?'風見の尖塔を踏破した！':
+ s.summit?'天空の記録箱に星風の贈り物がある。':'天空の試練官 セイに勝ち、塔の最上部を調査しよう。'
+}
+if(Expeditions.ROOMS[state.map]){const id=state.map,p=Expeditions.state(state.events,id,!!state.defeated?.['windspire/星風の番人 カイト']);return p.claimed?'ここの調査は完了！ 次の地域の奥も探索しよう。':p.ready?'仕掛けは解除された。奥の記録箱を調べよう。':Expeditions.clue(id)}if(state.map==='starlab'){const p=Stargazer.snapshot(state.events);return p.claimed?'研究室で星空の観測を続けよう。望遠鏡で時間ごとの夜空を楽しめる。':p.solved?'星の観測箱に記録の報酬が入っている。':'三つの星の手記を読んで、レンズを正しい方角へ向けよう。';}return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];
@@ -1262,6 +1291,9 @@ if(door){if(door.id==='workshop'&&Workshop.townTier(state)<2){toast('星霊工�
 if(door.id==='archive'&&!Workshop.archiveUnlocked(state)){toast('資料室は星の記録祭が完成すると開かれる。');return}
 if(door.id==='starlab'&&storyStage()<Story.FREE_STAGE){toast('星見の研究室は、旅立ちの準備が終わると開かれる。');return}
 if(Expeditions.ROOMS[door.id]&&storyStage()<Story.FREE_STAGE){toast('この探索地は旅立ちを終えてから調べよう。');return}
+if((door.id===Spire.FLOOR2||door.id===Spire.FLOOR3)&&!Spire.canEnter(state,door.id)){
+ toast(door.id===Spire.FLOOR2?'番人カイトを倒すと2階の階段が開く。':'風向計をそろえて渡り廊下を復元しよう。');return;
+}
 if(!storyWarpAllowed(door))return;const previous=state.map;switchMap(door);afterStoryWarp(previous,door);return}
 const exit=isExit(state.map,nx,ny);
 if(exit){
@@ -1398,6 +1430,7 @@ if(n.kind==='workshop'){if(storyStage()<12){dialog(n.name,'工房はまだ準備
 if(n.kind==='archivePanel'||n.kind==='archiveCache'){archiveAction(n);return}
 if(['starLens','starNotes','starGlobe','starCache','starScope'].includes(n.kind)){stargazerAction(n);return}
 if(['expClue','expRune','expValve','expReward'].includes(n.kind)){expeditionAction(n);return}
+if(['spireClue','spireVane','spireCache'].includes(n.kind)){spireAction(n);return}
 if(n.kind==='townArchivist'){archivistNpc(n);return}
 if(n.kind==='talk'&&n.requestId&&storyStage()>=12){requestNpc(n);return}
 if(n.kind==='storyMom'){storyMother();return}
@@ -1439,7 +1472,7 @@ function startBattle(enemies,options){
  forcedTrainer=false;const active=firstAlive();if(active<0){healAndReturn();return}
  state.party.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp});
  enemies.forEach(m=>{m.focus=false;m.guard=false;m.stages=null;m.pp=m.pp||normalizeMonster(m).pp;state.seen[m.id]=1});
- const weather=Engine.weatherFor(state.map);
+ const weather=Engine.weatherFor(state.map==='windspire3'?'highland':state.map);
  state.battle={enemies,index:0,active,participants:[active],turn:0,weather,weatherTurns:null,tutorial:!!options.tutorial,opened:performance.now(),faintAt:null,faintSide:null,
  action:null,capture:null,trainer:!!options.trainer,npc:options.npc||null,trainerKey:options.trainerKey||'',reward:options.reward||0,rematch:!!options.rematch,busy:false,shake:0,flash:0,messages:[]};
  const firstMessage=Engine.battleEnter(current(),foe(),weather);
