@@ -1634,6 +1634,7 @@ let message=b.trainer?'勝負に勝った！ '+b.reward+'G を獲得！':'勝利
 if(b.trainer){
  if(b.npc?.kind==='rival'&&storyStage()===9){storyStep(10);state.events.storyRivalResolved=true}
  state.money+=b.reward;state.defeated[b.trainerKey]=true;
+ if(b.trainerKey===Spire.FINAL_KEY){message+='\n✦ 天空の風が静まり、最上階の記録箱が開いた！';startStoryEffect('star',null,1800)}
   if(b.npc?.kind==='trainer'&&b.trainerKey){state.events.trainerRematches=state.events.trainerRematches||{};
    state.events.trainerRematches[b.trainerKey]=Rematches.markWin(b.trainerKey,state,b.rematch)}
   if(b.npc?.eventOnWin)state.events[b.npc.eventOnWin]=true;if(b.npc?.kind==='boss'&&!state.badge){state.badge=true;state.quest='complete';state.bag.orb+=5;message+='\n✦ 「星のしるし」を手に入れた！ 星玉を5個もらった！';sfx('catch')}}
