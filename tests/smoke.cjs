@@ -857,4 +857,74 @@ g.world();
 g.walk('down');
 assert.equal(g.get().map,'observatory','The room door returns to the same lakeside observatory');
 
+// v0.32: travel into three distinct optional regions and verify real rewards.
+{
+ const E=context.AstraRegionalExpeditions,reach=context.AstraMapLayout.reachable;
+ assert(reach(g.maps.forest,{x:13,y:26},{x:21,y:16}),'Forest cave accessible from the canonical southern approach');
+ assert(reach(g.maps.lake,{x:19,y:19},{x:23,y:18}),'Tide cave accessible from the lakeside path');
+ assert(reach(g.maps.highland,{x:12,y:27},{x:20,y:8}),'Wind spire accessible from the old highland switchback');
+ const previousStage=g.get().story.stage;
+ g.get().story.stage=5;
+ g.switchMap({id:'forest',x:21,y:17,dir:'up'});g.walk('up');
+ assert.equal(g.get().map,'forest','Optional side caves cannot be entered during the prologue');
+ g.get().story.stage=12;g.walk('up');
+ assert.equal(g.get().map,'forestgrotto');
+ assert.equal(g.get().visited.forestgrotto,true);
+ g.draw();
+ const forestTeam=g.NPCS.forestgrotto;
+ const forestClue=forestTeam.find(n=>n.kind==='expClue');
+ g.npc(forestClue);
+ assert(nodes.get('console').children.at(-2).textContent.includes('芽吹き'),'Forest cave has its own puzzle clue');
+ g.world();
+ for(const id of ['sprout','rain','moon']){
+  const rune=forestTeam.find(n=>n.rune===id);
+  g.npc(rune);g.world();
+ }
+ assert(E.state(g.get().events,'forestgrotto').solved);
+ const oldHerb32=g.get().bag.herb,oldMoney32=g.get().money;
+ g.npc(forestTeam.find(n=>n.kind==='expReward'));
+ assert.equal(g.get().bag.herb,oldHerb32+2);
+ assert.equal(g.get().money,oldMoney32+220);
+ g.world();g.npc(forestTeam.find(n=>n.kind==='expReward'));
+ assert.equal(g.get().money,oldMoney32+220,'Forest cache is one-time');g.world();
+ g.get().x=8;g.get().y=11;g.get().dir='down';g.walk('down');
+ assert.equal(g.get().map,'forest','Forest grotto has a working return door');
+ g.switchMap({id:'lake',x:23,y:19,dir:'up'});g.walk('up');
+ assert.equal(g.get().map,'tidevault');
+ assert.equal(g.maps.tidevault[6][8],3,'Water passage starts blocked');
+ const valves=g.NPCS.tidevault.filter(n=>n.kind==='expValve');
+ for(const pos of [0,1,2]){
+  g.npc(valves.find(n=>n.valve===pos));g.world();
+ }
+ assert(E.state(g.get().events,'tidevault').solved);
+ assert.equal(g.maps.tidevault[6][8],13,'Balancing valves raises a walkable stone bridge');
+ assert(reach(g.maps.tidevault,{x:8,y:11},{x:8,y:5}),'Player can now cross the restored causeway');
+ const oldOrb32=g.get().bag.orb;
+ g.npc(g.NPCS.tidevault.find(n=>n.kind==='expReward'));
+ assert.equal(g.get().bag.orb,oldOrb32+4);
+ g.world();assert.equal(g.load(),true,'Water gate is stored using old-save-compatible event state');
+ assert.equal(g.maps.tidevault[6][8],13,'Water gate reconstructs after save reload');
+ assert(E.state(g.get().events,'tidevault').claimed);
+ g.switchMap({id:'highland',x:20,y:9,dir:'up'});g.walk('up');
+ assert.equal(g.get().map,'windspire');
+ const tower=g.NPCS.windspire,guardian=tower.find(n=>n.kind==='trainer'),chest=tower.find(n=>n.kind==='expReward');
+ const key='windspire/'+guardian.name;
+ g.npc(chest);
+ assert(nodes.get('console').children.at(-2).textContent.includes('試練'),'Guardian chest stays locked before victory');
+ g.world();g.npc(guardian);
+ const duel=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('勝負する'));
+ assert(duel,'The defender offers an optional fair battle');
+ duel.click();assert.equal(g.get().battle.trainerKey,key);
+ assert.equal(g.get().battle.enemies.length,3,'Guardian uses a three-monster team');
+ g.get().battle=null;g.get().defeated[key]=true;g.world();
+ const oldCharm32=g.get().bag.powerCharm;
+ g.npc(chest);
+ assert.equal(g.get().bag.powerCharm,oldCharm32+1);
+ g.world();g.npc(chest);
+ assert.equal(g.get().bag.powerCharm,oldCharm32+1,'Guardian cache never duplicates');
+ g.world();g.draw();assert.equal(g.load(),true);
+ assert(E.state(g.get().events,'windspire',true).claimed);
+ g.get().story.stage=previousStage;
+ assert(html.includes('drawExpeditionEntrance(camX,camY)'),'Original entrance art is active in field renderer');
+}
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
