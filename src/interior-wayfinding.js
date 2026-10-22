@@ -14,7 +14,7 @@ function portalList(zone,doors,state={}){
   const claimed=Object.values(state?.events?.fieldRequests||{}).filter(r=>r?.claimed).length;
   const locked=link.id==='archive'&&!state?.events?.townLegacy?.claimed||
    link.id==='workshop'&&claimed<2||
-   link.id==='starlab'&&(state?.story?.stage||0)<12;
+   (link.id==='starlab'||['forestgrotto','tidevault','windspire'].includes(link.id))&&(state?.story?.stage||0)<12;
   const exit=['village','lake','route','forest','shrine','highland'].includes(link.id);
   return {x,y,target:link.id,locked,exit};
  }).filter(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.target);
