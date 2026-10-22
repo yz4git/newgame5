@@ -68,6 +68,7 @@ jobs:
           node tests/town-workshop.cjs
           node tests/stargazer-research.cjs
           node tests/regional-expeditions.cjs
+          node tests/spire-ascent.cjs
           node tests/smoke.cjs
           node tests/intro.cjs
       - name: Prepare versioned static site
@@ -103,6 +104,7 @@ jobs:
           cp src/town-workshop.js _site/src/
           cp src/stargazer-research.js _site/src/
           cp src/regional-expeditions.js _site/src/
+          cp src/spire-ascent.js _site/src/
           cp src/battle-backdrops.js _site/src/
           cp src/field-sprites.js _site/src/
           cp src/npc-schedules.js _site/src/
