@@ -244,6 +244,7 @@ footer{display:none}
 <script src="./src/battle-direction.js?v=__BUILD_ID__"></script>
 <script src="./src/world-detail.js?v=__BUILD_ID__"></script>
 <script src="./src/terrain-composition.js?v=__BUILD_ID__"></script>
+<script src="./src/field-atlas.js?v=__BUILD_ID__"></script>
 <script src="./src/building-profile.js?v=__BUILD_ID__"></script>
 <script src="./src/map-layout.js?v=__BUILD_ID__"></script>
 <script src="./src/forest-secrets.js?v=__BUILD_ID__"></script>
@@ -261,8 +262,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Battlebacks,FieldSprites,Schedules,Cinematics};
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Battlebacks,FieldSprites,Schedules,Cinematics};
 const missingDependencies=Object.entries(gameDependencies).filter(([,value])=>!value).map(([name])=>name);
 if(missingDependencies.length)throw Error('Missing game modules: '+missingDependencies.join(', '));
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
@@ -794,7 +795,7 @@ const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home
 const view=commands?'battleCommands':moves?'moves':talk?'dialog':party?'party':dex?'dex':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
 consoleEl.dataset.mode=battle?'battle':'normal';
 consoleEl.dataset.view=view;
-document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail'||state.menuPage==='requests'||state.menuPage==='requestDetail'||state.menuPage==='townLegacy')?'true':'false';
+document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail'||state.menuPage==='requests'||state.menuPage==='requestDetail'||state.menuPage==='townLegacy'||state.menuPage==='atlas')?'true':'false';
 const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
 const upper=document.getElementById('upperMessage');
 const header=view==='battleCommands'?'⚔ たたかい':view==='moves'?'⚔ わざをえらぶ':state.scene==='world'?'✦ タッチメニュー':state.scene==='menu'?'☰ ぼうけんメニュー':talk?'▤ メッセージ':label;
@@ -1232,7 +1233,7 @@ if(!state.badge){toast('星の守り手を越えなければ進めない！');re
 return {id:'highland',x:12,y:27,dir:'up'}}
 if(map==='highland'&&y>=m.h&&x>=10&&x<=15)return {id:'shrine',x:9,y:1,dir:'down'};
 return null}
-function switchMap(e){const previous=state.map;mapTransition={started:performance.now(),from:previous,to:e.id,indoor:mapMeta[e.id].theme==='interior'||mapMeta[previous].theme==='interior'};state.map=e.id;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
+function switchMap(e){const previous=state.map;mapTransition={started:performance.now(),from:previous,to:e.id,indoor:mapMeta[e.id].theme==='interior'||mapMeta[previous].theme==='interior'};state.map=e.id;if(state.events?.atlasWaypoint?.map!==e.id&&state.events?.atlasWaypoint)delete state.events.atlasWaypoint;state.visited=state.visited||{};state.visited[e.id]=true;state.x=e.x;state.y=e.y;state.dir=e.dir;movement=null;companionMove=null;follower={map:e.id,x:e.x,y:e.y+(e.dir==='up'?1:-1)};state.encounterSteps=0;sfx('ok');world();toast(mapMeta[e.id].name)}
 function interact(){const [dx,dy]=dirDelta[state.dir],tx=state.x+dx,ty=state.y+dy;
 if(state.map==='forest'&&tx===ForestSecrets.GATE.x&&ty===ForestSecrets.GATE.y){
  dialog('蔦の隠し道',ForestSecrets.next(state.events.forestSecrets,'gate',worldPhase()).text);return
@@ -1519,6 +1520,33 @@ function openPage(page){state.prevScene=state.scene==='world'?'world':state.prev
 if(page!=='dex')state.dexFocus=null;
 state.partyFocus=null;
 screen('menu');menu()}
+function atlasMenu(){
+ state.menuPage='atlas';
+ const markers=Atlas.markers(state.map,state),chosen=Atlas.selected(state,maps[state.map]);
+ const trail=chosen?.path.length?chosen.remaining+'歩・次は'+(Atlas.direction(chosen.path)||'到着'):'未設定';
+ ui('FIELD ATLAS / 地域地図','現在地：'+mapMeta[state.map].name+'\n'+
+  '案内：'+(chosen?.marker.name||'なし')+'（'+trail+'）\n'+
+  '数字の場所を選ぶと安全な通路を探して案内します。',[
+  ...markers.map((m,i)=>({text:(chosen?.marker.id===m.id?'★ ':'')+(i+1)+'. '+m.name,
+   on:()=>atlasSet(m.id)})),
+  {text:'✕ 案内を解除',disabled:!state.events?.atlasWaypoint,on:()=>{delete state.events.atlasWaypoint;save();atlasMenu()}},
+  {text:'↶ アストラギア',on:()=>openPage('gear')},
+  {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
+function atlasSet(id){
+ const dest=Atlas.locate(state,id);
+ if(!dest){toast('ここには案内できない。');return}
+ const marker=Atlas.markers(state.map,state).find(m=>m.id===id);
+ const trail=Atlas.path(maps[state.map],state,marker);
+ if(!trail.length){toast('ここへ続く通路が見つからない。');return}
+ state.events.atlasWaypoint=dest;save();sfx('ok');atlasMenu();
+ toast(marker.name+' を案内先に設定！');
+}
+function drawFieldAtlas(){
+ Atlas.draw(ctx,maps[state.map],state.map,
+  {...state,mapName:mapMeta[state.map].name},frame);
+}
 function explorationMenu(){
  const rows=Exploration.summary(state);
  const amount=rows.reduce((sum,p)=>sum+p.done,0),possible=rows.reduce((sum,p)=>sum+p.total,0);
@@ -1595,6 +1623,7 @@ function townLegacyMenu(){
  ]);
 }
 function menu(){const p=state.menuPage;
+if(p==='atlas'){atlasMenu();return}
 if(p==='townLegacy'){townLegacyMenu();return}
 if(p==='requests'){requestsMenu();return}
 if(p==='requestDetail'){requestDetail(requestFocus);return}
@@ -1614,6 +1643,7 @@ if(p==='gear'){
  '　　　　　　　　　↓',
  '　　　　　　　星見の高原'
  ].join('\n'),[
+ {text:'◉ フィールド地図と道案内',on:()=>openPage('atlas')},
  {text:'✦ 現在地',on:()=>{toast(loc+' / '+state.steps+'歩')} },
  {text:'◈ 星霊図鑑',on:()=>openPage('dex')},
  {text:'✧ 探索手帳',on:()=>openPage('exploration')},
@@ -1734,7 +1764,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=menuButtons[menuFocus];if(btn&&!btn.disabled)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='atlas'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
@@ -2682,6 +2712,7 @@ if(state.party.length){
 layers.push({y:py,draw:()=>drawHero(px*T-camX+16,py*T-camY+19,state.dir)});
 layers.sort((a,b)=>a.y-b.y);
 for(const layer of layers)layer.draw();
+if(state.scene==='world'&&state.events?.atlasWaypoint?.map===state.map)Atlas.drawCompass(ctx,state,maps[state.map],frame);
 drawFieldForeground(camX,camY,x0,x1,y0,y1,Math.floor(px),Math.floor(py));
 VisualPolish.field(ctx,state.map,camX,camY,frame,worldPhase());
 if(storyStage()>=12&&state.scene==='world'){
@@ -3125,6 +3156,7 @@ if(holdDir&&state.scene==='world'&&performance.now()-lastStep>(state.running?88:
 if(state.scene==='battle')drawBattle();
 else if(state.scene==='dialog'&&state.previewStarter)drawStarterPreview();
 else if(state.scene==='title'||state.scene==='starter'||state.scene==='help')drawTitle();
+else if(state.scene==='menu'&&state.menuPage==='atlas')drawFieldAtlas();
 else if(state.scene==='menu'&&state.menuPage==='townLegacy')drawTownRecordPage();
 else if(state.scene==='menu'&&(state.menuPage==='requests'||state.menuPage==='requestDetail'))drawRequestBoard();
 else if(state.scene==='menu'&&(state.menuPage==='exploration'||state.menuPage==='explorationDetail'))drawExplorationScreen();
