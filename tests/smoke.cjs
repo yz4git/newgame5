@@ -849,6 +849,8 @@ g.switchMap({id:'starlab',x:8,y:11,dir:'down'});g.draw();
 const scope=labPeople.find(n=>n.kind==='starScope');
 g.npc(scope);
 assert(nodes.get('console').children.at(-2).textContent.includes('星'),'Revisiting the lab reveals observing text');
+g.draw();
+assert(html.includes('Stargazer.drawSky(ctx,worldPhase(),frame'),'Telescope reveals the dedicated upper-screen star panorama');
 g.world();
 g.walk('down');
 assert.equal(g.get().map,'observatory','The room door returns to the same lakeside observatory');
