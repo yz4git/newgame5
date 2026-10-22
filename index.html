@@ -2723,7 +2723,6 @@ if(state.party.length){
 layers.push({y:py,draw:()=>drawHero(px*T-camX+16,py*T-camY+19,state.dir)});
 layers.sort((a,b)=>a.y-b.y);
 for(const layer of layers)layer.draw();
-if(state.scene==='world'&&state.events?.atlasWaypoint?.map===state.map)Atlas.drawCompass(ctx,state,maps[state.map],frame);
 drawFieldForeground(camX,camY,x0,x1,y0,y1,Math.floor(px),Math.floor(py));
 VisualPolish.field(ctx,state.map,camX,camY,frame,worldPhase());
 if(storyStage()>=12&&state.scene==='world'){
@@ -2758,6 +2757,7 @@ if(state.scene==='world'){
 if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
 if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
+if(state.scene==='world'&&state.events?.atlasWaypoint?.map===state.map)Atlas.drawCompass(ctx,state,maps[state.map],frame);
 if(state.scene==='dialog')drawDialoguePortrait();
 if(areaArrival?.zone===state.map)FieldCamera.title(ctx,areaArrival,m.name,performance.now(),m.theme==='interior');
 }
