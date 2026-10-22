@@ -80,6 +80,8 @@ assert(context.AstraFieldRequests,'NPC requests and save-compatible branching ar
 vm.runInNewContext(fs.readFileSync('src/town-legacy.js','utf8'),context,{timeout:5000,filename:'town-legacy.js'});
 assert(context.AstraTownLegacy,'Village Chronicle module is available');
 vm.runInNewContext(fs.readFileSync('src/town-workshop.js','utf8'),context,{timeout:5000,filename:'town-workshop.js'});
+vm.runInNewContext(fs.readFileSync('src/stargazer-research.js','utf8'),context,{timeout:5000,filename:'stargazer-research.js'});
+assert(context.AstraStargazer,'New observatory minigame module loads');
 assert(context.AstraTownWorkshop,'Research workshop is available');
 vm.runInNewContext(fs.readFileSync('src/battle-backdrops.js','utf8'),context,{timeout:5000,filename:'battle-backdrops.js'});
 assert(context.AstraBattlebacks,'Battle backgrounds loaded');
