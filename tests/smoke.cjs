@@ -960,4 +960,66 @@ assert.equal(g.get().map,'observatory','The room door returns to the same lakesi
  assert.equal(g.get().menuPage,'expeditions','B returns from expedition details');
 }
 
+// v0.33: actual multistory tower, sturdy wind-chasm collision, elite weather battle, and save/reload.
+{
+ const S=context.AstraSpireAscent,reach=context.AstraMapLayout.reachable;
+ assert(S&&S.FLOOR2&&S.FLOOR3,'Two additional authored tower floors loaded');
+ g.get().story.stage=12;
+ g.get().defeated[S.GUARD_KEY]=true;
+ g.switchMap({id:'windspire',x:12,y:5,dir:'up'});g.walk('up');
+ assert.equal(g.get().map,'windspire2','Guardian victory unlocks the 2F staircase');
+ assert.equal(g.get().visited.windspire2,true);
+ assert.equal(g.maps.windspire2[6][8],3,'Wind chasm is impassable before alignment');
+ assert.equal(g.maps.windspire2[3][8],5,'Unsolved upper staircase stays sealed');
+ assert.equal(reach(g.maps.windspire2,{x:8,y:11},{x:8,y:4}),false,'Northern chamber cannot be reached early');
+ g.draw();
+ const vanes=g.NPCS.windspire2.filter(n=>n.kind==='spireVane');
+ assert.equal(vanes.length,3);
+ g.npc(g.NPCS.windspire2.find(n=>n.kind==='spireClue'));
+ assert(nodes.get('console').children.at(-2).textContent.includes('東の風'),'Hint is readable inside the 2F room');
+ g.world();
+ g.npc(vanes[0]);
+ assert(nodes.get('console').children.at(-1).children.some(b=>b.textContent.includes('反時計回り')),'Wind vane has touch-friendly reverse input');
+ g.world();
+ for(const [index,delta] of [[0,-1],[1,2],[2,1]]){
+  g.rotateSpireVane(vanes[index],delta);g.world();
+ }
+ assert.equal(S.snapshot(g.get().events).bridge,true,'Correct directions reconstruct the bridge');
+ assert.deepEqual(Array.from(g.maps.windspire2[6].slice(7,10)),[13,13,13],'Open passage consists of physically passable stairs');
+ assert.equal(g.maps.windspire2[3][8],6);
+ assert(reach(g.maps.windspire2,{x:8,y:11},{x:8,y:4}),'Wind bridge makes upper room accessible');
+ g.get().x=8;g.get().y=4;g.get().dir='up';g.walk('up');
+ assert.equal(g.get().map,'windspire3','Bridge unlock leads to the summit floor');
+ assert.equal(g.get().visited.windspire3,true);
+ g.draw();
+ const ward=g.NPCS.windspire3.find(n=>n.kind==='trainer');
+ const prize=g.NPCS.windspire3.find(n=>n.kind==='spireCache');
+ g.npc(prize);
+ assert(nodes.get('console').children.at(-2).textContent.includes('上級試練官'),'Summit chest locked by final battle');
+ g.world();g.npc(ward);
+ const duel=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('勝負する'));
+ assert(duel,'Summit warden battle can be accepted or declined');
+ duel.click();
+ assert.equal(g.get().battle.trainerKey,S.FINAL_KEY);
+ assert.equal(g.get().battle.enemies.length,4,'Final warden uses four monsters');
+ assert.equal(g.get().battle.weather,'wind','Highland wind changes combat on the summit');
+ // End the battle fixture after verifying the real battle initiation; actual victory is exercised elsewhere.
+ g.get().battle=null;g.get().defeated[S.FINAL_KEY]=true;g.world();
+ const before={money:g.get().money,ether:g.get().bag.ether,orb:g.get().bag.orb,speed:g.get().bag.speedCharm};
+ g.npc(prize);
+ assert.equal(g.get().money,before.money+750);
+ assert.equal(g.get().bag.ether,before.ether+3);
+ assert.equal(g.get().bag.orb,before.orb+5);
+ assert.equal(g.get().bag.speedCharm,before.speed+1);
+ g.world();g.npc(prize);
+ assert.equal(g.get().money,before.money+750,'Sky-chest cannot pay out twice');
+ g.world();assert.equal(g.load(),true,'Tower progression survives old save versions');
+ assert.equal(g.get().events.spireAscent.claimed,true);
+ assert.equal(g.maps.windspire2[6][8],13,'Bridge is rebuilt when loading');
+ g.switchMap({id:'windspire3',x:8,y:11,dir:'down'});g.walk('down');
+ assert.equal(g.get().map,'windspire2','Summit has a return staircase');
+ g.get().x=8;g.get().y=11;g.get().dir='down';g.walk('down');
+ assert.equal(g.get().map,'windspire','2F returns to the original guardian floor');
+}
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
