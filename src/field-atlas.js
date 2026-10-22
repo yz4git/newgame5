@@ -23,7 +23,7 @@ const POIS=Object.freeze({
  forest:[
   ['route',13,26,'そよかぜの小道','gate'],['shrine',13,1,'星降りの聖域','gate'],
   ['spring',13,23,'精霊の泉','discovery'],['grove',8,15,'西の森の薬草道','discovery'],
-  ['ridge',19,19,'東の見晴らし','discovery']
+  ['ridge',19,19,'東の見晴らし','discovery'],['grotto',21,16,'古樹の年輪洞','building']
  ],
  shrine:[
   ['forest',9,17,'月影の森','gate'],['highland',9,1,'星見の高原','gate'],
@@ -31,11 +31,11 @@ const POIS=Object.freeze({
  ],
  lake:[
   ['route',1,12,'そよかぜの小道','gate'],['observatory',19,19,'青凪の観測小屋','building'],
-  ['boardwalk',6,18,'湖上の木道','discovery'],['shore',23,12,'湖の東岸','discovery']
+  ['boardwalk',6,18,'湖上の木道','discovery'],['shore',23,12,'湖の東岸','discovery'],['tidevault',23,18,'潮の隠し水路','building']
  ],
  highland:[
   ['shrine',12,27,'星降りの聖域','gate'],['terrace',12,18,'高原の階段','discovery'],
-  ['summit',18,8,'山頂の眺望','discovery']
+  ['summit',18,8,'山頂の眺望','discovery'],['windspire',20,8,'風見の尖塔','building']
  ],
  center:[['exit',7,9,'町へ戻る','gate']],
  mart:[['exit',7,9,'町へ戻る','gate']],
@@ -44,6 +44,9 @@ const POIS=Object.freeze({
  bedroom:[['exit',7,9,'自宅へ戻る','gate']],
  observatory:[['exit',7,9,'湖畔へ戻る','gate'],['starlab',11,4,'星見の研究室','building']],
  starlab:[['exit',8,12,'観測小屋へ戻る','gate'],['globe',8,8,'復元の天球儀','discovery'],['notes',4,9,'三つの星の手記','discovery']],
+ forestgrotto:[['exit',8,12,'月影の森へ戻る','gate'],['runes',8,8,'古樹の3つの刻印','discovery'],['cache',8,4,'年輪の宝箱','discovery']],
+ tidevault:[['exit',8,12,'青凪の湖畔へ戻る','gate'],['valves',8,9,'3つの水門','discovery'],['cache',8,4,'水底の調査箱','discovery']],
+ windspire:[['exit',8,12,'星見の高原へ戻る','gate'],['guardian',8,6,'星風の番人','discovery'],['cache',8,4,'風の記録箱','discovery']],
  workshop:[['exit',7,9,'町へ戻る','gate'],['archive',12,7,'星の復元資料室','building']],
  archive:[['exit',8,11,'星霊工房へ戻る','gate']]
 });
@@ -93,6 +96,7 @@ function markers(zone,state){
   if(zone==='village'&&id==='workshop')return Object.values(state?.events?.fieldRequests||{}).filter(q=>q?.claimed).length>=2;
   if(zone==='workshop'&&id==='archive')return !!state?.events?.townLegacy?.claimed;
   if(zone==='observatory'&&id==='starlab')return (state?.story?.stage||0)>=12;
+  if((id==='grotto'||id==='tidevault'||id==='windspire')&&(state?.story?.stage||0)<12)return false;
   if(zone==='shrine'&&id==='highland')return !!state?.badge;
   return true;
  }).map(([id,x,y,name,type])=>({id,x,y,name,type}));
