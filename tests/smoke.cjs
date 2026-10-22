@@ -56,6 +56,8 @@ assert(context.AstraCreatureMotion,'Per-creature animation profiles loaded');
 vm.runInNewContext(fs.readFileSync('src/world-detail.js','utf8'),context,{timeout:5000,filename:'world-detail.js'});
 vm.runInNewContext(fs.readFileSync('src/terrain-composition.js','utf8'),context,{timeout:5000,filename:'terrain-composition.js'});
 vm.runInNewContext(fs.readFileSync('src/field-atlas.js','utf8'),context,{timeout:5000,filename:'field-atlas.js'});
+vm.runInNewContext(fs.readFileSync('src/field-camera.js','utf8'),context,{timeout:5000,filename:'field-camera.js'});
+assert(context.AstraFieldCamera,'Smooth field camera system is available');
 assert(context.AstraFieldAtlas,'Collision-aware map UI module is loaded');
 vm.runInNewContext(fs.readFileSync('src/building-profile.js','utf8'),context,{timeout:5000,filename:'building-profile.js'});
 assert(context.AstraBuildingProfile,'Unique building silhouettes module loaded');
