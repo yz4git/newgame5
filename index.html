@@ -275,7 +275,7 @@ let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-ena
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
 let menuButtons=[],menuFocus=0,dpadPointerId=null;
-let cameraTrack=null,areaArrival=null;
+let cameraTrack=null,areaArrival=null,expeditionFocus='forestgrotto';
 let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null,explorationFocus=null,explorationHint=0,requestFocus=null;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -1672,6 +1672,44 @@ function drawFieldAtlas(){
  Atlas.draw(ctx,maps[state.map],state.map,
   {...state,mapName:mapMeta[state.map].name},frame);
 }
+function expeditionsMenu(){
+ state.menuPage='expeditions';
+ const ids=['forestgrotto','tidevault','windspire'];
+ const entries=ids.map(id=>{
+  const p=Expeditions.state(state.events,id,!!state.defeated?.['windspire/星風の番人 カイト']);
+  return {id,name:Expeditions.ROOMS[id].name,visited:!!state.visited?.[id],done:p.claimed,ready:p.ready};
+ });
+ const done=entries.filter(e=>e.done).length;
+ ui('EXPEDITION / 3つの寄り道','本編とは別の小さな冒険。\n調査完了 '+done+' / 3\n各地の奥にある入口を探そう。\n地図の目的地に登録すると道案内が使えます。',[
+  ...entries.map(e=>({text:(e.done?'★ ':e.visited?'◇ ':'？ ')+e.name+' '+(e.done?'調査完了':e.ready?'宝箱を探そう':e.visited?'探索中':'未発見'),
+   on:()=>expeditionDetail(e.id,false)})),
+  {text:'↶ ギアへ',on:()=>openPage('gear')},
+  {text:'↶ フィールド',on:()=>world()}
+ ]);
+}
+function expeditionDetail(id,hint=false){
+ const def=Expeditions.ROOMS[id];if(!def){expeditionsMenu();return}
+ state.menuPage='expeditionDetail';expeditionFocus=id;
+ const p=Expeditions.state(state.events,id,!!state.defeated?.['windspire/星風の番人 カイト']);
+ const visited=!!state.visited?.[id],guide={
+  forestgrotto:'月影の森・東の古樹の根元',
+  tidevault:'青凪の湖畔・観測小屋の東の水路',
+  windspire:'星見の高原・山頂の風見塔'
+ };
+ const waypoint={forestgrotto:'grotto',tidevault:'tidevault',windspire:'windspire'}[id];
+ ui('SIDE QUEST / '+def.name,
+ '入口：'+guide[id]+'\n調査：'+(p.claimed?'★ 完了':p.ready?'仕掛けを解除済み':visited?'進行中':'未発見')+
+ (id==='forestgrotto'?'\n年輪の刻印：'+p.step+' / 3':
+  id==='tidevault'?'\n水門：'+p.valves.map((v,i)=>['西','中','東'][i]+(v?'開':'閉')).join('・'):
+  '\n番人：'+(p.ready?'勝利済み':'未勝利'))+
+ (hint?'\n\n【調査のヒント】\n'+Expeditions.clue(id):'\n\nヒントは必要なときだけ開けます。'),[
+  {text:'✧ 調査のヒントを読む',disabled:hint,on:()=>expeditionDetail(id,true)},
+  {text:'◉ 入口への道案内',disabled:state.map!==def.region||storyStage()<Story.FREE_STAGE,
+   on:()=>atlasSet(waypoint)},
+  {text:'↶ 寄り道調査一覧へ',on:()=>expeditionsMenu()},
+  {text:'↶ フィールドへ',on:()=>world()}
+ ]);
+}
 function explorationMenu(){
  const rows=Exploration.summary(state);
  const amount=rows.reduce((sum,p)=>sum+p.done,0),possible=rows.reduce((sum,p)=>sum+p.total,0);
@@ -1749,6 +1787,8 @@ function townLegacyMenu(){
 }
 function menu(){const p=state.menuPage;
 if(p==='atlas'){atlasMenu();return}
+if(p==='expeditions'){expeditionsMenu();return}
+if(p==='expeditionDetail'){expeditionDetail(expeditionFocus);return}
 if(p==='townLegacy'){townLegacyMenu();return}
 if(p==='requests'){requestsMenu();return}
 if(p==='requestDetail'){requestDetail(requestFocus);return}
@@ -1772,6 +1812,7 @@ if(p==='gear'){
  {text:'✦ 現在地',on:()=>{toast(loc+' / '+state.steps+'歩')} },
  {text:'◈ 星霊図鑑',on:()=>openPage('dex')},
  {text:'✧ 探索手帳',on:()=>openPage('exploration')},
+ {text:'◈ 3つの寄り道調査',on:()=>openPage('expeditions')},
  {text:'✉ 地域の依頼',on:()=>openPage('requests')},
  {text:'✦ 町の記録祭',on:()=>openPage('townLegacy')},
  {text:'↶ もどる',on:()=>openPage('home')}
@@ -1889,7 +1930,7 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=menuButtons[menuFocus];if(btn&&!btn.disabled)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='atlas'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='atlas'){openPage('gear');return}if(state.menuPage==='expeditionDetail'){expeditionsMenu();return}if(state.menuPage==='expeditions'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
 function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
