@@ -35,7 +35,7 @@ function draw(ctx,zone,doors,state,camX,camY,names,frame=0,T=32){
   ctx.fillStyle=edge;ctx.fillRect(x+2,y+7,T-4,3);
   const near=Math.abs((state?.x??100)-p.x)+Math.abs((state?.y??100)-p.y)<=6;
   if(near){
-   const name=p.locked?'まだ開かない':p.exit?'外へ出る':(names?.[p.target]||'次の部屋へ');
+   const name=p.locked?'まだ開かない':p.exit?'外へ出る':(names?.[p.target]?.name||names?.[p.target]||'次の部屋へ');
    const width=Math.min(136,Math.max(78,name.length*11+22));
    const cx=x+T/2,yy=y-12+Math.sin(frame*.05+p.x)*2;
    ctx.globalAlpha=.73+pulse*.27;
