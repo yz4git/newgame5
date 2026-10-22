@@ -941,7 +941,7 @@ assert.equal(g.get().map,'observatory','The room door returns to the same lakesi
  g.expeditionDetail('forestgrotto',false);
  assert.equal(g.get().menuPage,'expeditionDetail');
  let textDetail=nodes.get('console').children.at(-2).textContent;
- assert(textDetail.includes('調査のヒント'),'Detailed hints remain opt-in');
+ assert(textDetail.includes('ヒントは必要なとき'),'Detailed hints remain opt-in');
  assert(!textDetail.includes('芽吹きは雨'),'Puzzle answer not spoiled on default journal');
  const hint=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('調査のヒントを読む'));
  hint.click();
