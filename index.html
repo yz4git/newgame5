@@ -2875,6 +2875,43 @@ function drawRegionPuzzles(camX,camY){
  }
 }
 
+function drawExpeditionEntrance(camX,camY){
+ const map=state.map;
+ const gate=map==='forest'?{x:21,y:16,name:'年輪洞',tone:'#698b67'}:
+  map==='lake'?{x:23,y:18,name:'隠し水路',tone:'#6e9aaa'}:
+  map==='highland'?{x:20,y:8,name:'風見の尖塔',tone:'#a4aeb9'}:null;
+ if(!gate)return;
+ const x=gate.x*T-camX+16,y=gate.y*T-camY+12;
+ if(x<-70||x>W+70||y<-75||y>H+75)return;
+ const open=storyStage()>=Story.FREE_STAGE,pulse=Math.sin(frame*.055)*2;
+ ellipse(x,y+17,22,6,'#243e4975');
+ if(map==='forest'){
+  rounded(x-23,y-27,46,44,9,'#576f53');
+  rounded(x-17,y-21,34,38,10,'#293f3d');
+  for(let k=0;k<3;k++)ellipse(x-18+k*18,y-27-k%2*8,12,8,k%2?'#769c72':'#95b17c');
+  line(x-20,y+14,x-27,y-10,'#776d51',4);
+  line(x+20,y+14,x+27,y-14,'#776d51',4);
+ }else if(map==='lake'){
+  rounded(x-24,y-24,48,42,8,'#6d929e');
+  rounded(x-17,y-18,34,34,6,'#2c596c');
+  for(let k=0;k<3;k++)line(x-14,y-10+k*9,x+14,y-10+k*9,'#a9ced1',2);
+  pixel(x-25,y+12,50,5,'#c9c5a8');
+  ellipse(x+16,y-16,4,4,'#e8dfa8');
+ }else{
+  rounded(x-23,y-32,46,51,5,'#697c91');
+  rounded(x-17,y-23,34,39,4,'#344e67');
+  pixel(x-28,y-37,56,9,'#b4bac0');
+  line(x,y-31,x,y-50,'#d4ceae',3);
+  ellipse(x,y-51,5,5,'#f2dfa1');
+  for(let k=0;k<3;k++)line(x-14,y-12+k*8,x+14,y-12+k*8,'#a3b5b6',1.5);
+ }
+ ellipse(x,y-15+pulse,5,5,open?'#e4f0b0':'#968e8b');
+ if(Math.abs(state.x-gate.x)+Math.abs(state.y-gate.y)<=3){
+  rounded(x-55,y-58,110,23,6,'#244552e8');
+  txt(open?'A '+gate.name:'旅立ちの後で',x,y-42,11,'#f2ead0','center');
+ }
+}
+
 function drawWorld(){
 const m=mapMeta[state.map];ctx.fillStyle='#1a363d';ctx.fillRect(0,0,W,H);
 const animated=posTween(movement),px=animated?animated.x:state.x,py=animated?animated.y:state.y;
@@ -2905,6 +2942,7 @@ if(state.map==='forest'){
  }
 }
 drawLandmarks(camX,camY);
+drawExpeditionEntrance(camX,camY);
 Terrain.drawPlaces(ctx,state.map,camX,camY,frame,T);
 drawTownLegacy(camX,camY);
 if(state.map==='village'){drawWorkshopFacade(camX,camY);drawBuilding(4,5,'heal',camX,camY);drawBuilding(15,5,'shop',camX,camY);drawBuilding(7,14,'lab',camX,camY);drawBuilding(18,14,'home',camX,camY)}
