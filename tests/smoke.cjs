@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,atlasMenu,atlasSet,drawFieldAtlas,expeditionsMenu,expeditionDetail,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawDialoguePortrait,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,stargazerAction,rotateStargazerLens,expeditionAction,spireAction,rotateSpireVane,syncExpeditions,drawExpeditionEntrance,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,getCamera:()=>cameraTrack,getArrival:()=>areaArrival,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,victory,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,atlasMenu,atlasSet,drawFieldAtlas,expeditionsMenu,expeditionDetail,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawDialoguePortrait,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,stargazerAction,rotateStargazerLens,expeditionAction,spireAction,rotateSpireVane,syncExpeditions,drawExpeditionEntrance,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,getCamera:()=>cameraTrack,getArrival:()=>areaArrival,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -1003,8 +1003,11 @@ assert.equal(g.get().map,'observatory','The room door returns to the same lakesi
  assert.equal(g.get().battle.trainerKey,S.FINAL_KEY);
  assert.equal(g.get().battle.enemies.length,4,'Final warden uses four monsters');
  assert.equal(g.get().battle.weather,'wind','Highland wind changes combat on the summit');
- // End the battle fixture after verifying the real battle initiation; actual victory is exercised elsewhere.
- g.get().battle=null;g.get().defeated[S.FINAL_KEY]=true;g.world();
+ // Call the live victory flow to verify it records the guardian key and the epilogue.
+ g.victory();
+ assert.equal(g.get().defeated[S.FINAL_KEY],true,'Actual victory records tower guardian');
+ assert(nodes.get('console').children.at(-2).textContent.includes('天空の風'),'Guardian victory displays the new ascent epilogue');
+ g.world();
  const before={money:g.get().money,ether:g.get().bag.ether,orb:g.get().bag.orb,speed:g.get().bag.speedCharm};
  g.npc(prize);
  assert.equal(g.get().money,before.money+750);
