@@ -50,4 +50,29 @@ assert(S.telescope({stargazer:gift.progress},3).text===lines[2],'Unknown phase c
 assert.deepEqual(S.normalize({stargazer:{angles:[-2,7,1.5],claimed:1}}).angles,[0,3,0],'Invalid old data is sanitized');
 const loaded=JSON.parse(JSON.stringify({stargazer:gift.progress}));
 assert.equal(S.claim(loaded).ok,false,'Reload does not reset one-time rewards');
+const skyCalls=[];const ctx={
+ save(){skyCalls.push('save')},restore(){skyCalls.push('restore')},
+ createLinearGradient(){return {addColorStop(pos,color){skyCalls.push('shade:'+color)}}},
+ fillRect(x,y,w,h){assert([x,y,w,h].every(Number.isFinite));skyCalls.push('bg')},
+ beginPath(){skyCalls.push('path')},closePath(){},
+ moveTo(x,y){assert(Number.isFinite(x+y));skyCalls.push('move')},
+ lineTo(x,y){assert(Number.isFinite(x+y));skyCalls.push('line')},
+ arc(x,y,r){assert([x,y,r].every(Number.isFinite));skyCalls.push('star')},
+ ellipse(x,y,rx,ry){assert([x,y,rx,ry].every(Number.isFinite));skyCalls.push('lake')},
+ roundRect(x,y,w,h){assert([x,y,w,h].every(Number.isFinite));skyCalls.push('panel')},
+ fill(){skyCalls.push('fill')},stroke(){skyCalls.push('stroke')},fillText(t){skyCalls.push('text:'+t)}
+};
+const skies=[];
+for(let i=0;i<3;i++){
+ skyCalls.length=0;
+ assert.equal(S.drawSky(ctx,i,40,true),true);
+ assert(skyCalls.some(t=>t.includes(['朝','夕','夜'][i])),'Time-specific scene title');
+ assert(skyCalls.filter(t=>t==='line').length>=10,'Restored constellation connects its stars');
+ skies.push(skyCalls.join('|'));
+}
+assert.equal(new Set(skies).size,3,'Morning, sunset, and night look different');
+skyCalls.length=0;S.drawSky(ctx,2,40,false);
+assert(!skyCalls.includes('line'),'Unrestored constellation shows scattered points, not links');
+assert.equal(S.drawSky(null,2,40,true),false);
+
 console.log('PASS: astronomy clue alignment, clockwise/anticlockwise lenses, three sky phases, safe saves and reward idempotence');
