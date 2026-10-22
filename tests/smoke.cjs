@@ -786,4 +786,15 @@ g.buttonB();
 assert.equal(g.get().menuPage,'gear','B returns from field map to gear');
 g.world();
 
+// Real indoor transition: signage follows the canonical door graph and preserves locks.
+g.switchMap({id:'center',x:7,y:9,dir:'down'});
+g.draw();
+assert.equal(g.getCamera().zone,'center');
+assert(html.includes('InteriorGuide.draw(ctx,state.map,DOORS,state'),'Indoor renderer uses canonical portal coordinates');
+assert(context.AstraInteriorWayfinding.portalList('center',{center:{'7,10':{id:'village'}}},g.get()).length===1);
+g.switchMap({id:'workshop',x:10,y:7,dir:'up'});g.draw();
+assert.equal(g.getArrival().zone,'workshop');
+assert(context.AstraInteriorWayfinding.portalList('workshop',{workshop:{'12,6':{id:'archive'}}},g.get()).length===1);
+g.switchMap({id:'village',x:11,y:11,dir:'up'});g.draw();
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
