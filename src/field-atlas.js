@@ -22,8 +22,8 @@ const POIS=Object.freeze({
  ],
  forest:[
   ['route',13,26,'そよかぜの小道','gate'],['shrine',13,1,'星降りの聖域','gate'],
-  ['spring',13,23,'精霊の泉','discovery'],['grove',8,16,'西の森の薬草道','discovery'],
-  ['ridge',19,18,'東の見晴らし','discovery']
+  ['spring',13,23,'精霊の泉','discovery'],['grove',8,15,'西の森の薬草道','discovery'],
+  ['ridge',19,19,'東の見晴らし','discovery']
  ],
  shrine:[
   ['forest',9,17,'月影の森','gate'],['highland',9,1,'星見の高原','gate'],
