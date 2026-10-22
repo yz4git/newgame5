@@ -756,6 +756,30 @@ function craftWorkshop(id){
  {text:'↶ 工房を出る',on:()=>world()}]);
  return true;
 }
+function expeditionAction(n){
+ const room=state.map,def=Expeditions.ROOMS[room];
+ if(!def||storyStage()<Story.FREE_STAGE){dialog(n.name,'旅立ちの後で調べよう。');return}
+ const data=state.events,guard=!!state.defeated?.['windspire/星風の番人 カイト'];
+ if(n.kind==='expClue'){dialog(n.name,Expeditions.clue(room));return}
+ if(n.kind==='expReward'){
+  const r=Expeditions.claim(data,room,guard);
+  if(!r.ok){dialog(n.name,r.text);return}
+  state.events.regionalExpeditions=r.progress;
+  for(const [item,count] of Object.entries(r.reward.bag))state.bag[item]=(state.bag[item]||0)+count;
+  state.money+=r.reward.money;
+  save();sfx('catch');startStoryEffect('star',null,1650);
+  dialog(n.name,r.text);return;
+ }
+ let result=null;
+ if(n.kind==='expRune')result=Expeditions.press(data,n.rune);
+ if(n.kind==='expValve')result=Expeditions.toggle(data,n.valve);
+ if(!result){dialog(n.name,'装置に変化はない。');return}
+ state.events.regionalExpeditions=result.progress;
+ if(result.ok){syncExpeditions();save();sfx(result.kind==='solved'?'catch':'ok');
+  if(result.kind==='solved')startStoryEffect('star',null,1400);
+ }else sfx('bad');
+ dialog(n.name,result.text);
+}
 function stargazerAction(n){
  if(state.map!=='starlab'||storyStage()<Story.FREE_STAGE){dialog(n.name,'星図はまだ開かない。');return}
  if(n.kind==='starNotes'){
@@ -1915,7 +1939,7 @@ function ellipse(x,y,rx,ry,col){ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,
 function line(x,y,x2,y2,col,w=2){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
 function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
 function txt(str,x,y,size=12,col='#fff',align='left'){ctx.fillStyle=col;ctx.font='bold '+size+'px system-ui,sans-serif';ctx.textAlign=align;ctx.fillText(str,x,y);ctx.textAlign='left'}
-const ROOM_THEMES={starlab:['#d9e4df','#829caf','#b2ac8d'],workshop:['#e0d7bb','#849b91','#9f835e'],archive:['#d1d7d2','#798fa5','#ad9e82'],bedroom:['#e5d3af','#75969b','#d1a980'],home:['#dac7a5','#73958d','#b17b64'],lab:['#bdcfd0','#638995','#729da9'],center:['#e2dfcf','#8298ae','#d28f93'],mart:['#cfbd9a','#8fa2a1','#aa8d69'],observatory:['#b7c1c9','#5f7b95','#769bb1']};
+const ROOM_THEMES={forestgrotto:['#c1caaa','#65795e','#a49476'],tidevault:['#b5d3d2','#6592a2','#7c9ca8'],windspire:['#cbd0d1','#8b9aa9','#ada68e'],starlab:['#d9e4df','#829caf','#b2ac8d'],workshop:['#e0d7bb','#849b91','#9f835e'],archive:['#d1d7d2','#798fa5','#ad9e82'],bedroom:['#e5d3af','#75969b','#d1a980'],home:['#dac7a5','#73958d','#b17b64'],lab:['#bdcfd0','#638995','#729da9'],center:['#e2dfcf','#8298ae','#d28f93'],mart:['#cfbd9a','#8fa2a1','#aa8d69'],observatory:['#b7c1c9','#5f7b95','#769bb1']};
 function drawTile(t,x,y,gx,gy,theme,mapId){
 const room=ROOM_THEMES[mapId];
 if(t===1){pixel(x,y,T,T,theme==='shrine'?'#a0a498':room?room[0]:'#cbb37d');pixel(x,y+2,T,2,room?room[2]:'#c4ad79');if(rand(gx,gy,3)>.8)pixel(x+6,y+19,9,2,'#a48e65');if(room){line(x,y,x+T,y,room[2],1);line(x,y,x,y+T,room[2],1)}}
@@ -2132,6 +2156,31 @@ if(['starLens','starGlobe','starCache','starNotes','starScope'].includes(n.kind)
  }else{
   line(x-7,y+12,x+7,y-8,'#a1b7bf',5);
   ellipse(x+10,y-12,12,7,'#688ea1');ellipse(x+13,y-13,5,4,'#cde2d8');
+ }
+ return;
+}
+if(['expClue','expRune','expValve','expReward'].includes(n.kind)){
+ const progress=Expeditions.state(state.events,state.map,!!state.defeated?.['windspire/星風の番人 カイト']);
+ ellipse(x,y+13,14,4,'#203f4b83');
+ if(n.kind==='expRune'){
+  const id=['sprout','rain','moon'].indexOf(n.rune);
+  const lit=progress.solved||id<progress.step&&[0,2,1][progress.step-1]===id;
+  rounded(x-12,y-19,24,31,5,lit?'#a5c7b2':'#748c81');
+  rounded(x-8,y-14,16,19,4,lit?'#dfe8d0':'#b6cbbd');
+  txt(['芽','雨','月'][id],x,y,15,lit?'#40795d':'#516d74','center');
+ }else if(n.kind==='expValve'){
+  const open=progress.valves[n.valve],tip=open?10:-10;
+  rounded(x-14,y-8,28,20,4,'#557e94');
+  line(x,y-6,x+tip,y-28,'#c0d7d2',4);
+  ellipse(x+tip,y-28,5,5,open?'#cce4c5':'#e9c99c');
+  txt(open?'開':'閉',x,y+8,11,'#f4e7ce','center');
+ }else if(n.kind==='expReward'){
+  rounded(x-16,y-9,32,22,4,progress.claimed?'#6b8881':'#ac9777');
+  pixel(x-12,y-11,25,5,'#e4cea0');txt('✦',x,y+7,14,'#faf0c8','center');
+ }else{
+  rounded(x-15,y-16,30,28,3,'#7e897d');
+  rounded(x-11,y-12,22,20,2,'#e4d4b4');
+  txt('文',x,y+2,12,'#64817b','center');
  }
  return;
 }
@@ -2444,7 +2493,7 @@ function drawInteriorSet(camX,camY){
  const room=state.map;
  if(mapMeta[room].theme!=='interior')return;
  const X=(x)=>x*T-camX,Y=(y)=>y*T-camY;
- const wall={starlab:'#67899b',workshop:'#8d918b',archive:'#65869b',bedroom:'#688b91',home:'#739687',lab:'#678f9c',center:'#718c9d',mart:'#a58e69',observatory:'#627d94'}[room]||'#668b91';
+ const wall={forestgrotto:'#64785b',tidevault:'#5e889f',windspire:'#778da3',starlab:'#67899b',workshop:'#8d918b',archive:'#65869b',bedroom:'#688b91',home:'#739687',lab:'#678f9c',center:'#718c9d',mart:'#a58e69',observatory:'#627d94'}[room]||'#668b91';
  const x1=X(1),x2=X(mapMeta[room].w-1);
  // Wainscoting and layered wall shadow; room-specific color, not a flat backdrop.
  pixel(x1,Y(1)-8,x2-x1,16,'#233e4e44');
@@ -2464,7 +2513,7 @@ function drawInteriorSet(camX,camY){
   }
  }
  // Rugs are flat with subtle directional hatching; never block interaction.
- const rug=room==='starlab'?'#8aa5b6':room==='workshop'?'#b1a183':room==='archive'?'#899ca7':room==='lab'?'#9eb6bb':room==='center'?'#d9b7b2':room==='mart'?'#be987c':
+ const rug=room==='forestgrotto'?'#87a080':room==='tidevault'?'#8aadb4':room==='windspire'?'#9aa6ac':room==='starlab'?'#8aa5b6':room==='workshop'?'#b1a183':room==='archive'?'#899ca7':room==='lab'?'#9eb6bb':room==='center'?'#d9b7b2':room==='mart'?'#be987c':
  room==='bedroom'?'#c89983':room==='home'?'#c8a277':'#97aabb';
  const rx=room==='lab'?X(5):room==='observatory'?X(4):X(5),ry=Y(6);
  rounded(rx,ry,room==='lab'?185:158,room==='lab'?70:95,14,'#3c53555b');
@@ -2473,7 +2522,37 @@ function drawInteriorSet(camX,camY){
  for(let lineIndex=0;lineIndex<6;lineIndex++){
   line(rx+13,ry+15+lineIndex*8,rx+(room==='lab'?160:133),ry+15+lineIndex*8,'#f1e6d030',1);
  }
- if(room==='starlab'){
+ if(room==='forestgrotto'){
+  const x=X(5),y=Y(3);
+  rounded(x-31,y-28,238,88,12,'#526746');
+  rounded(x-23,y-22,223,76,11,'#8b9c75');
+  for(let i=0;i<6;i++){const xx=x-9+i*35;
+   ellipse(xx,y+11,22,13,i%2?'#abb88b':'#708e70');
+   ellipse(xx,y+11,10,6,'#c5c8a2');
+  }
+  for(let i=0;i<8;i++){const xx=X(i+2),yy=Y(7+i%3);
+   line(xx,yy,xx+Math.sin(i+frame*.018)*7,yy+24,'#536e55',3)}
+ }else if(room==='tidevault'){
+  const x=X(8),y=Y(6),active=Expeditions.state(state.events,'tidevault').solved;
+  for(let i=1;i<=14;i++){
+   const xx=X(i);pixel(xx,y+2,31,28,active&&i>=7&&i<=9?'#c5c3a5':'#4b91a0');
+   if(active&&i>=7&&i<=9){line(xx+3,y+6,xx+29,y+6,'#eee1ba',2)}
+   else for(let k=0;k<2;k++)line(xx+3,y+9+k*10,xx+24+Math.sin(frame*.06+i)*3,y+9+k*10,'#d0e9d478',1);
+  }
+  for(let i=0;i<5;i++){const xx=X(2+i*3);
+   pixel(xx,Y(3),10,30,'#587987');ellipse(xx+5,Y(3)-4,9,5,'#bad3ce')}
+ }else if(room==='windspire'){
+  const x=X(8),y=Y(3);
+  rounded(x-118,y-32,250,72,10,'#596e85');
+  rounded(x-112,y-26,238,61,9,'#9eb6c1');
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4+frame*.012,xx=x+Math.cos(a)*35,yy=y+1+Math.sin(a)*27;
+   line(xx,yy,x+Math.cos(a+.7)*35,y+Math.sin(a+.7)*27,'#e0e0bf',2);
+  }
+  ellipse(x,y+2,9,9,'#f5dfa0');
+  for(let i=0;i<3;i++){const xx=X(3+i*4);
+   pixel(xx,Y(4),11,18,'#6b8391');ellipse(xx+5,Y(4)-4,8,3,'#c8d5d3')}
+ }else if(room==='starlab'){
   const center=X(8),y=Y(3),solved=Stargazer.snapshot(state.events).solved;
   // Observatory's panoramic star window frames the puzzle as real architecture.
   rounded(center-96,y-26,196,72,9,'#294b66');
