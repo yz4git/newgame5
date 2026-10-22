@@ -55,6 +55,7 @@ jobs:
           node tests/world-detail.cjs
           node tests/terrain-composition.cjs
           node tests/field-atlas.cjs
+          node tests/field-camera.cjs
           node tests/building-profile.cjs
           node tests/visual-polish.cjs
           node tests/map-layout.cjs
@@ -86,6 +87,7 @@ jobs:
           cp src/world-detail.js _site/src/
           cp src/terrain-composition.js _site/src/
           cp src/field-atlas.js _site/src/
+          cp src/field-camera.js _site/src/
           cp src/building-profile.js _site/src/
           cp src/visual-polish.js _site/src/
           cp src/map-layout.js _site/src/
