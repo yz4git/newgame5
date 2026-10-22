@@ -72,7 +72,7 @@ for(let i=0;i<3;i++){
 }
 assert.equal(new Set(skies).size,3,'Morning, sunset, and night look different');
 skyCalls.length=0;S.drawSky(ctx,2,40,false);
-assert(!skyCalls.includes('line'),'Unrestored constellation shows scattered points, not links');
+assert(!skyCalls.includes('stroke'),'Unrestored constellation shows scattered points, not connected star lines');
 assert.equal(S.drawSky(null,2,40,true),false);
 
 console.log('PASS: astronomy clue alignment, clockwise/anticlockwise lenses, three sky phases, safe saves and reward idempotence');
