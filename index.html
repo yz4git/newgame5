@@ -1464,23 +1464,6 @@ if(n.kind==='secretRune'||n.kind==='nightBloom'){
 if(n.kind==='workshop'){if(storyStage()<12){dialog(n.name,'工房はまだ準備中。');return}workshopMenu();return}
 if(n.kind==='archivePanel'||n.kind==='archiveCache'){archiveAction(n);return}
 if(['starLens','starNotes','starGlobe','starCache','starScope'].includes(n.kind)){stargazerAction(n);return}
-if(['spireClue','spireVane','spireCache'].includes(n.kind)){
- const p=Spire.snapshot(state.events),lit=n.kind==='spireVane'&&(p.bridge||p.vanes[n.vane]===Spire.TARGET[n.vane]);
- ellipse(x,y+13,13,4,'#26424c88');
- if(n.kind==='spireVane'){
-  rounded(x-14,y-17,28,29,5,lit?'#accdbb':'#819caf');
-  rounded(x-9,y-12,18,19,3,'#cddfdc');
-  txt(['↑','→','↓','←'][p.vanes[n.vane]],x,y+1,17,'#49657c','center');
-  ellipse(x,y-21,4,3,lit?'#ffe5a0':'#849eb2');
- }else if(n.kind==='spireCache'){
-  rounded(x-16,y-11,32,23,4,p.claimed?'#81928e':'#b7a077');
-  pixel(x-13,y-12,26,5,'#e6d29d');txt('✦',x,y+6,14,'#fff0b8','center');
- }else{
-  rounded(x-16,y-15,32,28,4,'#8394a2');rounded(x-12,y-11,24,20,3,'#dddfc8');
-  txt('風',x,y+3,14,'#537082','center');
- }
- return;
-}
 if(['expClue','expRune','expValve','expReward'].includes(n.kind)){expeditionAction(n);return}
 if(['spireClue','spireVane','spireCache'].includes(n.kind)){spireAction(n);return}
 if(n.kind==='townArchivist'){archivistNpc(n);return}
@@ -2282,6 +2265,23 @@ if(['starLens','starGlobe','starCache','starNotes','starScope'].includes(n.kind)
  }else{
   line(x-7,y+12,x+7,y-8,'#a1b7bf',5);
   ellipse(x+10,y-12,12,7,'#688ea1');ellipse(x+13,y-13,5,4,'#cde2d8');
+ }
+ return;
+}
+if(['spireClue','spireVane','spireCache'].includes(n.kind)){
+ const p=Spire.snapshot(state.events),lit=n.kind==='spireVane'&&(p.bridge||p.vanes[n.vane]===Spire.TARGET[n.vane]);
+ ellipse(x,y+13,13,4,'#26424c88');
+ if(n.kind==='spireVane'){
+  rounded(x-14,y-17,28,29,5,lit?'#accdbb':'#819caf');
+  rounded(x-9,y-12,18,19,3,'#cddfdc');
+  txt(['↑','→','↓','←'][p.vanes[n.vane]],x,y+1,17,'#49657c','center');
+  ellipse(x,y-21,4,3,lit?'#ffe5a0':'#849eb2');
+ }else if(n.kind==='spireCache'){
+  rounded(x-16,y-11,32,23,4,p.claimed?'#81928e':'#b7a077');
+  pixel(x-13,y-12,26,5,'#e6d29d');txt('✦',x,y+6,14,'#fff0b8','center');
+ }else{
+  rounded(x-16,y-15,32,28,4,'#8394a2');rounded(x-12,y-11,24,20,3,'#dddfc8');
+  txt('風',x,y+3,14,'#537082','center');
  }
  return;
 }
