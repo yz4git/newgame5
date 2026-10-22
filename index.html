@@ -256,6 +256,7 @@ footer{display:none}
 <script src="./src/town-legacy.js?v=__BUILD_ID__"></script>
 <script src="./src/town-workshop.js?v=__BUILD_ID__"></script>
 <script src="./src/stargazer-research.js?v=__BUILD_ID__"></script>
+<script src="./src/regional-expeditions.js?v=__BUILD_ID__"></script>
 <script src="./src/battle-backdrops.js?v=__BUILD_ID__"></script>
 <script src="./src/field-sprites.js?v=__BUILD_ID__"></script>
 <script src="./src/npc-schedules.js?v=__BUILD_ID__"></script>
@@ -265,8 +266,8 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Battlebacks,FieldSprites,Schedules,Cinematics};
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Expeditions=globalThis.AstraRegionalExpeditions,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Expeditions,Battlebacks,FieldSprites,Schedules,Cinematics};
 const missingDependencies=Object.entries(gameDependencies).filter(([,value])=>!value).map(([name])=>name);
 if(missingDependencies.length)throw Error('Missing game modules: '+missingDependencies.join(', '));
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
@@ -337,7 +338,10 @@ bedroom:{name:'自分の部屋',w:14,h:11,theme:'interior',wild:[]},
 workshop:{name:'星霊工房',w:14,h:11,theme:'interior',wild:[]},
 archive:{name:'星の復元資料室',w:16,h:13,theme:'interior',wild:[]},
 observatory:{name:'青凪の観測小屋',w:14,h:11,theme:'interior',wild:[]},
- starlab:{name:'星見の研究室',w:16,h:13,theme:'interior',wild:[]}
+ starlab:{name:'星見の研究室',w:16,h:13,theme:'interior',wild:[]},
+ forestgrotto:{name:'古樹の年輪洞',w:16,h:13,theme:'interior',wild:[]},
+ tidevault:{name:'潮の隠し水路',w:16,h:13,theme:'interior',wild:[]},
+ windspire:{name:'風見の尖塔',w:16,h:13,theme:'interior',wild:[]}
 };
 const maps={};
 function makeMap(id){
@@ -358,6 +362,9 @@ if(m.theme==='interior'){
   if(id==='bedroom'){row(3,2,5,9);row(3,9,11,8);arr[6][3]=11;arr[6][10]=6}
   if(id==='observatory'){row(3,4,9,8);row(5,2,4,9);row(6,10,11,11);arr[4][11]=6}
    if(id==='starlab'){row(3,6,9,8);row(5,2,3,9);row(5,13,14,9);arr[9][3]=11}
+if(id==='forestgrotto'){row(3,4,11,10);arr[8][2]=11;arr[8][13]=11}
+if(id==='tidevault'){row(2,3,12,10);Expeditions.prepare(id,arr,null)}
+if(id==='windspire'){row(3,4,11,10);arr[8][4]=11;arr[8][12]=11}
 if(id==='workshop'){row(3,4,9,8);row(5,2,4,9);row(6,10,11,10)}
 if(id==='archive'){row(3,6,9,8);row(5,2,3,9);row(5,12,13,9)}
   maps[id]=arr;return;
@@ -450,11 +457,16 @@ if(id==='village'){for(let y=5;y<=7;y++)for(let x=2;x<=3;x++)a[y][x]=5;
 a[8][3]=6;a[9][3]=1;a[9][4]=1;}
 if(id==='forest')ForestSecrets.prepare(a,false);
 RegionPuzzles.prepare(id,a,null);
+if(id==='forest')for(const [x,y] of [[20,18],[21,18],[21,17],[21,16],[21,15]])a[y][x]=x===21&&y===16?6:1;
+if(id==='lake')for(const [x,y] of [[20,19],[21,19],[22,19],[23,19],[23,18]])a[y][x]=x===23&&y===18?6:1;
+if(id==='highland')for(const [x,y] of [[18,8],[19,8],[20,8],[20,9],[20,10],[19,10],[18,10],[17,10],[16,10]])a[y][x]=x===20&&y===8?6:1;
 maps[id]=a;
 }
 Object.keys(mapMeta).forEach(makeMap);
 const DOORS={
   village:{'3,8':{id:'workshop',x:7,y:9,dir:'up'},'6,8':{id:'center',x:7,y:9,dir:'up'},'17,8':{id:'mart',x:7,y:9,dir:'up'},'9,17':{id:'lab',x:8,y:11,dir:'up'},'20,17':{id:'home',x:7,y:9,dir:'up'}},
+  forest:{'21,16':{id:'forestgrotto',x:8,y:11,dir:'up'}},
+  highland:{'20,8':{id:'windspire',x:8,y:11,dir:'up'}},
   center:{'7,10':{id:'village',x:6,y:9,dir:'down'}},
   mart:{'7,10':{id:'village',x:17,y:9,dir:'down'}},
 workshop:{'7,10':{id:'village',x:3,y:9,dir:'down'},'12,6':{id:'archive',x:8,y:11,dir:'up'}},
@@ -462,7 +474,10 @@ archive:{'8,12':{id:'workshop',x:10,y:7,dir:'down'}},
   lab:{'8,12':{id:'village',x:10,y:17,dir:'down'}},
 home:{'7,10':{id:'village',x:20,y:18,dir:'down'},'6,6':{id:'bedroom',x:7,y:8,dir:'up'}},
 bedroom:{'7,10':{id:'home',x:7,y:8,dir:'down'}},
-lake:{'19,18':{id:'observatory',x:7,y:9,dir:'up'}},
+lake:{'19,18':{id:'observatory',x:7,y:9,dir:'up'},'23,18':{id:'tidevault',x:8,y:11,dir:'up'}},
+forestgrotto:{'8,12':{id:'forest',x:21,y:17,dir:'down'}},
+tidevault:{'8,12':{id:'lake',x:23,y:19,dir:'down'}},
+windspire:{'8,12':{id:'highland',x:20,y:9,dir:'down'}},
 observatory:{'7,10':{id:'lake',x:19,y:19,dir:'down'},'11,4':{id:'starlab',x:8,y:11,dir:'up'}},
  starlab:{'8,12':{id:'observatory',x:11,y:5,dir:'down'}}
 };
@@ -547,6 +562,25 @@ archive:[{x:4,y:5,name:'森の記録板',kind:'archivePanel',panel:'forest',colo
 {x:11,y:9,name:'高原の記録板',kind:'archivePanel',panel:'highland',color:'#c2b2d7'},
 {x:4,y:9,name:'復元の結晶',kind:'archiveCache',color:'#ecd9a3'},
 {x:8,y:4,name:'記録の碑文',kind:'sign',color:'#abbfbe',say:'星を映すのは3つの記憶。森の息吹、水の底、高原の空。残された記録を集めると結晶は応える。'}],
+forestgrotto:[
+ {x:5,y:4,name:'古樹の碑文',kind:'expClue',color:'#bbccaa'},
+ {x:4,y:8,name:'芽吹きの刻印',kind:'expRune',rune:'sprout',color:'#aed39b'},
+ {x:8,y:8,name:'雨の刻印',kind:'expRune',rune:'rain',color:'#94c1ce'},
+ {x:12,y:8,name:'月の刻印',kind:'expRune',rune:'moon',color:'#cdbde4'},
+ {x:8,y:4,name:'年輪の宝箱',kind:'expReward',color:'#f3d8a1'}
+],
+tidevault:[
+ {x:3,y:9,name:'西の水門',kind:'expValve',valve:0,color:'#84b5ce'},
+ {x:8,y:9,name:'中央の水門',kind:'expValve',valve:1,color:'#84b5ce'},
+ {x:12,y:9,name:'東の水門',kind:'expValve',valve:2,color:'#84b5ce'},
+ {x:3,y:10,name:'水路の修復記録',kind:'expClue',color:'#d3be95'},
+ {x:8,y:4,name:'水底の調査箱',kind:'expReward',color:'#e6d49c'}
+],
+windspire:[
+ {x:4,y:9,name:'風見の碑文',kind:'expClue',color:'#d8cba9'},
+ {x:8,y:6,name:'星風の番人 カイト',kind:'trainer',facing:'down',vision:0,color:'#bdd0dc',party:[['crag',13],['fugale',14],['glint',15]],reward:850,say:'風が読めるか？ ここでの勝負は、望む者だけが挑める。'},
+ {x:8,y:4,name:'風の記録箱',kind:'expReward',color:'#ecd7a0'}
+],
 observatory:[{x:7,y:4,name:'観測者 ユラ',kind:'storyScholar',color:'#b9c8a1'},
 {x:3,y:7,name:'古い望遠鏡',kind:'talk',color:'#879fb1',say:'遠くの星の瞬きを追いかける、不思議な望遠鏡。'},
  {x:10,y:7,name:'奥の階段の案内',kind:'sign',color:'#8cb4bd',say:'観測小屋の北東の階段を上ると、星見の研究室がある。旅立ちを終えた調査者へ開放される。'}],
@@ -795,6 +829,7 @@ function syncForestSecrets(){ForestSecrets.prepare(maps.forest,state.events?.for
 function syncRegionPuzzles(){
  for(const id of ['lake','shrine','highland'])RegionPuzzles.prepare(id,maps[id],state.events?.regionPuzzles)
 }
+function syncExpeditions(){Expeditions.prepare('tidevault',maps.tidevault,state.events)}
 function save(){try{if(state.party.length||state.story?.playerName){const obj={...state,scene:'world',battle:null,menuPage:'home'};localStorage.setItem(STORE,JSON.stringify(obj));}}catch(e){}}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x&&[1,2].includes(x.saveVersion)&&maps[x.map]&&(x.party?.length||x.story?.playerName)){
  const migrated=Engine.migrateSave(x,byId,MOVES);
@@ -802,7 +837,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||'null');if(x
  state.bag={...fresh().bag,...(x.bag||{})};
  state.story=Story.normalize(x.story);
  state.visited={...fresh().visited,...(x.visited||{}),[state.map]:true};
- state.events={...(migrated.events||{}),...(x.events||{})};syncForestSecrets();syncRegionPuzzles();
+ state.events={...(migrated.events||{}),...(x.events||{})};syncForestSecrets();syncRegionPuzzles();syncExpeditions();
  follower={map:state.map,x:state.x,y:state.y+1};
  return true
 }}catch(e){console.warn('Save migration:',e)}return false}
@@ -1195,13 +1230,14 @@ function world(msg){
  options.push({text:'☰ メニュー',on:()=>openPage('home')});
  ui('FIELD / '+mapMeta[state.map].name,msg||questText(),options);
 }
-function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;if(state.map==='workshop')return '工房主リクや製作台に話しかけて道具を精製しよう。奥の資料室は星の記録祭の後で開く。';if(state.map==='archive')return '森・湖・高原の3つの記録板を調べて、復元の結晶に記録を集めよう。';if(state.map==='starlab'){const p=Stargazer.snapshot(state.events);return p.claimed?'研究室で星空の観測を続けよう。望遠鏡で時間ごとの夜空を楽しめる。':p.solved?'星の観測箱に記録の報酬が入っている。':'三つの星の手記を読んで、レンズを正しい方角へ向けよう。';}return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
+function questText(){if(state.story?.stage<Story.FREE_STAGE)return '【第'+(state.story.stage+1)+'幕】'+Story.chapter(state.story).title+'\n'+Story.chapter(state.story).goal;if(state.map==='workshop')return '工房主リクや製作台に話しかけて道具を精製しよう。奥の資料室は星の記録祭の後で開く。';if(state.map==='archive')return '森・湖・高原の3つの記録板を調べて、復元の結晶に記録を集めよう。';if(Expeditions.ROOMS[state.map]){const id=state.map,p=Expeditions.state(state.events,id,!!state.defeated?.['windspire/星風の番人 カイト']);return p.claimed?'ここの調査は完了！ 次の地域の奥も探索しよう。':p.ready?'仕掛けは解除された。奥の記録箱を調べよう。':Expeditions.clue(id)}if(state.map==='starlab'){const p=Stargazer.snapshot(state.events);return p.claimed?'研究室で星空の観測を続けよう。望遠鏡で時間ごとの夜空を楽しめる。':p.solved?'星の観測箱に記録の報酬が入っている。':'三つの星の手記を読んで、レンズを正しい方角へ向けよう。';}return state.events?.highland_reward?'星の高原も調査完了！ 新しい星霊との出会いを続けよう。':state.badge?'星のしるしを手に入れた！ 聖域の北にある高原にも行ってみよう。':mapMeta[state.map].theme==='interior'?'Aで会話、出入り口まで歩いて町に戻れるよ。':state.map==='village'?'北へ向かって、最初の星霊たちに出会おう。':state.map==='shrine'?'聖域の奥で星の守り手に挑もう。':'草むらを進んで星霊を集めながら、北の聖域を目指そう。'}
 function resetHold(){holdDir=null;document.querySelectorAll('.dkey').forEach(e=>e.classList.remove('pressed'))}
 function walk(d){if(state.scene!=='world')return;const [dx,dy]=dirDelta[d];state.dir=d;const m=mapMeta[state.map],nx=state.x+dx,ny=state.y+dy;
 const door=DOORS[state.map]?.[nx+','+ny];
 if(door){if(door.id==='workshop'&&Workshop.townTier(state)<2){toast('星霊工房はまだ準備中。町の依頼を2件報告すると開業する。');return}
 if(door.id==='archive'&&!Workshop.archiveUnlocked(state)){toast('資料室は星の記録祭が完成すると開かれる。');return}
 if(door.id==='starlab'&&storyStage()<Story.FREE_STAGE){toast('星見の研究室は、旅立ちの準備が終わると開かれる。');return}
+if(Expeditions.ROOMS[door.id]&&storyStage()<Story.FREE_STAGE){toast('この探索地は旅立ちを終えてから調べよう。');return}
 if(!storyWarpAllowed(door))return;const previous=state.map;switchMap(door);afterStoryWarp(previous,door);return}
 const exit=isExit(state.map,nx,ny);
 if(exit){
@@ -1337,6 +1373,7 @@ if(n.kind==='secretRune'||n.kind==='nightBloom'){
 if(n.kind==='workshop'){if(storyStage()<12){dialog(n.name,'工房はまだ準備中。');return}workshopMenu();return}
 if(n.kind==='archivePanel'||n.kind==='archiveCache'){archiveAction(n);return}
 if(['starLens','starNotes','starGlobe','starCache','starScope'].includes(n.kind)){stargazerAction(n);return}
+if(['expClue','expRune','expValve','expReward'].includes(n.kind)){expeditionAction(n);return}
 if(n.kind==='townArchivist'){archivistNpc(n);return}
 if(n.kind==='talk'&&n.requestId&&storyStage()>=12){requestNpc(n);return}
 if(n.kind==='storyMom'){storyMother();return}
