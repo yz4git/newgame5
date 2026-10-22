@@ -2863,7 +2863,8 @@ if(worldPhase()===1)pixel(0,0,W,H,'#e1a17116');
 if(worldPhase()===2){pixel(0,0,W,H,'#102f6258');for(let i=0;i<12;i++){const px=rand(i,34)*W,py=rand(i,18)*H;ellipse(px,py,1.5,1.5,'#faf1bd99')}}
 const vign=ctx.createRadialGradient(W/2,H/2,55,W/2,H/2,W*.8);vign.addColorStop(0,'#0000');vign.addColorStop(1,'#14263066');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
 if(state.scene==='world'&&state.events?.atlasWaypoint?.map===state.map)Atlas.drawCompass(ctx,state,maps[state.map],frame);
-if(state.scene==='dialog')drawDialoguePortrait();
+if(state.scene==='dialog'&&state.map==='starlab'&&state.dialogSpeaker==='星読みの望遠鏡')Stargazer.drawSky(ctx,worldPhase(),frame,Stargazer.snapshot(state.events).solved);
+else if(state.scene==='dialog')drawDialoguePortrait();
 if(areaArrival?.zone===state.map)FieldCamera.title(ctx,areaArrival,m.name,performance.now(),m.theme==='interior');
 }
 function drawMonster(m,x,y,scale=1,back=false){
