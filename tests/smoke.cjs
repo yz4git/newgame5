@@ -13,7 +13,7 @@ assert.match(html,/id="upperMessage"/,'Dialogue has an upper display panel');
 assert.match(html,/#console\[data-view="battleCommands"\]/,'Four-command battle pad styles exist');
 assert.match(html,/@media\(orientation:landscape\)/,'Responsive dual-screen landscape layout exists');
 new vm.Script(raw[1],{filename:'game.js'});
-const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,atlasMenu,atlasSet,drawFieldAtlas,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawDialoguePortrait,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,stargazerAction,rotateStargazerLens,expeditionAction,syncExpeditions,drawExpeditionEntrance,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,getCamera:()=>cameraTrack,getArrival:()=>areaArrival,NPCS};soundOn=false;init();})();';
+const api='globalThis.__testAPI={get:()=>state,walk,draw,pick,turn,throwOrb,startBattle,makeMonster,openPage,buttonB,switchMap,showBattle,checkTrainerVision,world,atlasMenu,atlasSet,drawFieldAtlas,expeditionsMenu,expeditionDetail,maps,byId,interact,npc,storageMenu,equipCharm,defeatEnemy,chooseMove,dexList,dexDetail,partyDetail,drawHero,drawNpc,drawBuilding,drawDialoguePortrait,drawScenery,drawLandmarks,drawBattle,drawMonster,drawInteriorSet,ambientNpcStep,drawMapTransition,drawStoryEffect,startStoryEffect,beginCharacterBeat,cinematicFrame,drawFieldForeground,drawRegionPuzzles,explorationMenu,explorationDetail,talkToCompanion,companionAction,enemyMove,requestsMenu,requestDetail,acceptFieldRequest,claimFieldRequest,drawRequestBoard,navigateMenu,buttonA,applyDirection,townLegacyMenu,acceptTownLegacy,finishTownLegacy,drawTownLegacy,drawTownRecordPage,workshopMenu,workshopRecipe,craftWorkshop,archiveAction,stargazerAction,rotateStargazerLens,expeditionAction,syncExpeditions,drawExpeditionEntrance,drawWorkshopFacade,isNpcVisible,load,getBeat:()=>characterBeat,getTransition:()=>mapTransition,getCamera:()=>cameraTrack,getArrival:()=>areaArrival,NPCS};soundOn=false;init();})();';
 const src=raw[1].replace(/init\(\);\s*\}\)\(\);\s*$/,api);
 assert(src.includes('__testAPI'),'Test API injection succeeded');
 const noop=()=>{};
@@ -927,4 +927,35 @@ assert.equal(g.get().map,'observatory','The room door returns to the same lakesi
  g.get().story.stage=previousStage;
  assert(html.includes('drawExpeditionEntrance(camX,camY)'),'Original entrance art is active in field renderer');
 }
+// Optional hint and navigation flow integrates with the same gamepad-driven gear menu.
+{
+ g.get().story.stage=12;
+ g.switchMap({id:'forest',x:21,y:17,dir:'up'});
+ g.openPage('gear');
+ const buttons=nodes.get('console').children.at(-1).children;
+ const entry=buttons.find(b=>b.textContent.includes('3つの寄り道調査'));
+ assert(entry,'Side-quest report is available in the original gear menu');
+ entry.click();assert.equal(g.get().menuPage,'expeditions');
+ const options=nodes.get('console').children.at(-1).children;
+ assert(options.filter(b=>b.textContent.includes('年輪洞')||b.textContent.includes('水路')||b.textContent.includes('尖塔')).length===3);
+ g.expeditionDetail('forestgrotto',false);
+ assert.equal(g.get().menuPage,'expeditionDetail');
+ let textDetail=nodes.get('console').children.at(-2).textContent;
+ assert(textDetail.includes('調査のヒント'),'Detailed hints remain opt-in');
+ assert(!textDetail.includes('芽吹きは雨'),'Puzzle answer not spoiled on default journal');
+ const hint=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('調査のヒントを読む'));
+ hint.click();
+ textDetail=nodes.get('console').children.at(-2).textContent;
+ assert(textDetail.includes('芽吹きは雨'),'Optional hint reveals clue on demand');
+ const guide=nodes.get('console').children.at(-1).children.find(b=>b.textContent.includes('入口への道案内'));
+ assert(guide&&!guide.disabled);
+ guide.click();
+ assert.equal(g.get().events.atlasWaypoint.id,'grotto');
+ assert.equal(g.get().events.atlasWaypoint.map,'forest');
+ g.world();g.draw();
+ g.buttonB();assert.equal(g.get().scene,'world','B still toggles running on the field');
+ g.openPage('expeditions');g.expeditionDetail('windspire',false);g.buttonB();
+ assert.equal(g.get().menuPage,'expeditions','B returns from expedition details');
+}
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
