@@ -39,6 +39,7 @@ jobs:
       - name: Game regression smoke tests
         run: |
           node tests/touch-navigation.cjs
+          node tests/touch-ux.cjs
           node tests/engine.cjs
           node tests/trainer-tactics.cjs
           node tests/companion-bond.cjs
@@ -80,6 +81,7 @@ jobs:
           cp index.html manifest.json icon.svg _site/
           cp src/rpg-engine.js _site/src/
           cp src/touch-navigation.js _site/src/
+          cp src/touch-ux.js _site/src/
           cp src/trainer-tactics.js _site/src/
           cp src/companion-bond.js _site/src/
           cp src/trainer-rematches.js _site/src/
