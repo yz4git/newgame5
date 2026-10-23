@@ -253,6 +253,22 @@ footer{display:none}
 @media(prefers-reduced-motion:reduce){
  #console .options button,#toast{transition:none!important}
 }
+/* Handheld layout: A/B share the top row; MENU below, never overlaps B. */
+#btns{grid-template-columns:56px 56px;grid-template-rows:52px 30px;column-gap:4px;row-gap:4px}
+#aBtn{grid-column:2;grid-row:1}
+#bBtn{grid-column:1;grid-row:1;width:50px;height:50px}
+#menuBtn{grid-column:1/3;grid-row:2;min-height:29px}
+#console[data-view="moves"] .say{border-left:4px solid #4d98a4;background:#f2f7f3;padding:6px 8px;border-radius:5px;font-size:12px;white-space:pre-line}
+@media(orientation:landscape) and (min-width:590px){
+ #btns{grid-template-columns:56px 56px;grid-template-rows:52px 33px}
+ #aBtn,#bBtn{width:51px;height:51px}
+ #menuBtn{grid-row:2;min-height:32px}
+}
+@media(orientation:portrait) and (max-height:740px){
+ #btns{transform:none;margin-left:0;grid-template-columns:50px 50px;grid-template-rows:50px 31px}
+ #bBtn,#aBtn{width:48px;height:48px}
+ #menuBtn{min-height:29px}
+}
 </style>
 </head>
 <body>
@@ -262,7 +278,7 @@ footer{display:none}
 <div id="bottom"><div id="hinge" aria-hidden="true"></div><div id="touchShell"><div id="touchHeader"><span id="touchTitle">✦ フィールド</span><span id="touchCounter">TOUCH SCREEN</span></div><div id="console" aria-label="下画面・タッチ操作メニュー" aria-live="polite"></div><nav id="touchQuick" aria-label="ショートカット"><button data-page="home">☰ メニュー</button><button data-page="party">✦ なかま</button><button data-page="bag">▣ バッグ</button><button data-page="atlas">◉ 地図</button><button data-page="gear">◷ ギア</button></nav></div>
 <div id="controls">
 <div id="dpad"><button class="dkey" data-dir="up" aria-label="上">▲</button><button class="dkey" data-dir="left" aria-label="左">◀</button><button class="dkey" data-dir="right" aria-label="右">▶</button><button class="dkey" data-dir="down" aria-label="下">▼</button></div>
-<div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>A：調べる・決定<br>B：走る / 戻る</span></div>
+<div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>上画面タップ：近くを調べる<br>A：決定 ／ B：戻る・走る</span></div>
 <div id="btns"><button id="aBtn" class="round" aria-label="決定">A</button><button id="bBtn" class="round" aria-label="戻る">B</button><button id="menuBtn" aria-label="メニュー">MENU</button></div>
 </div></div>
 <footer>ORIGINAL MONSTER ADVENTURE · AUTO SAVE · iPHONE READY</footer>
@@ -1059,6 +1075,17 @@ menuFocus=TouchUX.focusIndex(options,menuMemory[activeMenuKey]);
 markMenuFocus();
 consoleEl.scrollTop=0;
 }
+function updateMoveInfo(){
+ if(consoleEl.dataset.view!=='moves')return;
+ const button=menuButtons[menuFocus],move=button?.dataset.moveName;
+ if(!move||!MOVES[move]||!state.battle)return;
+ const spec=MOVES[move],pp=current()?.pp?.[move]??moveMaxPP(move);
+ const type=spec.type||'無',category=spec.category==='physical'?'物理':spec.category==='special'?'特殊':'変化';
+ const versus=spec.p?effectiveness(type,byId[foe().id].type):1;
+ const advantage=spec.p?(versus>1?'◎ 有利':versus<1?'△ 不利':'○ 通常'):'◌ 補助技';
+ const say=consoleEl.children?.find?.(n=>n.className==='say');
+ if(say)say.textContent='選択中：'+move+'　'+type+' / '+category+'\n威力 '+(spec.p||'—')+'　PP '+pp+'/'+moveMaxPP(move)+'　'+advantage;
+}
 function markMenuFocus(){
  for(let i=0;i<menuButtons.length;i++){
   const btn=menuButtons[i];if(!btn)continue;
@@ -1068,6 +1095,7 @@ function markMenuFocus(){
   if(selected){btn.setAttribute?.('aria-current','true')}
   else btn.removeAttribute?.('aria-current');
  }
+ updateMoveInfo();
 }
 function navigateMenu(dir){
  if(state.scene==='world')return false;
