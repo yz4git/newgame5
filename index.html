@@ -222,8 +222,8 @@ footer{display:none}
 <body>
 <div id="app">
 <header><div class="logo">✦ 星霊譚 <b>ASTRA TALES</b></div><div class="header-right"><span>MONSTER RPG</span><button class="mini" id="audioBtn" aria-label="音声切替">♫ ON</button></div></header>
-<div id="screenShell"><canvas id="screen" width="416" height="352" aria-label="上画面・フィールドとバトル"></canvas><div id="hud"><span id="areaName">星の大地</span><span id="hudRight">✦ はじまりの旅</span></div><div id="upperMessage" role="status" hidden></div><div id="toast"></div></div>
-<div id="bottom"><div id="hinge" aria-hidden="true"></div><div id="touchShell"><div id="touchHeader"><span id="touchTitle">✦ フィールド</span><span id="touchCounter">TOUCH SCREEN</span></div><div id="console" aria-label="下画面・タッチ操作メニュー" aria-live="polite"></div><nav id="touchQuick" aria-label="ショートカット"><button data-page="home">☰ メニュー</button><button data-page="party">✦ なかま</button><button data-page="bag">▣ バッグ</button><button data-page="gear">◷ ギア</button></nav></div>
+<div id="screenShell"><canvas id="screen" width="416" height="352" aria-label="上画面・フィールドとバトル。隣の人や物をタップすると調べます"></canvas><div id="hud"><span id="areaName">星の大地</span><span id="hudRight">✦ はじまりの旅</span></div><div id="upperMessage" role="status" hidden></div><div id="toast"></div></div>
+<div id="bottom"><div id="hinge" aria-hidden="true"></div><div id="touchShell"><div id="touchHeader"><span id="touchTitle">✦ フィールド</span><span id="touchCounter">TOUCH SCREEN</span></div><div id="console" aria-label="下画面・タッチ操作メニュー" aria-live="polite"></div><nav id="touchQuick" aria-label="ショートカット"><button data-page="home">☰ メニュー</button><button data-page="party">✦ なかま</button><button data-page="bag">▣ バッグ</button><button data-page="atlas">◉ 地図</button><button data-page="gear">◷ ギア</button></nav></div>
 <div id="controls">
 <div id="dpad"><button class="dkey" data-dir="up" aria-label="上">▲</button><button class="dkey" data-dir="left" aria-label="左">◀</button><button class="dkey" data-dir="right" aria-label="右">▶</button><button class="dkey" data-dir="down" aria-label="下">▼</button></div>
 <div id="controlNote"><strong>✧ ASTRA ✧</strong><span>十字キーで移動<br>A：調べる・決定<br>B：走る / 戻る</span></div>
@@ -233,6 +233,7 @@ footer{display:none}
 </div>
 <script src="./src/rpg-engine.js?v=__BUILD_ID__"></script>
 <script src="./src/touch-navigation.js?v=__BUILD_ID__"></script>
+<script src="./src/touch-ux.js?v=__BUILD_ID__"></script>
 <script src="./src/visual-polish.js?v=__BUILD_ID__"></script>
 <script src="./src/trainer-tactics.js?v=__BUILD_ID__"></script>
 <script src="./src/companion-bond.js?v=__BUILD_ID__"></script>
@@ -267,15 +268,15 @@ footer{display:none}
 (function(){
 const C=document.getElementById('screen'),ctx=C.getContext('2d',{alpha:false});
 const consoleEl=document.getElementById('console'),areaEl=document.getElementById('areaName'),hudR=document.getElementById('hudRight'),toastEl=document.getElementById('toast');
-const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Expeditions=globalThis.AstraRegionalExpeditions,Spire=globalThis.AstraSpireAscent,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
-const gameDependencies={Engine,TouchNavigation,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Expeditions,Spire,Battlebacks,FieldSprites,Schedules,Cinematics};
+const W=416,H=352,T=32,STORE='astra-tales-v1',Engine=globalThis.AstraEngine,TouchNavigation=globalThis.AstraTouchNavigation,TouchUX=globalThis.AstraTouchUX,VisualPolish=globalThis.AstraVisualPolish,Tactics=globalThis.AstraTactics,Companion=globalThis.AstraCompanion,Rematches=globalThis.AstraRematches,Story=globalThis.AstraStory,CreatureArt=globalThis.AstraCreatureArt,CreatureMotion=globalThis.AstraCreatureMotion,BattleDirection=globalThis.AstraBattleDirection,WorldDetail=globalThis.AstraWorldDetail,Terrain=globalThis.AstraTerrainComposition,Atlas=globalThis.AstraFieldAtlas,FieldCamera=globalThis.AstraFieldCamera,InteriorGuide=globalThis.AstraInteriorWayfinding,Buildings=globalThis.AstraBuildingProfile,MapLayout=globalThis.AstraMapLayout,ForestSecrets=globalThis.AstraForestSecrets,RegionPuzzles=globalThis.AstraRegionPuzzles,Exploration=globalThis.AstraExploration,FieldRequests=globalThis.AstraFieldRequests,TownLegacy=globalThis.AstraTownLegacy,Workshop=globalThis.AstraTownWorkshop,Stargazer=globalThis.AstraStargazer,Expeditions=globalThis.AstraRegionalExpeditions,Spire=globalThis.AstraSpireAscent,Battlebacks=globalThis.AstraBattlebacks,FieldSprites=globalThis.AstraFieldSprites,Schedules=globalThis.AstraSchedules,Cinematics=globalThis.AstraCinematics;
+const gameDependencies={Engine,TouchNavigation,TouchUX,VisualPolish,Tactics,Companion,Rematches,Story,CreatureArt,CreatureMotion,BattleDirection,WorldDetail,Terrain,Atlas,FieldCamera,InteriorGuide,Buildings,MapLayout,ForestSecrets,RegionPuzzles,Exploration,FieldRequests,TownLegacy,Workshop,Stargazer,Expeditions,Spire,Battlebacks,FieldSprites,Schedules,Cinematics};
 const missingDependencies=Object.entries(gameDependencies).filter(([,value])=>!value).map(([name])=>name);
 if(missingDependencies.length)throw Error('Missing game modules: '+missingDependencies.join(', '));
 const colors={sky:'#b3dbcb',forest:'#528b5f',ground:'#76a86e',dirt:'#d6bf85',dark:'#28465a',ink:'#213b43'};
 let preferredAudio=true;try{preferredAudio=localStorage.getItem('astra-audio-enabled')!=='0'}catch(e){}
 let seed=23,now=0,frame=0,lastStep=0,lastTick=0,holdDir=null,touchX=null,soundOn=preferredAudio,toastTimeout=0,music=null;
 let follower={map:'',x:0,y:0};
-let menuButtons=[],menuFocus=0,dpadPointerId=null;
+let menuButtons=[],menuFocus=0,dpadPointerId=null,activeMenuKey='',menuMemory=Object.create(null);
 let cameraTrack=null,areaArrival=null,expeditionFocus='forestgrotto';
 let movement=null,companionMove=null,forcedTrainer=false,forcedStory=false,mapTransition=null,storyEffect=null,storyPose=null,characterBeat=null,explorationFocus=null,explorationHint=0,requestFocus=null;
 const rand=(x,y,k=0)=>{let n=(x*374761393+y*668265263+k*1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
@@ -970,6 +971,7 @@ const field=state.scene==='world'||(state.scene==='menu'&&state.menuPage==='home
 const view=commands?'battleCommands':moves?'moves':talk?'dialog':party?'party':dex?'dex':field?'touchMenu':label.startsWith('ASTRA GEAR')?'gear':'submenu';
 consoleEl.dataset.mode=battle?'battle':'normal';
 consoleEl.dataset.view=view;
+consoleEl.dataset.layout=TouchUX.layout(view,options);
 document.getElementById('screenShell').dataset.preview=state.scene==='menu'&&(state.dexFocus||Number.isInteger(state.partyFocus)||state.menuPage==='exploration'||state.menuPage==='explorationDetail'||state.menuPage==='requests'||state.menuPage==='requestDetail'||state.menuPage==='townLegacy'||state.menuPage==='atlas')?'true':'false';
 const title=document.getElementById('touchTitle'),counter=document.getElementById('touchCounter');
 const upper=document.getElementById('upperMessage');
@@ -977,6 +979,8 @@ const header=view==='battleCommands'?'⚔ たたかい':view==='moves'?'⚔ わ�
 title.textContent=header;
 counter.textContent=battle?(state.battle?'TURN '+state.battle.turn:'BATTLE'):state.scene==='world'?'✦ '+state.party.length+'/6':state.scene==='menu'?state.money+' G':'ASTRA';
 upper.hidden=!talk;upper.textContent=talk?text:'';
+if(activeMenuKey&&menuButtons[menuFocus])menuMemory[activeMenuKey]=menuButtons[menuFocus].textContent;
+const nextMenuKey=state.scene+'|'+view+'|'+label;
 consoleEl.innerHTML='';
 const sub=document.createElement('div');sub.className='eyebrow';sub.textContent=label;
 const say=document.createElement('div');say.className='say';say.textContent=text;
@@ -992,6 +996,7 @@ options.forEach((o,i)=>{
   const move=knownMoves.find(name=>o.text.startsWith(name+' '));
   button.dataset.type=move?(MOVES[move]?.type||'無'):'無';
   button.dataset.matchup=o.matchup||'normal';button.dataset.ppLow=o.lowPP?'true':'false';
+button.dataset.moveName=move||'';button.dataset.movePp=move?String(m.pp?.[move]??moveMaxPP(move)):'';
  }
  if(party&&i<state.party.length){
   const mon=state.party[i],definition=byId[mon.id],ratio=mon.hp/mon.maxHp;
@@ -1008,12 +1013,13 @@ options.forEach((o,i)=>{
   button.append(badge,nm,meta,gauge);
  }else if(party)button.classList.add('party-back');
  button.disabled=!!o.disabled;
- button.addEventListener('click',()=>{menuFocus=i;beep(600,.045);o.on()});
+ button.addEventListener('click',()=>{menuFocus=i;menuMemory[nextMenuKey]=o.text;markMenuFocus();beep(600,.045);o.on()});
  ops.appendChild(button);
 });
 consoleEl.append(sub,say,ops);
 menuButtons=[...ops.children];
-menuFocus=TouchNavigation.first(menuButtons);
+activeMenuKey=nextMenuKey;
+menuFocus=TouchUX.focusIndex(options,menuMemory[activeMenuKey]);
 markMenuFocus();
 consoleEl.scrollTop=0;
 }
@@ -1029,10 +1035,10 @@ function markMenuFocus(){
 }
 function navigateMenu(dir){
  if(state.scene==='world')return false;
- const cols=consoleEl.dataset.view==='dialog'?2:2;
+ const cols=TouchUX.columns(consoleEl.dataset.view,consoleEl.dataset.layout);
  const index=TouchNavigation.next(menuButtons,menuFocus,dir,cols);
  if(index<0)return false;
- if(index!==menuFocus){menuFocus=index;markMenuFocus();menuButtons[index]?.scrollIntoView?.({block:'nearest',inline:'nearest'});beep(480,.025,'sine',.012)}
+ if(index!==menuFocus){menuFocus=index;menuMemory[activeMenuKey]=menuButtons[index]?.textContent;markMenuFocus();menuButtons[index]?.scrollIntoView?.({block:'nearest',inline:'nearest'});beep(480,.025,'sine',.012)}
  return true;
 }
 function screen(scene){state.scene=scene;document.getElementById('app').dataset.scene=scene;setHud()}
@@ -1530,7 +1536,7 @@ function chooseMove(){
   const value=spec?.p?effectiveness(spec.type||'無',opponent.type):1;
   const matchup=!spec?.p?'normal':value>1?'strong':value<1?'weak':'normal';
   const cat=spec.category==='physical'?'物理':spec.category==='special'?'特殊':'変化';
-  return {text:name+'  '+(spec.type||'変化')+' / '+cat+'  PP '+pp+'/'+max,
+  return {text:name+'  '+(spec.type||'変化')+' / '+cat+'\nPP '+pp+'/'+max,
     matchup,lowPP:pp<=Math.ceil(max*.25),disabled:pp<=0,on:()=>turn(name)};
  }):[{text:'⚔ わるあがき（反動あり）',on:()=>turn('わるあがき')}];
  ui(title,remaining?'相手：'+opponent.name+' / '+opponent.type+'タイプ\n◎ 有利　△ 不利　● PPが少ない':'PPがすべて尽きた！ わるあがきを使える。',
@@ -1999,15 +2005,18 @@ return;
 }
 ui('USE ITEM',id==='potion'?'HPを25回復':'HPを50回復',state.party.map(m=>({text:byId[m.id].name+' '+m.hp+'/'+m.maxHp,disabled:m.hp>=m.maxHp,on:()=>{state.bag[id]--;m.hp=Math.min(m.maxHp,m.hp+(id==='potion'?25:50));save();sfx('ok');openPage('bag');toast('HPが回復した！')}})).concat([{text:'↶ もどる',on:()=>openPage('bag')}]))}
 function buttonA(){if(state.scene==='world'){interact();return}const btn=menuButtons[menuFocus];if(btn&&!btn.disabled)btn.click()}
-function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='atlas'){openPage('gear');return}if(state.menuPage==='expeditionDetail'){expeditionsMenu();return}if(state.menuPage==='expeditions'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(!forcedTrainer&&!forcedStory)world()}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
-function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle')showBattle('どうする？')}
+function buttonB(){if(state.scene==='world'){state.running=!state.running;toast(state.running?'ランニングシューズ ON':'ランニングシューズ OFF');save();setHud();return}if(state.scene==='battle'){if(!state.battle?.busy)showBattle('どうする？')}else if(state.scene==='menu'){if(state.menuPage==='dex'&&state.dexFocus){dexList();return}if(state.menuPage==='explorationDetail'){state.menuPage='exploration';explorationMenu();return}if(state.menuPage==='requestDetail'){requestsMenu();return}if(state.menuPage==='requests'){openPage('gear');return}if(state.menuPage==='atlas'){openPage('gear');return}if(state.menuPage==='expeditionDetail'){expeditionsMenu();return}if(state.menuPage==='expeditions'){openPage('gear');return}if(state.menuPage==='townLegacy'){openPage('gear');return}if(state.menuPage==='exploration'){openPage('gear');return}if(state.menuPage!=='home')openPage('home');else world()}else if(state.scene==='dialog'){if(forcedTrainer||forcedStory)return;
+const choice=TouchUX.cancelChoice(menuButtons.map(b=>({text:b.textContent,disabled:b.disabled})));
+if(choice>=0){menuButtons[choice].click();return}
+if(!menuButtons.length)world();else sfx('bad')}else if(state.scene==='shop')world();else if(state.scene==='starter')title();else if(state.scene==='help')title()}
+function buttonMenu(){if(state.scene==='world')openPage('home');else if(state.scene==='menu')world();else if(state.scene==='battle'&&!state.battle?.busy)showBattle('どうする？')}
 $('#aBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonA()});
 $('#bBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonB()});
 $('#menuBtn').addEventListener('pointerdown',e=>{e.preventDefault();buttonMenu()});
 document.querySelectorAll('#touchQuick button[data-page]').forEach(button=>{
  button.addEventListener('click',()=>{
   if(state.scene!=='world')return;
-  if(button.dataset.page==='gear'&&storyStage()<6){toast('ギアは家族から受け取ろう！');return}
+  if(['gear','atlas'].includes(button.dataset.page)&&storyStage()<6){toast('ギアは家族から受け取ろう！');return}
   openPage(button.dataset.page);
  });
 });
