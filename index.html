@@ -217,6 +217,42 @@ footer{display:none}
 #console .options button{touch-action:manipulation}
 #touchQuick button{touch-action:manipulation}
 @media(max-height:740px){#console .options button{min-height:40px}}
+/* v0.34: original touch-first sizing: menus can scroll from a button press. */
+#touchQuick button{min-width:0;font-size:clamp(10px,2.55vw,12px);white-space:nowrap;min-height:31px}
+#console .options button{touch-action:pan-y;line-height:1.4;overflow-wrap:break-word}
+#console[data-layout="list"] .options{grid-template-columns:minmax(0,1fr);gap:5px}
+#console[data-layout="list"] .options button{justify-content:flex-start;text-align:left;padding:9px 12px;min-height:48px;font-size:13px}
+#console[data-view="moves"] .options button{white-space:pre-line;min-height:63px;font-size:clamp(11px,2.9vw,14px);line-height:1.55}
+#console[data-view="moves"] .options button[data-pp-low="true"]{border-color:#ca956c}
+#console .options button.nav-selected:not(:disabled){scroll-margin:10px}
+#touchShell{box-shadow:0 3px #11272d,inset 0 1px #eefef599}
+#touchHeader{font-weight:900}
+.dkey,.round{user-select:none;-webkit-user-select:none}
+@media(orientation:landscape) and (min-width:590px){
+ #controls{height:116px;min-height:116px;padding:4px 8px}
+ #dpad{transform:none;width:146px;height:110px;margin-right:0}
+ .dkey{width:49px;height:42px;font-size:19px}
+ .dkey[data-dir=up]{top:0;left:48px}
+ .dkey[data-dir=down]{bottom:0;left:48px}
+ .dkey[data-dir=left]{top:34px;left:0}
+ .dkey[data-dir=right]{top:34px;right:0}
+ #dpad:after{left:52px;top:38px}
+ #btns{transform:none;margin-left:0;grid-template-columns:56px 56px;grid-template-rows:48px 36px 23px}
+ .round{width:51px;height:51px;font-size:17px}
+ #bBtn{width:50px;height:50px}
+ #menuBtn{font-size:10px}
+ #touchQuick{flex-basis:33px}
+ #console .options button{min-height:48px;font-size:12px}
+}
+@media(orientation:portrait) and (max-height:740px){
+ #controls{height:94px;min-height:94px}
+ #dpad{transform:scale(.87);margin-right:-14px}
+ #btns{transform:scale(.85);margin-left:-12px}
+ #console .options button{min-height:41px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ #console .options button,#toast{transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -2051,8 +2087,32 @@ $('#audioBtn').addEventListener('click',()=>{
  if(music)music.setMuted(!soundOn);if(soundOn)sfx('ok');
 });
 let pointerStart=null;
-C.addEventListener('pointerdown',e=>{if(state.scene!=='world')return;pointerStart={x:e.clientX,y:e.clientY}});
-C.addEventListener('pointerup',e=>{if(!pointerStart||state.scene!=='world')return;const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;if(Math.abs(dx)+Math.abs(dy)<14)interact();else {const d=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');walk(d)}});
+C.addEventListener('pointerdown',e=>{
+ if(state.scene!=='world'||pointerStart)return;
+ pointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};
+});
+C.addEventListener('pointercancel',e=>{if(pointerStart?.id===e.pointerId)pointerStart=null});
+C.addEventListener('pointerup',e=>{
+ if(!pointerStart||pointerStart.id!==e.pointerId)return;
+ const start=pointerStart;pointerStart=null;
+ if(state.scene!=='world')return;
+ const dx=e.clientX-start.x,dy=e.clientY-start.y;
+ if(Math.abs(dx)+Math.abs(dy)>=17){
+  walk(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+  return;
+ }
+ const m=mapMeta[state.map];
+ const camera=cameraTrack?.zone===state.map?cameraTrack:FieldCamera.position({
+  zone:state.map,x:state.x,y:state.y,dir:state.dir,running:state.running,
+  indoor:m.theme==='interior',width:m.w,height:m.h
+ });
+ const target=TouchUX.touchTile(e.clientX,e.clientY,C.getBoundingClientRect(),camera,T,W,H);
+ const intent=TouchUX.tapCommand(target,state,maps[state.map],(NPCS[state.map]||[]).filter(isNpcVisible));
+ if(!intent)return;
+ if(intent.direction)state.dir=intent.direction;
+ if(intent.kind==='interact')interact();
+ else if(intent.kind==='walk')walk(intent.direction);
+});
 function pixel(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
 function ellipse(x,y,rx,ry,col){ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2);ctx.fill()}
 function line(x,y,x2,y2,col,w=2){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
