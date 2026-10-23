@@ -1083,7 +1083,7 @@ function updateMoveInfo(){
  const type=spec.type||'無',category=spec.category==='physical'?'物理':spec.category==='special'?'特殊':'変化';
  const versus=spec.p?effectiveness(type,byId[foe().id].type):1;
  const advantage=spec.p?(versus>1?'◎ 有利':versus<1?'△ 不利':'○ 通常'):'◌ 補助技';
- const say=consoleEl.children?.find?.(n=>n.className==='say');
+ const say=[...(consoleEl.children||[])].reverse().find(n=>n.className==='say');
  if(say)say.textContent='選択中：'+move+'　'+type+' / '+category+'\n威力 '+(spec.p||'—')+'　PP '+pp+'/'+moveMaxPP(move)+'　'+advantage;
 }
 function markMenuFocus(){
