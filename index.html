@@ -1032,7 +1032,7 @@ options.forEach((o,i)=>{
   const move=knownMoves.find(name=>o.text.startsWith(name+' '));
   button.dataset.type=move?(MOVES[move]?.type||'無'):'無';
   button.dataset.matchup=o.matchup||'normal';button.dataset.ppLow=o.lowPP?'true':'false';
-button.dataset.moveName=move||'';button.dataset.movePp=move?String(m.pp?.[move]??moveMaxPP(move)):'';
+button.dataset.moveName=move||'';button.dataset.movePp=move?String(current()?.pp?.[move]??moveMaxPP(move)):'';
  }
  if(party&&i<state.party.length){
   const mon=state.party[i],definition=byId[mon.id],ratio=mon.hp/mon.maxHp;
