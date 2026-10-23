@@ -1027,4 +1027,46 @@ assert.equal(g.get().map,'observatory','The room door returns to the same lakesi
  assert.equal(g.get().map,'windspire','2F returns to the original guardian floor');
 }
 
+// v0.34 — usability regression: clear menus, remembered focus, real canvas tap and move info.
+{
+ g.switchMap({id:'village',x:6,y:13,dir:'up'});
+ g.get().story.stage=12;
+ g.draw();
+ const screenNode=element('screen'),camera=g.getCamera();
+ assert(camera&&camera.zone==='village');
+ const rect=screenNode.getBoundingClientRect(),markX=(6.5*32-camera.x)/416*rect.width+rect.left,
+  markY=(12.5*32-camera.y)/352*rect.height+rect.top;
+ assert(screenNode.listeners.pointerdown&&screenNode.listeners.pointerup,'Upper screen accepts direct target taps');
+ screenNode.listeners.pointerdown({pointerId:91,clientX:markX,clientY:markY});
+ screenNode.listeners.pointerup({pointerId:91,clientX:markX,clientY:markY});
+ assert.equal(g.get().scene,'dialog','Tapping nearby stable sign opens its text');
+ assert(nodes.get('console').children.at(-2).textContent.includes('ミナモリの町'));
+ g.buttonB();
+ assert.equal(g.get().scene,'world','B advances one-line message rather than exiting unpredictably');
+ g.openPage('home');
+ let opts=nodes.get('console').children.at(-1).children;
+ const gear=opts.find(b=>b.textContent.includes('アストラギア'));
+ assert(gear);gear.click();
+ assert.equal(g.get().menuPage,'gear');
+ g.buttonB();
+ assert.equal(g.get().menuPage,'home');
+ const remembered=nodes.get('console').children.at(-1).children.find(b=>b.dataset.selected==='true');
+ assert(remembered&&remembered.textContent.includes('アストラギア'),'Cursor remains at previous selection on return');
+ g.openPage('atlas');
+ assert.equal(nodes.get('console').dataset.layout,'list','Long destination lists use full-width touch items');
+ assert(html.includes('data-page="atlas"'),'One-touch map shortcut exists');
+ g.world();
+ g.get().party.forEach(m=>{m.hp=m.maxHp;for(const move of m.moves)m.pp[move]=Math.max(5,m.pp?.[move]||0)});
+ g.startBattle([g.makeMonster('leafin',5)],{trainer:false});g.chooseMove();
+ assert.equal(nodes.get('console').dataset.view,'moves');
+ assert(nodes.get('console').children.at(-2).textContent.includes('選択中：'),'The highlighted attack has a live description');
+ assert(nodes.get('console').children.at(-2).textContent.includes('PP'),'The attack preview shows remaining uses');
+ const beforeMove=nodes.get('console').children.at(-2).textContent;
+ g.navigateMenu('right');
+ assert.notEqual(nodes.get('console').children.at(-2).textContent,beforeMove,'D-pad selection updates attack detail immediately');
+ g.get().battle=null;g.world();
+ assert(html.includes('#console[data-layout="list"]'),'Responsive list styling shipped');
+ assert(html.includes('#btns{grid-template-columns:56px 56px;grid-template-rows:52px 30px'),'A and B no longer overlap MENU');
+}
+
 console.log('PASS: touchscreen UI, battle effects, faint/intro animation, all biomes, character directions and saves');
