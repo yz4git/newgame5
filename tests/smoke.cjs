@@ -41,6 +41,8 @@ const context={document:doc,window:{addEventListener:noop},Math:deterministicMat
 context.globalThis=context;
 vm.runInNewContext(fs.readFileSync('src/rpg-engine.js','utf8'),context,{timeout:5000,filename:'rpg-engine.js'});
 vm.runInNewContext(fs.readFileSync('src/touch-navigation.js','utf8'),context,{timeout:5000,filename:'touch-navigation.js'});
+vm.runInNewContext(fs.readFileSync('src/touch-ux.js','utf8'),context,{timeout:5000,filename:'touch-ux.js'});
+assert(context.AstraTouchUX,'Handheld interaction quality module is loaded');
 vm.runInNewContext(fs.readFileSync('src/trainer-tactics.js','utf8'),context,{timeout:5000,filename:'trainer-tactics.js'});
 vm.runInNewContext(fs.readFileSync('src/companion-bond.js','utf8'),context,{timeout:5000,filename:'companion-bond.js'});
 vm.runInNewContext(fs.readFileSync('src/trainer-rematches.js','utf8'),context,{timeout:5000,filename:'trainer-rematches.js'});
